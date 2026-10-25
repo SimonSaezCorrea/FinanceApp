@@ -42,11 +42,16 @@ interface Props {
   /** Title/description built by the page itself (spec 033: they carry the value of the day). */
   title?: string;
   description?: string;
+  /** The page's own address per language when it is not `pagePath(lang, page)` (spec 035: a guide
+   * and its pair, whose slugs differ; a language missing here has no version of the page). */
+  paths?: Partial<Record<Language, string>>;
 }
-const { lang, page, notFound = false, utility } = Astro.props;
+const { lang, page, notFound = false, utility, paths } = Astro.props;
 const unindexed = notFound || utility !== undefined;
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
-const url = (l: Language) => `${site}${pagePath(l, page)}`;
+const url = (l: Language) => `${site}${paths?.[l] ?? pagePath(l, page)}`;
+// Alternates only for the languages the page exists in (a guide written in one language has none).
+const alternates = paths ? LANGUAGES.filter((l) => paths[l] !== undefined) : LANGUAGES;
 const metaKey = utility ?? page;
 const title =
   Astro.props.title ??
@@ -110,7 +115,7 @@ const structuredData =
       ) : (
         <>
           <link rel="canonical" href={url(lang)} />
-          {LANGUAGES.map((l) => (
+          {alternates.map((l) => (
             <link rel="alternate" hreflang={l} href={url(l)} />
           ))}
           <link rel="alternate" hreflang="x-default" href={`${site}/`} />
@@ -149,8 +154,8 @@ const structuredData =
       >
         {t(lang, "landing.skipToContent")}
       </a>
-      <Header lang={lang} page={page} />
-      <MobileMenu lang={lang} page={page} />
+      <Header lang={lang} page={page} paths={paths} />
+      <MobileMenu lang={lang} page={page} paths={paths} />
       <main id="landing-main" tabindex="-1" class="mx-auto max-w-[1240px] px-4 focus:outline-none">
         <slot />
         <Footer lang={lang} />

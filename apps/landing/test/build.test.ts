@@ -17,6 +17,7 @@ const PAGES = [
   { slug: "privacy-policy", h1: "landing-privacy-policy-title" },
   { slug: "pricing", h1: "landing-pricing-title" },
   { slug: "faq", h1: "landing-faq-title" },
+  { slug: "ai", h1: "landing-ai-title" },
 ] as const;
 const LANGS = ["es", "en"] as const;
 
@@ -120,6 +121,31 @@ describe("public site build", () => {
     expect(txt).toMatch(/^Policy: /m);
     const expires = new Date(txt.match(/^Expires: (.+)$/m)?.[1] ?? "");
     expect(expires.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("publishes llms.txt with every listed page and guide, linked from the footer", () => {
+    const llms = readFileSync(join(DIST, "llms.txt"), "utf8");
+    expect(llms.startsWith("# fik\n\n> ")).toBe(true);
+    for (const path of [
+      "/es/",
+      "/en/",
+      "/es/pricing/",
+      "/en/faq/",
+      "/es/valor-uf/",
+      "/en/guides/",
+    ]) {
+      expect(llms).toContain(`(${SITE}${path})`);
+    }
+    expect(llms).not.toContain("verify-email");
+    expect(llms).not.toContain(" · fik](");
+    for (const lang of LANGS) {
+      // The footer goes to the page people read; that page shows the same text and links the file.
+      expect(htmlOf(lang, "")).toContain(`href="/${lang}/ai/"`);
+      const page = htmlOf(lang, "ai");
+      expect(page).toContain('href="/llms.txt"');
+      expect(page).toContain("data-llms-text");
+      expect(page).toContain(`${SITE}/es/pricing/`);
+    }
   });
 
   it("publishes robots.txt pointing at the sitemap", () => {
@@ -270,6 +296,156 @@ describe("public site build", () => {
         for (const lang of LANGS) expect(xml).toContain(`<loc>${SITE}/${lang}/${p[lang]}/</loc>`);
         expect(xml).not.toContain(`${SITE}/en/${p.es}/`);
         expect(xml).not.toContain(`${SITE}/es/${p.en}/`);
+      }
+    });
+  });
+
+  // Spec 035: the guides section. One guide for now, in both languages (contracts/pages.md).
+  describe("guides (spec 035)", () => {
+    const INDEX = { es: "guias", en: "guides" } as const;
+    const GUIDE = {
+      es: "guias/fecha-de-cierre-tarjeta",
+      en: "guides/credit-card-statement-dates",
+    } as const;
+    const jsonLdTypes = (html: string) => {
+      const json = attr(html, /<script type="application\/ld\+json">([^<]*)<\/script>/) ?? "[]";
+      return (JSON.parse(json) as { "@type": string }[]).map((d) => d["@type"]);
+    };
+    const jsonLd = (html: string) =>
+      JSON.parse(
+        attr(html, /<script type="application\/ld\+json">([^<]*)<\/script>/) ?? "[]",
+      ) as Record<string, unknown>[];
+
+    for (const lang of LANGS) {
+      const other = lang === "es" ? "en" : "es";
+
+      describe(`/${lang}/${GUIDE[lang]}/`, () => {
+        const html = htmlOf(lang, GUIDE[lang]);
+
+        it("offers its Markdown for AI: a .md next to it and the same text to copy", () => {
+          const md = readFileSync(join(DIST, lang, `${GUIDE[lang]}.md`), "utf8");
+          expect(md.startsWith("# ")).toBe(true);
+          expect(md).toContain(`- URL: ${SITE}/${lang}/${GUIDE[lang]}/`);
+          expect(html).toContain("data-guide-ai");
+          expect(html).toContain(`href="/${lang}/${GUIDE[lang]}.md"`);
+          const island = attr(
+            html,
+            /<script type="application\/json" data-llms-text>([^<]*)<\/script>/,
+          );
+          expect(JSON.parse(island ?? '""')).toBe(md);
+        });
+
+        it("has its own title, description, canonical and its pair (FR-002, FR-011)", () => {
+          expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
+          expect(title(html)).toMatch(/· fik$/);
+          expect(description(html)?.length).toBeGreaterThan(40);
+          expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${GUIDE[lang]}/"`);
+          expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${GUIDE[other]}/"`);
+          expect(html).toMatch(/<h1[^>]*id="guide-title"/);
+        });
+
+        it("answers first, with dates, author and a table of contents (FR-003, FR-005, FR-007)", () => {
+          // The body opens with the answer: a paragraph, before any heading.
+          expect(html).toMatch(/<div[^>]*data-guide-body[^>]*>\s*<p>[^<]{60,}/);
+          expect(html.match(/<time datetime="\d{4}-\d{2}-\d{2}"/g)?.length).toBeGreaterThanOrEqual(
+            2,
+          );
+          expect(html).toMatch(
+            new RegExp(`data-guide-author><a href="/${lang}/about/#author"[^>]*>Simón Sáez</a>, `),
+          );
+          // The table of contents covers the guide's own sections (the body's h2), not the page's.
+          const body = html.slice(
+            html.indexOf("data-guide-body"),
+            html.indexOf("data-guide-sources"),
+          );
+          const ids = [...body.matchAll(/<h2 id="([^"]+)"/g)].map((m) => m[1]!);
+          expect(ids.length).toBeGreaterThanOrEqual(3);
+          for (const id of ids) expect(html).toContain(`href="#${id}"`);
+        });
+
+        it("cites official sources, warns it is general information and shows how in fik (FR-006, FR-008, FR-009)", () => {
+          expect(html).toMatch(/data-guide-sources[\s\S]*?<a href="https:\/\//);
+          expect(html).toMatch(/data-guide-notice/);
+          // The brand is italic in running text (CLAUDE.md conventions): "fik" may be wrapped in <em>.
+          expect(html).toMatch(/<h2 id="[^"]+">(Cómo lo haces en|How to do it in) (<em>)?fik/);
+          expect(html).toMatch(
+            /data-access-slot[^>]*>\s*<a href="\?acceso=registro" data-access="registro"[\s\S]*?<template data-app-template>/,
+          );
+          expect(html).toContain(`href="/${lang}/${INDEX[lang]}/"`);
+        });
+
+        it("declares an Article for search engines (FR-011)", () => {
+          expect(jsonLdTypes(html)).toEqual(["Article", "BreadcrumbList"]);
+          const article = jsonLd(html)[0]!;
+          expect(article.inLanguage).toBe(lang === "es" ? "es-CL" : "en-US");
+          expect(article.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+          expect(article.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+          const author = article.author as { "@type": string; name: string; url: string };
+          expect(author["@type"]).toBe("Person");
+          expect(author.name).toBe("Simón Sáez");
+          expect(author.url).toBe(`${SITE}/${lang}/about/#author`);
+          // …where that address lands: the author block on the About page.
+          const about = readFileSync(join(DIST, lang, "about", "index.html"), "utf8");
+          expect(about).toMatch(/<section id="author"[^>]*>[\s\S]*?Simón Sáez/);
+        });
+
+        it("reads without JavaScript: only the layout's and the copy button's scripts, no React (FR-010)", () => {
+          const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]!);
+          expect(
+            scripts.every((src) => src.includes("PageLayout") || src.includes("GuideAiTools")),
+          ).toBe(true);
+          for (const src of scripts) {
+            const code = readFileSync(join(DIST, src), "utf8");
+            expect(code, src).not.toMatch(/react-dom|__reactFiber|react\.production/);
+          }
+        });
+
+        it("switches language to its pair, never to a missing page", () => {
+          expect(html).toMatch(
+            new RegExp(`href="/${other}/${GUIDE[other]}/"[^>]*hreflang="${other}"`),
+          );
+        });
+      });
+
+      describe(`/${lang}/${INDEX[lang]}/`, () => {
+        const html = htmlOf(lang, INDEX[lang]);
+
+        it("lists the guide with its summary and review date (FR-012)", () => {
+          expect(html).toMatch(/<h1[^>]*id="guides-title"/);
+          expect(html).toContain(`href="/${lang}/${GUIDE[lang]}/"`);
+          expect(html).toMatch(/<time datetime="\d{4}-\d{2}-\d{2}"/);
+          expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${INDEX[lang]}/"`);
+          expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${INDEX[other]}/"`);
+          expect(jsonLdTypes(html)).toEqual(["CollectionPage", "BreadcrumbList"]);
+        });
+      });
+
+      it(`every /${lang}/ page links to the guides in its footer, and the FAQ too (FR-013)`, () => {
+        for (const slug of ["", "about", "faq", "pricing", GUIDE[lang]]) {
+          expect(htmlOf(lang, slug)).toContain(`href="/${lang}/${INDEX[lang]}/"`);
+        }
+        expect(htmlOf(lang, "faq")).toMatch(
+          new RegExp(
+            `data-faq-guides[^>]*href="/${lang}/${INDEX[lang]}/"|href="/${lang}/${INDEX[lang]}/"[^>]*data-faq-guides`,
+          ),
+        );
+      });
+    }
+
+    it("titles and descriptions of the guide pages are unique", () => {
+      const pages = LANGS.flatMap((lang) => [htmlOf(lang, INDEX[lang]), htmlOf(lang, GUIDE[lang])]);
+      expect(new Set(pages.map(title)).size).toBe(pages.length);
+      expect(new Set(pages.map(description)).size).toBe(pages.length);
+    });
+
+    it("lists the indexes and the guide in the sitemap with their real language pair", () => {
+      const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
+      const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
+      for (const page of [INDEX, GUIDE]) {
+        for (const lang of LANGS)
+          expect(xml).toContain(`<loc>${SITE}/${lang}/${page[lang]}/</loc>`);
+        expect(xml).toContain(`hreflang="en-US" href="${SITE}/en/${page.en}/"`);
+        expect(xml).not.toContain(`${SITE}/en/${page.es}/`);
       }
     });
   });

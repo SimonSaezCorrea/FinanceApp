@@ -7,6 +7,8 @@ import { ClosingCta } from "../components/HomeSections";
 import { MatchingReceipts } from "../components/illustrations/MatchingReceipts";
 import { paint } from "../components/illustrations/paint";
 import { withBrand } from "@finance/ui/src/shared/lib/brand";
+import { useLang } from "../../../i18n";
+import { pagePath } from "../../../lib/language";
 
 const P = "landing.about";
 
@@ -30,6 +32,7 @@ const H2 = "text-3xl font-bold leading-[1.1] tracking-tight sm:text-[2.5rem]";
  */
 export function AboutPage() {
   const { t } = useTranslation();
+  const lang = useLang();
 
   return (
     <>
@@ -131,6 +134,29 @@ export function AboutPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section
+          id="author"
+          aria-labelledby="about-author-title"
+          className="reveal flex scroll-mt-[calc(var(--landing-header,4rem)+1rem)] flex-col gap-5 rounded-2xl border bg-card p-6 sm:p-10"
+        >
+          <h2 id="about-author-title" className={H2}>
+            {t(`${P}.author.title`)}
+          </h2>
+          <p className="flex flex-col gap-0.5">
+            <span className="text-xl font-bold tracking-tight">{t(`${P}.author.name`)}</span>
+            <span className="text-muted-foreground">{withBrand(t(`${P}.author.role`))}</span>
+          </p>
+          <p className="max-w-[60ch] text-[15px] leading-relaxed text-muted-foreground md:text-base">
+            {t(`${P}.author.body`)}
+          </p>
+          <a
+            href={pagePath(lang, "guides")}
+            className="self-start text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t(`${P}.author.guides`)}
+          </a>
         </section>
 
         <ClosingCta />

@@ -1,4 +1,12 @@
 <!--
+Sync Impact Report — 2026-10-25 (amendment 2.8.1)
+- Version change: 2.8.0 → 2.8.1 (PATCH: no principle text changed; specs/035 guides section).
+- ADDED: the public site has a content collection (Astro core, no new dependency) for the guides;
+  publishing a guide is adding its Markdown files, validated at build. The guides section is a
+  third exception to "English slugs in both languages" (`/es/guias/`), after the indicator pages
+  and the simulator (branch 034).
+-->
+<!--
 Sync Impact Report — 2026-10-24 (amendment 2.8.0)
 - Version change: 2.7.1 → 2.8.0 (MINOR: two table-domains added; specs/036 custom fields).
 - ADDED table-domains `custom-field` (four layers; the `CustomField` aggregate owns type, options,
@@ -2337,4 +2345,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.8.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-24
+**Version**: 2.8.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-25

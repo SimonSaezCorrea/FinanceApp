@@ -1,0 +1,114 @@
+---
+import { type CollectionEntry, render } from "astro:content";
+
+import { HERO_TITLE } from "../../../domains/landing/components/bits";
+import GuideAiTools from "../../../domains/guides/components/GuideAiTools.astro";
+import GuideCta from "../../../domains/guides/components/GuideCta.astro";
+import GuideMeta from "../../../domains/guides/components/GuideMeta.astro";
+import GuideSources from "../../../domains/guides/components/GuideSources.astro";
+import GuideToc from "../../../domains/guides/components/GuideToc.astro";
+import { isoDay } from "../../../domains/guides/lib/dates";
+import { type Guide, pathsOf } from "../../../domains/guides/lib/guides";
+import { loadGuides } from "../../../domains/guides/lib/load";
+import { markdownOf } from "../../../domains/guides/lib/loadMarkdown";
+import { t } from "../../../i18n";
+import PageLayout from "../../../layouts/PageLayout.astro";
+import { type Language, LOCALIZED_SLUGS, pagePath } from "../../../lib/language";
+
+/**
+ * A guide (spec 035): `/es/guias/<slug>/`, `/en/guides/<slug>/`, built from its Markdown file in
+ * `src/content/guides/<guide>/<lang>.md`. No script of its own: it reads the same with JavaScript off.
+ */
+export async function getStaticPaths() {
+  const { guides, entryOf } = await loadGuides();
+  return guides.map((guide) => ({
+    params: { lang: guide.lang, guides: LOCALIZED_SLUGS.guides[guide.lang], slug: guide.address },
+    props: { guide, entry: entryOf(guide), paths: pathsOf(guide, guides) },
+  }));
+}
+
+const { guide, entry, paths } = Astro.props as {
+  guide: Guide;
+  entry: CollectionEntry<"guides">;
+  paths: Partial<Record<Language, string>>;
+};
+const lang = guide.lang;
+const { Content, headings } = await render(entry);
+// "Recursos para IA": the same Markdown `<guide>.md` serves.
+const markdown = markdownOf(guide, () => entry, Astro.site);
+
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const url = `${site}${guide.path}`;
+const indexPath = pagePath(lang, "guides");
+const structuredData = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.title,
+    description: guide.description,
+    inLanguage: lang === "es" ? "es-CL" : "en-US",
+    datePublished: isoDay(guide.publishedAt),
+    dateModified: isoDay(guide.reviewedAt),
+    author: {
+      "@type": "Person",
+      name: guide.author,
+      jobTitle: t(lang, "landing.about.author.role"),
+      url: `${site}${pagePath(lang, "about")}#author`,
+      worksFor: { "@type": "Organization", name: "fik", url: `${site}/` },
+    },
+    publisher: { "@type": "Organization", name: "fik", url: `${site}/`, logo: `${site}/favicon.svg` },
+    mainEntityOfPage: url,
+    citation: guide.sources.map((s) => s.url),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "fik", item: `${site}${pagePath(lang, "home")}` },
+      { "@type": "ListItem", position: 2, name: t(lang, "landing.guides.breadcrumb"), item: `${site}${indexPath}` },
+      { "@type": "ListItem", position: 3, name: guide.title, item: url },
+    ],
+  },
+]).replace(/</g, "\\u003c");
+---
+
+<PageLayout
+  lang={lang}
+  page="guides"
+  paths={paths}
+  title={`${guide.title} · fik`}
+  description={guide.description}
+>
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+
+  <div class="mx-auto flex max-w-[46rem] flex-col gap-8 pb-16 pt-8 sm:pt-10 lg:pt-14">
+    <header class="flex flex-col gap-3">
+      <a href={indexPath} class="self-start text-sm font-medium text-primary underline-offset-4 hover:underline">
+        {t(lang, "landing.guides.breadcrumb")}
+      </a>
+      <h1 id="guide-title" tabindex="-1" class={HERO_TITLE}>{guide.title}</h1>
+      <GuideMeta lang={lang} publishedAt={guide.publishedAt} reviewedAt={guide.reviewedAt} author={guide.author} />
+    </header>
+
+    <GuideAiTools lang={lang} markdown={markdown} markdownPath={`${guide.path.replace(/\/$/, "")}.md`} />
+
+    <article class="flex flex-col gap-6">
+      <GuideToc lang={lang} headings={headings} />
+      <div data-guide-body class="prose-fik flex flex-col gap-5">
+        <Content />
+      </div>
+    </article>
+
+    <GuideSources lang={lang} sources={guide.sources} />
+
+    <p data-guide-notice class="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+      {t(lang, "landing.guides.notice")}
+    </p>
+
+    <GuideCta lang={lang} />
+
+    <a href={indexPath} class="self-start text-sm font-medium text-primary underline-offset-4 hover:underline">
+      {t(lang, "landing.guides.backToIndex")}
+    </a>
+  </div>
+</PageLayout>

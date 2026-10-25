@@ -1,5 +1,5 @@
 import { I18nRoot } from "../../../i18n";
-import type { Language, Page, RatePage } from "../../../lib/language";
+import type { Language, LocalizedPage, Page } from "../../../lib/language";
 import { HomeRates, type HomeRatesProps } from "../../rates/components/HomeRates";
 import { AboutPage } from "./AboutPage";
 import { FaqPage } from "./FaqPage";
@@ -8,8 +8,8 @@ import { PricingPage } from "./PricingPage";
 import { PrivacyPage } from "./PrivacyPage";
 
 /** The pages written in React. The privacy policy is Markdown rendered by its own Astro page, and
- * the indicator pages (spec 033) are Astro pages with plain scripts. */
-type ReactPage = Exclude<Page, "privacyPolicy" | RatePage>;
+ * the indicator pages (spec 033), the guides (spec 035) and the AI summary are Astro pages. */
+type ReactPage = Exclude<Page, "privacyPolicy" | "ai" | LocalizedPage>;
 
 const CONTENT: Record<ReactPage, () => React.JSX.Element> = {
   home: HomePage,

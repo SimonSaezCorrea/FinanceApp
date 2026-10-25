@@ -6,3 +6,76 @@
 [hidden] {
   display: none !important;
 }
+
+/* Long-form text (the privacy policy, the guides of spec 035): one reading style for the site. */
+.prose-fik {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.prose-fik h2 {
+  margin-top: 1.5rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  scroll-margin-top: calc(var(--landing-header, 4rem) + 1rem);
+}
+.prose-fik p,
+.prose-fik li {
+  color: hsl(var(--muted-foreground));
+}
+.prose-fik strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.prose-fik ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.prose-fik a {
+  color: hsl(var(--primary));
+  text-underline-offset: 4px;
+}
+.prose-fik a:hover {
+  text-decoration: underline;
+}
+/* A wide table scrolls on its own; the page never scrolls sideways. */
+.prose-fik table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.prose-fik th,
+.prose-fik td {
+  min-width: 9rem;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-fik th {
+  background: hsl(var(--muted) / 0.5);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.prose-fik td {
+  color: hsl(var(--muted-foreground));
+}
+.prose-fik h3 {
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.prose-fik ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}

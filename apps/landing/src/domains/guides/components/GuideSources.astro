@@ -1,0 +1,27 @@
+---
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import type { GuideSource } from "../lib/guides";
+
+/** The official sources a guide relies on (spec 035, FR-006), each with its link. */
+interface Props {
+  lang: Language;
+  sources: GuideSource[];
+}
+const { lang, sources } = Astro.props;
+---
+
+<section data-guide-sources aria-labelledby="guide-sources-title" class="flex flex-col gap-3">
+  <h2 id="guide-sources-title" class="text-lg font-semibold">{t(lang, "landing.guides.sources")}</h2>
+  <ul class="flex flex-col gap-2 text-sm">
+    {
+      sources.map((s) => (
+        <li>
+          <a href={s.url} rel="noopener" class="text-primary underline-offset-4 hover:underline">
+            {s.name}: {s.title}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</section>

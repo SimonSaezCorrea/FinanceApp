@@ -1,0 +1,90 @@
+---
+import { Copy, ExternalLink } from "lucide-react";
+
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
+
+import { HERO_TITLE } from "../../domains/landing/components/bits";
+import { buildLlmsText } from "../../domains/llms/lib/build";
+import { t } from "../../i18n";
+import PageLayout from "../../layouts/PageLayout.astro";
+import { type Language, LANGUAGES } from "../../lib/language";
+
+/**
+ * The site summary for AI assistants, shown to people: the same text `/llms.txt` serves (built from
+ * the pages' metadata, the guides and today's rates), with "Copiar" to paste it into a chat. The
+ * text stays readable and selectable with JavaScript off; only the copy button needs the script.
+ */
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Language;
+const text = await buildLlmsText(Astro.site);
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const address = `${site.replace(/^https?:\/\//, "")}/llms.txt`;
+// The address is a link inside the sentence, wherever the language puts it.
+const [beforeAddress, afterAddress] = t(lang, "landing.ai.stepAddress", { url: "%URL%" }).split("%URL%");
+---
+
+<PageLayout lang={lang} page="ai">
+  <article class="mx-auto flex max-w-[52rem] flex-col gap-8 pb-16 pt-8 sm:pt-10 lg:pt-16">
+    <header class="flex flex-col gap-4">
+      <h1
+        id="landing-ai-title"
+        tabindex="-1"
+        class={HERO_TITLE}
+        set:html={brandHtml(t(lang, "landing.ai.title"))}
+      />
+      <p class="max-w-[40rem] text-lg text-muted-foreground" set:html={brandHtml(t(lang, "landing.ai.intro"))} />
+    </header>
+
+    <section aria-labelledby="ai-how" class="flex flex-col gap-3">
+      <h2 id="ai-how" class="text-xl font-semibold">{t(lang, "landing.ai.howTitle")}</h2>
+      <ol class="flex list-decimal flex-col gap-2 pl-5 text-muted-foreground">
+        <li>{t(lang, "landing.ai.stepCopy")}</li>
+        <li>
+          {beforeAddress}<a
+            href="/llms.txt"
+            class="font-medium text-foreground underline decoration-primary underline-offset-4"
+            >{address}</a
+          >{afterAddress}
+        </li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="ai-summary" class="flex flex-col overflow-hidden rounded-2xl border bg-card">
+      <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3 sm:px-5">
+        <h2 id="ai-summary" class="mr-auto font-semibold">{t(lang, "landing.ai.summary")}</h2>
+        <a href="/llms.txt" class={buttonClasses({ variant: "ghost", size: "sm" })}>
+          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          {t(lang, "landing.ai.openText")}
+        </a>
+        <button
+          type="button"
+          hidden
+          data-llms-copy
+          data-copied={t(lang, "landing.ai.copied")}
+          data-failed={t(lang, "landing.ai.copyFailed")}
+          class={buttonClasses({ variant: "primary", size: "sm" })}
+        >
+          <Copy className="h-4 w-4" aria-hidden="true" />
+          <span data-llms-copy-label aria-live="polite">{t(lang, "landing.ai.copy")}</span>
+        </button>
+      </div>
+      <p class="border-b px-4 py-2 text-xs text-muted-foreground sm:px-5">
+        {t(lang, "landing.ai.language")}
+      </p>
+      <pre
+        data-llms-text
+        tabindex="0"
+        class="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words px-4 py-4 font-mono text-xs leading-relaxed sm:px-5 sm:text-sm">{text}</pre>
+    </section>
+  </article>
+</PageLayout>
+
+<script>
+  import { initLlmsCopy } from "../../domains/llms/scripts/copy";
+
+  initLlmsCopy();
+</script>

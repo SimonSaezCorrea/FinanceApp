@@ -509,7 +509,7 @@
       "primaryLimitHint": "Es la primera tarjeta de crédito de la cuenta: su tope pasa a ser el cupo compartido de la cuenta.",
       "extraLimits": "Topes en otras monedas",
       "extraLimitsHint": "Opcional. Añade un tope adicional si esta tarjeta también se usa en otra moneda (sin conversión entre monedas).",
-      "extraLimitsNoCurrencies": "Para agregar un tope en otra moneda (ej. USD), primero actívala en Perfil → Personalización financiera → Monedas extra.",
+      "extraLimitsNoCurrencies": "Para agregar un tope en otra moneda (ej. USD), primero actívala en Perfil → Preferencias → Monedas y montos → Monedas extra.",
       "usesPool": "Cupo de la cuenta",
       "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
       "ownLimit": "Tope propio",

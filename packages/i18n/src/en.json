@@ -509,7 +509,7 @@
       "primaryLimitHint": "This is the account's first credit card: its limit becomes the account's shared pool.",
       "extraLimits": "Limits in other currencies",
       "extraLimitsHint": "Optional. Add an extra limit if this card is also used in another currency (no cross-currency conversion).",
-      "extraLimitsNoCurrencies": "To add a limit in another currency (e.g. USD), first enable it in Profile → Financial customization → Extra currencies.",
+      "extraLimitsNoCurrencies": "To add a limit in another currency (e.g. USD), first enable it in Profile → Preferences → Currencies and amounts → Extra currencies.",
       "usesPool": "Account pool",
       "usesPoolHint": "This card shares the account's full pool.",
       "ownLimit": "Own limit",

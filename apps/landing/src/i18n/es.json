@@ -21,7 +21,15 @@
     },
     "footer": {
       "tagline": "Hecha en Chile para pesos, dólares y UF.",
-      "nav": "Legal y ayuda"
+      "groups": {
+        "rates": "Indicadores",
+        "learn": "Aprende",
+        "company": "fik"
+      },
+      "allGuides": "Todas las guías",
+      "legal": "Legal",
+      "copyright": "© {{year}} fik",
+      "llms": "Para asistentes de IA"
     },
     "home": {
       "eyebrow": "Finanzas personales en Chile",
@@ -120,7 +128,14 @@
           "body": "Adjuntar comprobantes a tus movimientos llega pronto. La sincronización automática con bancos no existe todavía y puede llegar a futuro; mientras, importas la cartola de tu banco o la plantilla de fik, que también sirve para llevarte tus datos."
         }
       },
-      "inTheApp": "En la app"
+      "inTheApp": "En la app",
+      "author": {
+        "title": "Quién escribe las guías",
+        "name": "Simón Sáez",
+        "role": "Fundador de fik",
+        "body": "Simón escribe cada guía a partir de las normas y fuentes oficiales que cita, con un ejemplo en pesos chilenos, y anota en cada una cuándo se revisó por última vez.",
+        "guides": "Ver las guías"
+      }
     },
     "privacy": {
       "center": "Tus datos",
@@ -300,7 +315,8 @@
         "title": "¿Te quedó otra duda?",
         "body": "Crear la cuenta toma un minuto y no te compromete a nada: el primer gasto lo puedes anotar en efectivo."
       },
-      "morePrivacy": "Más sobre esto en Privacidad y datos"
+      "morePrivacy": "Más sobre esto en Privacidad y datos",
+      "guidesLink": "¿Buscas algo más detallado? Lee nuestras guías"
     },
     "skipToContent": "Saltar al contenido",
     "meta": {
@@ -348,6 +364,14 @@
         "titleWithValue": "Dólar observado hoy {{date}}: {{value}} · fik",
         "description": "Valor del dólar observado hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de dólares a pesos. Datos del Banco Central de Chile.",
         "descriptionWithValue": "Dólar observado hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de dólares a pesos. Datos del Banco Central de Chile."
+      },
+      "guides": {
+        "title": "Guías de finanzas personales para Chile · fik",
+        "description": "Guías claras sobre tarjetas de crédito, cuentas y facturación en Chile, con ejemplos en pesos y fuentes oficiales (CMF, SERNAC, Banco Central)."
+      },
+      "ai": {
+        "title": "fik para asistentes de IA · fik",
+        "description": "Un resumen de fik para ChatGPT, Claude u otro asistente de IA: qué hace la app, sus páginas y guías, y la UF y el dólar del día."
       }
     },
     "access": {
@@ -455,6 +479,46 @@
         "body": "Los mismos valores que usa fik, con historial y conversor.",
         "see": "Ver historial y conversor"
       }
+    },
+    "guides": {
+      "nav": "Guías",
+      "title": "Guías de finanzas personales",
+      "lead": "Respuestas claras a preguntas concretas sobre tarjetas, cuentas y facturación en Chile, con ejemplos y fuentes oficiales.",
+      "empty": "Aún no hay guías en este idioma.",
+      "published": "Publicada el {{date}}",
+      "reviewed": "Revisada el {{date}}",
+      "authorRole": "fundador de fik",
+      "reviewedShort": "Revisada el {{date}}",
+      "toc": "En esta guía",
+      "sources": "Fuentes",
+      "notice": "Esta guía es información general y no es asesoría financiera. Las condiciones de tu tarjeta las fija tu emisor y aparecen en tu contrato y en tu estado de cuenta.",
+      "backToIndex": "Ver todas las guías",
+      "breadcrumb": "Guías",
+      "cta": {
+        "title": "Lleva el control de tus tarjetas en fik",
+        "body": "Anota tus compras, genera cada facturación con las fechas de tu estado de cuenta y sabe siempre cuánto debes pagar y cuándo.",
+        "action": "Crear cuenta"
+      },
+      "ai": {
+        "label": "Recursos para IA",
+        "copy": "Copiar página para LLMs",
+        "copied": "Copiada",
+        "copyFailed": "No se pudo copiar",
+        "markdown": "Mostrar como Markdown"
+      }
+    },
+    "ai": {
+      "title": "fik para asistentes de IA",
+      "intro": "Si le preguntas a ChatGPT, Claude, Gemini u otro asistente por fik, dale este resumen: le cuenta qué hace la app y dónde está cada página y guía. Se actualiza con cada versión del sitio, con la UF y el dólar del día.",
+      "howTitle": "Cómo usarlo",
+      "stepCopy": "Copia el resumen y pégalo en tu conversación antes de preguntar.",
+      "stepAddress": "O dale la dirección {{url}}: los asistentes que navegan la leen solos.",
+      "summary": "Resumen",
+      "language": "Está en inglés, el idioma que mejor entienden los asistentes, y enlaza las páginas en español y en inglés.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar",
+      "openText": "Abrir como texto"
     }
   }
 }

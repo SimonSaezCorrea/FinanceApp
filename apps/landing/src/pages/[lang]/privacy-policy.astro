@@ -21,71 +21,10 @@ const Body = lang === "es" ? Es : En;
 ---
 
 <PageLayout lang={lang} page="privacyPolicy">
-  <article class="legal mx-auto flex max-w-[46rem] flex-col gap-6 pb-16 pt-8 sm:pt-10 lg:pt-16">
+  <article class="prose-fik mx-auto flex max-w-[46rem] flex-col gap-6 pb-16 pt-8 sm:pt-10 lg:pt-16">
     <h1 id="landing-privacy-policy-title" tabindex="-1" class={HERO_TITLE}>
       {t(lang, "landing.privacyPolicy.title")}
     </h1>
     <Body />
   </article>
 </PageLayout>
-
-<style is:global>
-  .legal {
-    font-size: 1rem;
-    line-height: 1.7;
-  }
-  .legal h2 {
-    margin-top: 1.5rem;
-    font-size: 1.375rem;
-    font-weight: 600;
-    line-height: 1.3;
-    scroll-margin-top: calc(var(--landing-header, 4rem) + 1rem);
-  }
-  .legal p,
-  .legal li {
-    color: hsl(var(--muted-foreground));
-  }
-  .legal strong {
-    color: hsl(var(--foreground));
-    font-weight: 600;
-  }
-  .legal ul {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-left: 1.25rem;
-    list-style: disc;
-  }
-  .legal a {
-    color: hsl(var(--primary));
-    text-underline-offset: 4px;
-  }
-  .legal a:hover {
-    text-decoration: underline;
-  }
-  /* A wide table scrolls on its own; the page never scrolls sideways. */
-  .legal table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-  .legal th,
-  .legal td {
-    min-width: 9rem;
-    border-bottom: 1px solid hsl(var(--border));
-    padding: 0.625rem 0.75rem;
-    text-align: left;
-    vertical-align: top;
-  }
-  .legal th {
-    background: hsl(var(--muted) / 0.5);
-    color: hsl(var(--foreground));
-    font-weight: 600;
-  }
-  .legal td {
-    color: hsl(var(--muted-foreground));
-  }
-</style>

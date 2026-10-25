@@ -1,40 +1,119 @@
 ---
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
+import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
+
 import { t } from "../../../i18n";
-import { type Language, pagePath } from "../../../lib/language";
+import { type Language, type Page, pagePath } from "../../../lib/language";
+import { sortForIndex } from "../../guides/lib/guides";
+import { loadGuides } from "../../guides/lib/load";
 
 interface Props {
   lang: Language;
 }
 const { lang } = Astro.props;
-const LINKS = [
+
+/** Guides listed by name under "Aprende" (newest review first); the rest are one click away. */
+const FOOTER_GUIDES = 4;
+
+interface FooterLink {
+  href: string;
+  label: string;
+}
+const link = (page: Page, key: string): FooterLink => ({
+  href: pagePath(lang, page),
+  label: t(lang, key),
+});
+
+const { guides } = await loadGuides();
+const GROUPS: { key: string; links: FooterLink[] }[] = [
   // Spec 033: the indicator pages, on every page of the site (FR-013).
-  { page: "ufValue", key: "landing.rates.nav.ufValue" },
-  { page: "dollarRate", key: "landing.rates.nav.dollarRate" },
-  { page: "privacy", key: "landing.nav.privacy" },
-  { page: "privacyPolicy", key: "landing.nav.privacyPolicy" },
-  { page: "pricing", key: "landing.nav.pricing" },
-  { page: "faq", key: "landing.nav.faq" },
-] as const;
+  {
+    key: "rates",
+    links: [link("ufValue", "landing.rates.nav.ufValue"), link("dollarRate", "landing.rates.nav.dollarRate")],
+  },
+  // Spec 035: the guides section, on every page (FR-013).
+  {
+    key: "learn",
+    links: [
+      ...sortForIndex(guides, lang)
+        .slice(0, FOOTER_GUIDES)
+        // The short title: the full question took two lines each.
+        .map((guide) => ({ href: guide.path, label: guide.shortTitle })),
+      link("guides", "landing.footer.allGuides"),
+    ],
+  },
+  {
+    key: "company",
+    links: [
+      link("about", "landing.nav.about"),
+      link("pricing", "landing.nav.pricing"),
+      link("faq", "landing.nav.faq"),
+    ],
+  },
+];
+const LEGAL = [
+  link("privacy", "landing.nav.privacy"),
+  link("privacyPolicy", "landing.nav.privacyPolicy"),
+  // The site summary for AI assistants (the page shows /llms.txt to people).
+  link("ai", "landing.footer.llms"),
+];
+const linkClass =
+  "inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-0";
 ---
 
 <!-- `relative z-10 bg-background`: slides over the FAQ's fixed column at the end of that page. -->
-<footer
-  class="relative z-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t bg-background py-8 text-xs text-muted-foreground"
->
-  <p class="flex flex-col gap-1">
-    <span class="text-sm font-medium text-foreground">{t(lang, "brand.slogan")}</span>
-    <span>{t(lang, "landing.footer.tagline")}</span>
-  </p>
-  <nav aria-label={t(lang, "landing.footer.nav")} class="flex flex-wrap gap-x-5 gap-y-1 sm:ml-auto">
+<footer class="relative z-10 border-t bg-background pt-10 text-sm text-muted-foreground">
+  <!-- Phone: two short columns (Indicadores, fik) side by side, the guides below them at full width. -->
+  <div class="grid grid-cols-2 gap-x-6 gap-y-10 pb-10 lg:grid-cols-[1.4fr_1fr_1.4fr_1fr]">
+    <div class="col-span-2 flex flex-col gap-3 lg:col-span-1">
+      <a href={pagePath(lang, "home")} class="self-start">
+        <BrandLogo className="h-11" title={t(lang, "brand.name")} />
+      </a>
+      <p class="flex max-w-xs flex-col gap-1">
+        <span class="font-medium text-foreground">{t(lang, "brand.slogan")}</span>
+        <span class="text-xs">{t(lang, "landing.footer.tagline")}</span>
+      </p>
+    </div>
     {
-      LINKS.map((item) => (
-        <a
-          href={pagePath(lang, item.page)}
-          class="inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-0"
+      GROUPS.map((group) => (
+        <nav
+          aria-labelledby={`footer-${group.key}`}
+          class={group.key === "learn" ? "order-last col-span-2 lg:order-none lg:col-span-1" : undefined}
         >
-          {t(lang, item.key)}
-        </a>
+          <p
+            id={`footer-${group.key}`}
+            class="mb-3 font-medium text-foreground"
+            set:html={brandHtml(t(lang, `landing.footer.groups.${group.key}`))}
+          />
+          <ul class="flex flex-col gap-y-1 sm:gap-y-2.5">
+            {group.links.map((item) => (
+              <li>
+                <a href={item.href} class={linkClass}>
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       ))
     }
-  </nav>
+  </div>
+  <div
+    class="flex flex-col gap-2 border-t py-6 text-xs sm:flex-row sm:items-center sm:justify-between"
+  >
+    <p set:html={brandHtml(t(lang, "landing.footer.copyright", { year: new Date().getFullYear() }))} />
+    <nav aria-label={t(lang, "landing.footer.legal")}>
+      <ul class="flex flex-wrap gap-x-5 gap-y-1">
+        {
+          LEGAL.map((item) => (
+            <li>
+              <a href={item.href} class={linkClass}>
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
 </footer>
