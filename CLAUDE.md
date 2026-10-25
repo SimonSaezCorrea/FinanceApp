@@ -1839,9 +1839,13 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     `domains/guides/lib/markdown.ts`'s `guideMarkdown` (title, summary, URL, dates, author, body,
     sources, notice), so they are the same text (build test). A guide therefore has ONE script of its
     own (the copy button) and still reads complete without JavaScript (FR-010). The first guide was
-    revised (2026-10-25) against the decrees' texts: the due-date shift on a non-business day and the
-    minimum-payment floor already apply under D.S. 44 (art. 3 num. 36 and its Monto Mínimo
-    definition), not only from D.S. 75; "total facturado" vs "total a pagar" (devengado) explained.
+    revised (2026-10-25) against the decrees' texts: the due-date shift on a non-business day already
+    applies under D.S. 44 (art. 3 num. 36), not only from D.S. 75; "total facturado" vs "total a
+    pagar" (devengado) explained; the minimum payment follows **CMF NCG 537** (in force for banks and
+    non-bank issuers since 2026-06-04: 100% of interest, fees and charges + 5% of the rest; interest-free
+    instalments move into the full part 25% every 6 months until 2028-06-04; an issuer may waive it at
+    most 2 months in a row if the debt is repaid within 24 months), which supersedes D.S. 44's
+    "not below the period's interest" floor. Guides that touch the minimum payment must cite NCG 537.
     Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
     profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
     builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the

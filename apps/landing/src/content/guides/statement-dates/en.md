@@ -11,6 +11,9 @@ sources:
   - name: "SERNAC"
     title: "Decreto N° 44 de 2012 (credit card consumer information regulation)"
     url: "https://www.sernac.cl/portal/618/w3-article-11629.html"
+  - name: "CMF"
+    title: "Norma de Carácter General N° 537 (minimum payment formula for credit cards)"
+    url: "https://www.cmfchile.cl/normativa/ncg_537_2025.pdf"
   - name: "Diario Oficial"
     title: "Decreto N° 75 de 2025 (new credit card consumer information regulation)"
     url: "https://www.diariooficial.interior.gob.cl/publicaciones/2026/08/06/44518/01/2846533.pdf"
@@ -58,9 +61,11 @@ Your statement shows two totals that look alike but are not:
 - **You pay only the minimum:** you are not late, but what you did not pay stays as debt and accrues revolving interest (intereses rotativos). That interest shows up on the next statement and your debt takes longer to clear.
 - **You pay nothing, or less than the minimum:** on top of the interest, late interest (intereses moratorios) and collection fees can be charged.
 
-Your issuer calculates the minimum payment and prints it on your statement. By regulation, it cannot be lower than the interest that last month's unpaid debt accrued during the period, unless a promotion lets you skip payments for a while.
+Your issuer calculates the minimum payment and prints it on your statement. Since June 4, 2026, a CMF rule requires it to include all of the period's interest, fees and charges, plus at least 5% of the rest of what was billed.
 
-Keep in mind what that means: if you pay only the minimum every month, you may be paying mostly interest while your debt barely goes down.
+Interest-free installments are added to that part gradually, until June 2028. Paying only the minimum does bring your debt down, but slowly, and what is left keeps accruing interest.
+
+Your issuer may let you skip the minimum payment for at most two months in a row, as long as the debt is still paid off within 24 months.
 
 ## If the due date falls on a non-business day
 
@@ -68,9 +73,9 @@ If the due date falls on a Saturday, Sunday or public holiday, your contract mus
 
 ## Which rules apply today
 
-The credit card consumer information regulation in force today dates from 2012 (Decreto 44). The non-business-day rule and the minimum payment floor are already in it.
+The credit card consumer information regulation in force today dates from 2012 (Decreto 44). The non-business-day rule is already in it.
 
-The new regulation (Decreto 75) was published in the Diario Oficial on August 6, 2026 and takes effect on February 6, 2028. It keeps both rules and defines each date and amount on the statement in more detail.
+The new regulation (Decreto 75) was published in the Diario Oficial on August 6, 2026 and takes effect on February 6, 2028. It keeps that rule and defines each date and amount on the statement in more detail.
 
 The CMF (Comisión para el Mercado Financiero) is Chile's financial regulator, and SERNAC (Servicio Nacional del Consumidor) is the consumer protection agency.
 

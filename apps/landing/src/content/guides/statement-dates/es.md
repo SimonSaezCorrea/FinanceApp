@@ -11,6 +11,9 @@ sources:
   - name: "SERNAC"
     title: "Decreto N° 44 de 2012, reglamento sobre información al consumidor de tarjetas de crédito"
     url: "https://www.sernac.cl/portal/618/w3-article-11629.html"
+  - name: "CMF"
+    title: "Norma de Carácter General N° 537, fórmula del pago mínimo en tarjetas de crédito"
+    url: "https://www.cmfchile.cl/normativa/ncg_537_2025.pdf"
   - name: "Diario Oficial"
     title: "Decreto N° 75 de 2025, nuevo reglamento sobre información al consumidor de tarjetas de crédito"
     url: "https://www.diariooficial.interior.gob.cl/publicaciones/2026/08/06/44518/01/2846533.pdf"
@@ -58,9 +61,11 @@ En el estado de cuenta verás dos totales que parecen iguales, pero no lo son:
 - **Pagas solo el mínimo:** no quedas atrasado, pero lo que no pagaste sigue como deuda y genera intereses rotativos. Esos intereses aparecen en el estado de cuenta siguiente y la deuda tarda más en terminar.
 - **No pagas o pagas menos que el mínimo:** además de los intereses, se pueden cobrar intereses moratorios y gastos de cobranza.
 
-El pago mínimo lo calcula tu emisor y aparece en tu estado de cuenta. Por norma, no puede ser menor que los intereses que generó en el período la deuda que quedó impaga del mes anterior, salvo que una promoción te libere de pagar por un tiempo.
+El pago mínimo lo calcula tu emisor y aparece en tu estado de cuenta. Desde el 4 de junio de 2026, una norma de la CMF exige que incluya todos los intereses, comisiones y cargos del período, más al menos un 5% del resto de lo facturado.
 
-Ojo con lo que eso significa: si cada mes pagas solo el mínimo, puede que estés pagando casi puros intereses y tu deuda casi no baje.
+Las cuotas sin interés se suman a esa parte de a poco, hasta junio de 2028. Pagando solo el mínimo tu deuda sí baja, pero lento, y lo que queda sigue generando intereses.
+
+Tu emisor puede liberarte del pago mínimo, como máximo dos meses seguidos, siempre que la deuda igual quede pagada en 24 meses.
 
 ## Si la fecha de pago cae en un día inhábil
 
@@ -68,9 +73,9 @@ Si el vencimiento cae en sábado, domingo o festivo, tu contrato debe trasladarl
 
 ## Qué norma rige hoy
 
-Hoy rige el reglamento de información al consumidor de tarjetas de crédito de 2012 (Decreto 44). El traslado por día inhábil y el piso del pago mínimo ya están en esa norma.
+Hoy rige el reglamento de información al consumidor de tarjetas de crédito de 2012 (Decreto 44). El traslado por día inhábil ya está en esa norma.
 
-El nuevo reglamento (Decreto 75) se publicó en el Diario Oficial el 6 de agosto de 2026 y rige desde el 6 de febrero de 2028. Mantiene esas dos reglas y define con más detalle cada fecha y cada monto del estado de cuenta.
+El nuevo reglamento (Decreto 75) se publicó en el Diario Oficial el 6 de agosto de 2026 y rige desde el 6 de febrero de 2028. Mantiene esa regla y define con más detalle cada fecha y cada monto del estado de cuenta.
 
 ## Dónde ver tus fechas reales
 
