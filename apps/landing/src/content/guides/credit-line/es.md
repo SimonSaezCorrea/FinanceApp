@@ -66,7 +66,7 @@ La línea de crédito tiene un monto máximo, un plazo y un interés pactados en
 
 En _fik_ la línea de crédito es parte de tu cuenta corriente y la tarjeta de crédito es su propia cuenta:
 
-1. **Registra tu línea:** crea tu cuenta corriente en **Cuentas**, edítala y, en **Más detalles**, escribe el monto de tu **Línea de sobregiro**. El saldo podrá bajar de cero hasta ese monto, y un gasto que lo pase se rechaza, como en el banco.
+1. **Registra tu línea:** al crear tu cuenta corriente en **Cuentas**, abre **Más detalles** y escribe el monto de tu **Línea de sobregiro**. También puedes agregarla después, editando la cuenta. El saldo podrá bajar de cero hasta ese monto, y un gasto que lo pase se rechaza, como en el banco.
 2. **Registra tus movimientos:** cuando el saldo queda en negativo, estás usando la línea. Cada ingreso que registres lo acerca de nuevo a cero, igual que el pago automático.
 3. **Registra los intereses:** cuando el banco te cargue los intereses de la línea, anótalos como un gasto en la cuenta corriente, con el monto del aviso.
 4. **Registra tu tarjeta aparte:** crea la tarjeta de crédito como una cuenta de tipo **Tarjeta de crédito**, con su cupo, su facturación y su fecha de pago.
