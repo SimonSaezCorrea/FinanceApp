@@ -21,7 +21,15 @@
     },
     "footer": {
       "tagline": "Made in Chile for pesos, dollars and UF.",
-      "nav": "Legal and help"
+      "groups": {
+        "rates": "Indicators",
+        "learn": "Learn",
+        "company": "fik"
+      },
+      "allGuides": "All guides",
+      "legal": "Legal",
+      "copyright": "© {{year}} fik",
+      "llms": "For AI assistants"
     },
     "home": {
       "eyebrow": "Personal finance in Chile",
@@ -353,6 +361,10 @@
       "guides": {
         "title": "Personal finance guides for Chile · fik",
         "description": "Clear guides on credit cards, accounts and billing in Chile for residents and newcomers, with examples in pesos and official sources."
+      },
+      "ai": {
+        "title": "fik for AI assistants · fik",
+        "description": "A summary of fik for ChatGPT, Claude or any AI assistant: what the app does, its pages and guides, and today's UF and dollar."
       }
     },
     "access": {
@@ -479,7 +491,27 @@
         "title": "Keep track of your cards in fik",
         "body": "Record your purchases, generate each statement with the dates on your bank statement and always know how much to pay and when.",
         "action": "Create account"
+      },
+      "ai": {
+        "label": "AI resources",
+        "copy": "Copy page for LLMs",
+        "copied": "Copied",
+        "copyFailed": "Couldn't copy",
+        "markdown": "Show as Markdown"
       }
+    },
+    "ai": {
+      "title": "fik for AI assistants",
+      "intro": "If you ask ChatGPT, Claude, Gemini or another assistant about fik, give it this summary: it tells it what the app does and where every page and guide is. It is updated with every version of the site, with today's UF and dollar.",
+      "howTitle": "How to use it",
+      "stepCopy": "Copy the summary and paste it into your conversation before asking.",
+      "stepAddress": "Or give it the address {{url}}: assistants that browse read it on their own.",
+      "summary": "Summary",
+      "language": "It is in English, the language assistants understand best, and links the pages in both Spanish and English.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Couldn't copy",
+      "openText": "Open as text"
     }
   }
 }

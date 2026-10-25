@@ -1,0 +1,50 @@
+---
+import { Copy, FileText } from "lucide-react";
+
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+
+/**
+ * "Recursos para IA" on a guide: copy the whole guide as Markdown to paste into an assistant, or open
+ * that Markdown (`<guide>.md`). The text travels as a JSON island so the page doesn't show it twice;
+ * the copy button stays hidden until its script runs (the link works with JavaScript off).
+ */
+interface Props {
+  lang: Language;
+  markdown: string;
+  markdownPath: string;
+}
+const { lang, markdown, markdownPath } = Astro.props;
+const island = JSON.stringify(markdown).replace(/</g, "\u003c");
+const action =
+  "inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary/10 px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:min-h-8";
+---
+
+<div
+  data-guide-ai
+  class="flex flex-wrap items-center gap-x-2 gap-y-2 border-y py-3 text-sm text-muted-foreground"
+>
+  <span class="mr-1">{t(lang, "landing.guides.ai.label")}</span>
+  <button
+    type="button"
+    hidden
+    data-llms-copy
+    data-copied={t(lang, "landing.guides.ai.copied")}
+    data-failed={t(lang, "landing.guides.ai.copyFailed")}
+    class={action}
+  >
+    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+    <span data-llms-copy-label aria-live="polite">{t(lang, "landing.guides.ai.copy")}</span>
+  </button>
+  <a href={markdownPath} class={action}>
+    <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+    {t(lang, "landing.guides.ai.markdown")}
+  </a>
+  <script type="application/json" data-llms-text set:html={island} />
+</div>
+
+<script>
+  import { initLlmsCopy } from "../../llms/scripts/copy";
+
+  initLlmsCopy();
+</script>

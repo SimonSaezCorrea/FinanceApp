@@ -15,6 +15,7 @@ export const PAGES = [
   "ufValue",
   "dollarRate",
   "guides",
+  "ai",
 ] as const;
 export type Page = (typeof PAGES)[number];
 
@@ -48,6 +49,8 @@ const SLUG: Record<Exclude<Page, LocalizedPage>, string> = {
   privacyPolicy: "privacy-policy",
   pricing: "pricing",
   faq: "faq",
+  // The site summary for AI assistants, shown to people (the same text as /llms.txt).
+  ai: "ai",
 };
 
 /** `/es/`, `/en/pricing/` — always prefixed by the language and ending with a slash (the static

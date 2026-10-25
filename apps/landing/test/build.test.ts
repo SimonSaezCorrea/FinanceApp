@@ -17,6 +17,7 @@ const PAGES = [
   { slug: "privacy-policy", h1: "landing-privacy-policy-title" },
   { slug: "pricing", h1: "landing-pricing-title" },
   { slug: "faq", h1: "landing-faq-title" },
+  { slug: "ai", h1: "landing-ai-title" },
 ] as const;
 const LANGS = ["es", "en"] as const;
 
@@ -120,6 +121,31 @@ describe("public site build", () => {
     expect(txt).toMatch(/^Policy: /m);
     const expires = new Date(txt.match(/^Expires: (.+)$/m)?.[1] ?? "");
     expect(expires.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("publishes llms.txt with every listed page and guide, linked from the footer", () => {
+    const llms = readFileSync(join(DIST, "llms.txt"), "utf8");
+    expect(llms.startsWith("# fik\n\n> ")).toBe(true);
+    for (const path of [
+      "/es/",
+      "/en/",
+      "/es/pricing/",
+      "/en/faq/",
+      "/es/valor-uf/",
+      "/en/guides/",
+    ]) {
+      expect(llms).toContain(`(${SITE}${path})`);
+    }
+    expect(llms).not.toContain("verify-email");
+    expect(llms).not.toContain(" · fik](");
+    for (const lang of LANGS) {
+      // The footer goes to the page people read; that page shows the same text and links the file.
+      expect(htmlOf(lang, "")).toContain(`href="/${lang}/ai/"`);
+      const page = htmlOf(lang, "ai");
+      expect(page).toContain('href="/llms.txt"');
+      expect(page).toContain("data-llms-text");
+      expect(page).toContain(`${SITE}/es/pricing/`);
+    }
   });
 
   it("publishes robots.txt pointing at the sitemap", () => {
@@ -296,6 +322,19 @@ describe("public site build", () => {
       describe(`/${lang}/${GUIDE[lang]}/`, () => {
         const html = htmlOf(lang, GUIDE[lang]);
 
+        it("offers its Markdown for AI: a .md next to it and the same text to copy", () => {
+          const md = readFileSync(join(DIST, lang, `${GUIDE[lang]}.md`), "utf8");
+          expect(md.startsWith("# ")).toBe(true);
+          expect(md).toContain(`- URL: ${SITE}/${lang}/${GUIDE[lang]}/`);
+          expect(html).toContain("data-guide-ai");
+          expect(html).toContain(`href="/${lang}/${GUIDE[lang]}.md"`);
+          const island = attr(
+            html,
+            /<script type="application\/json" data-llms-text>([^<]*)<\/script>/,
+          );
+          expect(JSON.parse(island ?? '""')).toBe(md);
+        });
+
         it("has its own title, description, canonical and its pair (FR-002, FR-011)", () => {
           expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
           expect(title(html)).toMatch(/· fik$/);
@@ -342,9 +381,11 @@ describe("public site build", () => {
           expect((article.author as { name: string }).name).toBe("Equipo fik");
         });
 
-        it("reads without JavaScript: no script of its own, no React (FR-010)", () => {
+        it("reads without JavaScript: only the layout's and the copy button's scripts, no React (FR-010)", () => {
           const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]!);
-          expect(scripts.every((src) => src.includes("PageLayout"))).toBe(true);
+          expect(
+            scripts.every((src) => src.includes("PageLayout") || src.includes("GuideAiTools")),
+          ).toBe(true);
           for (const src of scripts) {
             const code = readFileSync(join(DIST, src), "utf8");
             expect(code, src).not.toMatch(/react-dom|__reactFiber|react\.production/);

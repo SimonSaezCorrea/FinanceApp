@@ -75,7 +75,7 @@ author, notice, "Cómo lo haces en fik" and CTA, in both languages.
 
 - [x] T023 Lighthouse mobile locally (`astro preview`) on `/es/guias/` and the Spanish guide: performance ≥ 95, accessibility/best-practices/SEO 100 (best-practices may show only the local session probe), LCP ≤ 2 s; and SC-001: at a 360×640 phone viewport the guide's first paragraph (the answer) is visible without scrolling (if not, tighten the header spacing or move the meta line below the answer); record results in plan.md. **Done 2026-10-23**: index and both guides 100/100/96/100 (96 = the local session probe), LCP 1,5 s, CLS 0; at 360×640 (mobile emulation) the answer is visible without scrolling and the page is exactly 360 px wide (only the example table scrolls inside its box)
 - [x] T024 Run `pnpm --filter @finance/landing test`, `typecheck` (`astro check`), `lint`, build + `test:build`, `pnpm format:check`, `pnpm check:boundaries`
-- [ ] T025 Owner review of both guide texts (FR-017) before merging: present the rendered Spanish and English guide and apply corrections
+- [x] T025 Owner review of both guide texts (FR-017) before merging: present the rendered Spanish and English guide and apply corrections
 - [x] T026 Memory sync: CLAUDE.md (apps/landing bullet: guides section, content collection, `LOCALIZED_SLUGS`, `PageLayout` `paths`, `prose-fik`; plan pointer → implementado with what was verified) and constitution (PATCH: public site gains a content collection; publishing a guide is content-only)
 
 ---

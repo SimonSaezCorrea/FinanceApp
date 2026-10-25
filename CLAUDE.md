@@ -1822,6 +1822,25 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     D.S. 44/2012 page, D.S. 75/2025 in the Diario Oficial — the new credit-card information regulation,
     in force 2028-02-06). Local Lighthouse mobile on the index and both guides: 100/100/96*/100,
     LCP 1,5 s, CLS 0 (*the local session probe only). i18n `landing.guides.*`, `landing.meta.guides.*`.
+    Amendment (footer by columns + AI resources, 2026-10-25): the footer (`Footer.astro`) is a grid —
+    logo + slogan + tagline, then **Indicadores** (UF, dólar), **Aprende** (the 4 newest-reviewed
+    guides by title + "Todas las guías") and **_fik_** (Nosotros, Precios, Preguntas), and a bottom bar
+    "© <year> fik" · Privacidad y datos · Política de privacidad · "Para asistentes de IA"
+    (`landing.footer.*`). **`/llms.txt`** (llmstxt.org, `src/pages/llms.txt.ts`) and the page
+    **`/<lang>/ai/`** (page key `ai`, `src/pages/[lang]/ai.astro`: the same text with "Copiar" and a
+    link to the file) come from ONE builder, `domains/llms/lib/build.ts` (`buildLlmsText`: a
+    hand-written English fact list in `llmsText.ts` — keep it true to the product —, every public page
+    in both languages from its own `landing.meta.*`, the guides, and today's UF/dollar from the
+    build's snapshot). **Every guide has "Recursos para IA"** (`GuideAiTools.astro`, below the meta
+    line): "Copiar página para LLMs" (the Markdown as a JSON island, copied by
+    `domains/llms/scripts/copy.ts`; the button is hidden until its script runs) and "Mostrar como
+    Markdown" → `<guide path without slash>.md` (`[slug].md.ts`), both from
+    `domains/guides/lib/markdown.ts`'s `guideMarkdown` (title, summary, URL, dates, author, body,
+    sources, notice), so they are the same text (build test). A guide therefore has ONE script of its
+    own (the copy button) and still reads complete without JavaScript (FR-010). The first guide was
+    revised (2026-10-25) against the decrees' texts: the due-date shift on a non-business day and the
+    minimum-payment floor already apply under D.S. 44 (art. 3 num. 36 and its Monto Mínimo
+    definition), not only from D.S. 75; "total facturado" vs "total a pagar" (devengado) explained.
     Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
     profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
     builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the
@@ -2549,7 +2568,7 @@ al construir], índice de secciones, fuentes oficiales, fechas, "Equipo fik", av
 general, CTA y JSON-LD `Article`. Primera guía: fecha de cierre y fecha de pago de la tarjeta (emisor
 genérico, versión en inglés para extranjeros en Chile). Sin API ni dependencias nuevas. Ver
 research.md R1–R9.
-**Verificado** (2026-10-23): landing [154 unit + 133 de build], `astro check` 0 errores, lint, `format:check`, `check:boundaries`; publicar una guía de prueba sin `sources` detiene el build nombrando el archivo, completa aparece en índice y sitemap, y una dirección repetida falla; Lighthouse móvil local (índice y ambas guías) 100/100/96/100, LCP 1,5 s; a 360×640 la respuesta se ve sin scroll. **Pendiente**: revisión del texto por el dueño del producto (FR-017).)
+**Verificado** (2026-10-23): landing [154 unit + 133 de build], `astro check` 0 errores, lint, `format:check`, `check:boundaries`; publicar una guía de prueba sin `sources` detiene el build nombrando el archivo, completa aparece en índice y sitemap, y una dirección repetida falla; Lighthouse móvil local (índice y ambas guías) 100/100/96/100, LCP 1,5 s; a 360×640 la respuesta se ve sin scroll. **Revisión** (2026-10-25): texto de la primera guía revisado contra los decretos 44 y 75; footer por columnas, `/llms.txt`, página `/<lang>/ai/` y "Recursos para IA" en cada guía.)
 
 Prior plan (036 — implementado): specs/036-custom-fields/plan.md
 (Campos personalizados en los movimientos: tablas-dominio nuevas `custom-field` [4 capas, agregado

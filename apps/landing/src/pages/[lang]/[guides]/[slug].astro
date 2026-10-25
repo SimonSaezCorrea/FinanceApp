@@ -2,6 +2,7 @@
 import { type CollectionEntry, render } from "astro:content";
 
 import { HERO_TITLE } from "../../../domains/landing/components/bits";
+import GuideAiTools from "../../../domains/guides/components/GuideAiTools.astro";
 import GuideCta from "../../../domains/guides/components/GuideCta.astro";
 import GuideMeta from "../../../domains/guides/components/GuideMeta.astro";
 import GuideSources from "../../../domains/guides/components/GuideSources.astro";
@@ -9,6 +10,7 @@ import GuideToc from "../../../domains/guides/components/GuideToc.astro";
 import { isoDay } from "../../../domains/guides/lib/dates";
 import { type Guide, pathsOf } from "../../../domains/guides/lib/guides";
 import { loadGuides } from "../../../domains/guides/lib/load";
+import { markdownOf } from "../../../domains/guides/lib/loadMarkdown";
 import { t } from "../../../i18n";
 import PageLayout from "../../../layouts/PageLayout.astro";
 import { type Language, LOCALIZED_SLUGS, pagePath } from "../../../lib/language";
@@ -32,6 +34,8 @@ const { guide, entry, paths } = Astro.props as {
 };
 const lang = guide.lang;
 const { Content, headings } = await render(entry);
+// "Recursos para IA": the same Markdown `<guide>.md` serves.
+const markdown = markdownOf(guide, () => entry, Astro.site);
 
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
 const url = `${site}${guide.path}`;
@@ -79,6 +83,8 @@ const structuredData = JSON.stringify([
       <h1 id="guide-title" tabindex="-1" class={HERO_TITLE}>{guide.title}</h1>
       <GuideMeta lang={lang} publishedAt={guide.publishedAt} reviewedAt={guide.reviewedAt} author={guide.author} />
     </header>
+
+    <GuideAiTools lang={lang} markdown={markdown} markdownPath={`${guide.path.replace(/\/$/, "")}.md`} />
 
     <article class="flex flex-col gap-6">
       <GuideToc lang={lang} headings={headings} />
