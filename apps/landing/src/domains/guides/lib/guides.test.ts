@@ -6,6 +6,7 @@ const entry = (id: string, overrides: Partial<GuideEntry["data"]> = {}): GuideEn
   id,
   data: {
     title: `Title ${id}`,
+    shortTitle: `Short ${id}`,
     description: "A guide.",
     address: id.replace("/", "-"),
     publishedAt: new Date("2026-10-01"),

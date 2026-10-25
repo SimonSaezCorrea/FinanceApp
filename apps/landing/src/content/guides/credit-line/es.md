@@ -1,5 +1,6 @@
 ---
 title: "Línea de crédito o tarjeta de crédito: en qué se diferencian"
+shortTitle: "Línea de crédito vs. tarjeta"
 description: "Cómo funciona la línea de crédito de tu cuenta corriente, cuándo cobra intereses, cómo se paga sola y en qué se diferencia de la tarjeta de crédito."
 address: "linea-de-credito-vs-tarjeta"
 publishedAt: 2026-10-25

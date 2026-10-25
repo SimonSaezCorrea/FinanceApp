@@ -1,5 +1,6 @@
 ---
 title: "Additional credit cards in Chile: how the shared credit limit works"
+shortTitle: "Additional cards and limit"
 description: "What an additional card (tarjeta adicional) is in Chile, how it shares the credit limit, who pays for it and how to cap it, with an example in pesos."
 address: "additional-credit-card-limit"
 publishedAt: 2026-10-25

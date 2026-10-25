@@ -37,7 +37,8 @@ const GROUPS: { key: string; links: FooterLink[] }[] = [
     links: [
       ...sortForIndex(guides, lang)
         .slice(0, FOOTER_GUIDES)
-        .map((guide) => ({ href: guide.path, label: guide.title })),
+        // The short title: the full question took two lines each.
+        .map((guide) => ({ href: guide.path, label: guide.shortTitle })),
       link("guides", "landing.footer.allGuides"),
     ],
   },
@@ -62,8 +63,9 @@ const linkClass =
 
 <!-- `relative z-10 bg-background`: slides over the FAQ's fixed column at the end of that page. -->
 <footer class="relative z-10 border-t bg-background pt-10 text-sm text-muted-foreground">
-  <div class="grid gap-10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.4fr_1fr]">
-    <div class="flex flex-col gap-3 sm:col-span-2 lg:col-span-1">
+  <!-- Phone: two short columns (Indicadores, fik) side by side, the guides below them at full width. -->
+  <div class="grid grid-cols-2 gap-x-6 gap-y-10 pb-10 lg:grid-cols-[1.4fr_1fr_1.4fr_1fr]">
+    <div class="col-span-2 flex flex-col gap-3 lg:col-span-1">
       <a href={pagePath(lang, "home")} class="self-start">
         <BrandLogo className="h-11" title={t(lang, "brand.name")} />
       </a>
@@ -74,7 +76,10 @@ const linkClass =
     </div>
     {
       GROUPS.map((group) => (
-        <nav aria-labelledby={`footer-${group.key}`}>
+        <nav
+          aria-labelledby={`footer-${group.key}`}
+          class={group.key === "learn" ? "order-last col-span-2 lg:order-none lg:col-span-1" : undefined}
+        >
           <p
             id={`footer-${group.key}`}
             class="mb-3 font-medium text-foreground"

@@ -1,5 +1,6 @@
 ---
 title: "Credit line vs credit card in Chile: what is the difference"
+shortTitle: "Credit line vs. credit card"
 description: "How the credit line of a Chilean checking account works, when it charges interest, how it pays itself off and how it differs from a credit card."
 address: "credit-line-vs-credit-card"
 publishedAt: 2026-10-25

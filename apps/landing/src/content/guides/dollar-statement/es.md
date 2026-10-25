@@ -1,5 +1,6 @@
 ---
 title: "Compras en dólares con tarjeta de crédito: cómo se pagan"
+shortTitle: "Compras en dólares"
 description: "Cómo funciona el cupo internacional, qué es el estado de cuenta en dólares, cómo pagarlo en dólares o en pesos y qué tipo de cambio se usa."
 address: "compras-en-dolares-tarjeta"
 publishedAt: 2026-10-25

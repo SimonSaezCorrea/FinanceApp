@@ -1,5 +1,6 @@
 ---
 title: "Interest-free instalments on a Chilean credit card: limit and minimum payment"
+shortTitle: "Interest-free instalments"
 description: "How an interest-free instalment purchase in Chile uses your credit limit, how it is billed and how it enters the minimum payment under the CMF rule until 2028."
 address: "interest-free-installments-chile"
 publishedAt: 2026-10-25

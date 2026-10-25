@@ -1,5 +1,6 @@
 ---
 title: "Cuotas sin interés con tarjeta de crédito: cupo y pago mínimo"
+shortTitle: "Cuotas sin interés"
 description: "Cómo una compra en cuotas sin interés usa tu cupo, cómo se cobra en cada estado de cuenta y cómo entra al pago mínimo con la norma de la CMF hasta 2028."
 address: "cuotas-sin-interes-tarjeta"
 publishedAt: 2026-10-25

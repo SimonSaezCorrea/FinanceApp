@@ -1,5 +1,6 @@
 ---
 title: "Credit card closing date and payment due date in Chile"
+shortTitle: "Closing and due dates"
 description: "How the closing date and the due date of a Chilean credit card work, with an example in pesos and what happens if you pay the total or the minimum."
 address: "credit-card-statement-dates"
 publishedAt: 2026-10-23

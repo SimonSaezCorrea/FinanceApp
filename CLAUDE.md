@@ -1825,7 +1825,8 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     LCP 1,5 s, CLS 0 (*the local session probe only). i18n `landing.guides.*`, `landing.meta.guides.*`.
     Amendment (footer by columns + AI resources, 2026-10-25): the footer (`Footer.astro`) is a grid —
     logo + slogan + tagline, then **Indicadores** (UF, dólar), **Aprende** (the 4 newest-reviewed
-    guides by title + "Todas las guías") and **_fik_** (Nosotros, Precios, Preguntas), and a bottom bar
+    guides by their required frontmatter `shortTitle`, ≤ 32 chars, + "Todas las guías"; on a phone
+    Indicadores and _fik_ sit side by side and Aprende goes below at full width) and **_fik_** (Nosotros, Precios, Preguntas), and a bottom bar
     "© <year> fik" · Privacidad y datos · Política de privacidad · "Para asistentes de IA"
     (`landing.footer.*`). **`/llms.txt`** (llmstxt.org, `src/pages/llms.txt.ts`) and the page
     **`/<lang>/ai/`** (page key `ai`, `src/pages/[lang]/ai.astro`: the same text with "Copiar" and a

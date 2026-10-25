@@ -1,5 +1,6 @@
 ---
 title: "Tarjeta adicional: cómo funciona el cupo compartido"
+shortTitle: "Tarjeta adicional y cupo"
 description: "Qué es una tarjeta adicional, cómo comparte el cupo con la titular, quién paga lo que gasta y cómo ponerle un tope, con un ejemplo en pesos."
 address: "tarjeta-adicional-cupo"
 publishedAt: 2026-10-25

@@ -13,6 +13,8 @@ const guides = defineCollection({
   schema: z.object({
     /** The question the guide answers: its h1 and <title>. */
     title: z.string().trim().min(1),
+    /** A few words for lists where the full question is too long (the footer). */
+    shortTitle: z.string().trim().min(1).max(32),
     /** Meta description and the index's summary line. */
     description: z.string().trim().min(1).max(160),
     /** The address in the page's language: /es/guias/<address>/, /en/guides/<address>/. (Not `slug`,

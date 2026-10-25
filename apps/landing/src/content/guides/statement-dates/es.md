@@ -1,5 +1,6 @@
 ---
 title: "Fecha de cierre y fecha de pago de la tarjeta de crédito"
+shortTitle: "Fecha de cierre y de pago"
 description: "Qué son la fecha de cierre y la fecha de pago de tu tarjeta de crédito, con un ejemplo en pesos y qué pasa si pagas el total o el mínimo."
 address: "fecha-de-cierre-tarjeta"
 publishedAt: 2026-10-23

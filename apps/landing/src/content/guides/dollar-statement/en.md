@@ -1,5 +1,6 @@
 ---
 title: "Dollar purchases on a Chilean credit card: how they are paid"
+shortTitle: "Dollar purchases"
 description: "How the international credit limit works in Chile, what the dollar statement is, how to pay it in dollars or pesos and which exchange rate applies."
 address: "paying-credit-card-in-dollars"
 publishedAt: 2026-10-25

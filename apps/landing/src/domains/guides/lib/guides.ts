@@ -21,6 +21,7 @@ export interface GuideSource {
 
 export interface GuideData {
   title: string;
+  shortTitle: string;
   description: string;
   address: string;
   publishedAt: Date;
