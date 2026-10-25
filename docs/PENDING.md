@@ -1036,8 +1036,10 @@ en el home, endpoint público, rebuild programado). Pendiente:
 
 1. **Más herramientas públicas**: conversor UF ↔ CLP ↔ USD como página propia, simulador de compra
    en cuotas (`equalPrincipalSchedule`), calculadora de pago mínimo.
-2. **Guías** (colección de contenido en el landing): cupo con tarjetas adicionales, facturación y
-   fecha de pago, cuotas sin interés, pago en dólares, línea de crédito vs tarjeta, CuentaRUT.
+2. **Guías** (colección de contenido en el landing, spec 035): publicadas fecha de cierre y de pago,
+   tarjetas adicionales y cupo compartido, línea de crédito vs tarjeta, compras en dólares y cuotas
+   sin interés. CuentaRUT descartada (2026-10-25): las búsquedas son de trámite con BancoEstado y
+   fik no aporta más que el techo de saldo.
 3. **Señales de confianza**: autor con nombre, fuentes citadas y fecha de revisión en cada guía,
    enlaces externos a mifik.cl.
 4. **Medir**: Lighthouse móvil en producción de las 4 páginas de indicadores (local: 100/100/100/100,
