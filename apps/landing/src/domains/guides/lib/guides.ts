@@ -9,8 +9,9 @@ import { LANGUAGES, type Language, pagePath } from "../../../lib/language";
  * the build naming the file (FR-015).
  */
 
-/** Every guide is signed by the team until the named-author task (ClickUp 17tgmdxpme6). */
-export const AUTHOR = "Equipo fik";
+/** Every guide is signed by its writer, presented on the About page (`#author`). The role
+ * is `landing.guides.authorRole`, in the guide's language. */
+export const AUTHOR = "Simón Sáez";
 
 export interface GuideSource {
   name: string;

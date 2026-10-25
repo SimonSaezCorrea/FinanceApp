@@ -4,6 +4,8 @@ export interface GuideMarkdownLabels {
   /** "Publicada el 23 de octubre de 2026" — already formatted in the guide's language. */
   published: string;
   reviewed: string;
+  /** "fundador de fik" — the author's role, after the name. */
+  authorRole: string;
   sources: string;
   notice: string;
 }
@@ -23,9 +25,12 @@ export function guideMarkdown(
     [
       `# ${guide.title}`,
       `> ${guide.description}`,
-      [`- URL: ${url}`, `- ${labels.published}`, `- ${labels.reviewed}`, `- ${guide.author}`].join(
-        "\n",
-      ),
+      [
+        `- URL: ${url}`,
+        `- ${labels.published}`,
+        `- ${labels.reviewed}`,
+        `- ${guide.author}, ${labels.authorRole}`,
+      ].join("\n"),
       body.trim(),
       [
         `## ${labels.sources}`,

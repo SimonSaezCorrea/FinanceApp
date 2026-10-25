@@ -350,7 +350,9 @@ describe("public site build", () => {
           expect(html.match(/<time datetime="\d{4}-\d{2}-\d{2}"/g)?.length).toBeGreaterThanOrEqual(
             2,
           );
-          expect(html).toContain("Equipo fik");
+          expect(html).toMatch(
+            new RegExp(`data-guide-author><a href="/${lang}/about/#author"[^>]*>Simón Sáez</a>, `),
+          );
           // The table of contents covers the guide's own sections (the body's h2), not the page's.
           const body = html.slice(
             html.indexOf("data-guide-body"),
@@ -378,7 +380,13 @@ describe("public site build", () => {
           expect(article.inLanguage).toBe(lang === "es" ? "es-CL" : "en-US");
           expect(article.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}$/);
           expect(article.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-          expect((article.author as { name: string }).name).toBe("Equipo fik");
+          const author = article.author as { "@type": string; name: string; url: string };
+          expect(author["@type"]).toBe("Person");
+          expect(author.name).toBe("Simón Sáez");
+          expect(author.url).toBe(`${SITE}/${lang}/about/#author`);
+          // …where that address lands: the author block on the About page.
+          const about = readFileSync(join(DIST, lang, "about", "index.html"), "utf8");
+          expect(about).toMatch(/<section id="author"[^>]*>[\s\S]*?Simón Sáez/);
         });
 
         it("reads without JavaScript: only the layout's and the copy button's scripts, no React (FR-010)", () => {

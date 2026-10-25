@@ -1,11 +1,13 @@
 ---
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
 import { t } from "../../../i18n";
-import type { Language } from "../../../lib/language";
+import { type Language, pagePath } from "../../../lib/language";
 import { formatDay } from "../../rates/lib/chileDay";
 import { isoDay } from "../lib/dates";
 
 /** Published · reviewed · author (spec 035, FR-007), both dates always shown (the review date is
- * what tells a reader the sources were checked), as `<time>` for crawlers. */
+ * what tells a reader the sources were checked), as `<time>` for crawlers. The author's name links
+ * to their presentation on the About page. */
 interface Props {
   lang: Language;
   publishedAt: Date;
@@ -15,6 +17,7 @@ interface Props {
 const { lang, publishedAt, reviewedAt, author } = Astro.props;
 const published = isoDay(publishedAt);
 const reviewed = isoDay(reviewedAt);
+const role = brandHtml(t(lang, "landing.guides.authorRole"));
 ---
 
 <p class="flex flex-wrap gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -22,5 +25,8 @@ const reviewed = isoDay(reviewedAt);
   <span aria-hidden="true">·</span>
   <time datetime={reviewed}>{t(lang, "landing.guides.reviewed", { date: formatDay(reviewed, lang) })}</time>
   <span aria-hidden="true">·</span>
-  <span>{author}</span>
+  <span data-guide-author>
+    <a href={`${pagePath(lang, "about")}#author`} class="font-medium text-foreground underline-offset-4 hover:underline">{author}</a
+    >{", "}<span set:html={role} />
+  </span>
 </p>

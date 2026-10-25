@@ -128,7 +128,14 @@
           "body": "Adjuntar comprobantes a tus movimientos llega pronto. La sincronización automática con bancos no existe todavía y puede llegar a futuro; mientras, importas la cartola de tu banco o la plantilla de fik, que también sirve para llevarte tus datos."
         }
       },
-      "inTheApp": "En la app"
+      "inTheApp": "En la app",
+      "author": {
+        "title": "Quién escribe las guías",
+        "name": "Simón Sáez",
+        "role": "Fundador de fik",
+        "body": "Simón escribe cada guía a partir de las normas y fuentes oficiales que cita, con un ejemplo en pesos chilenos, y anota en cada una cuándo se revisó por última vez.",
+        "guides": "Ver las guías"
+      }
     },
     "privacy": {
       "center": "Tus datos",
@@ -480,7 +487,7 @@
       "empty": "Aún no hay guías en este idioma.",
       "published": "Publicada el {{date}}",
       "reviewed": "Revisada el {{date}}",
-      "author": "Equipo fik",
+      "authorRole": "fundador de fik",
       "reviewedShort": "Revisada el {{date}}",
       "toc": "En esta guía",
       "sources": "Fuentes",

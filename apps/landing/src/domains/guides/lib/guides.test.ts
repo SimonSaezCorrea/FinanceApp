@@ -31,7 +31,7 @@ describe("toGuides", () => {
       key: "statement-dates",
       lang: "es",
       path: "/es/guias/fecha-de-cierre-tarjeta/",
-      author: "Equipo fik",
+      author: "Simón Sáez",
     });
   });
 

@@ -1805,7 +1805,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     derive from them; `lib/sitemapPairs.mjs` reads each file's `address:` for astro.config, which runs
     before the content layer). A guide page: answer-first body (`[data-guide-body]`, class
     **`prose-fik`** — the long-form text style, extracted from the privacy policy into `global.css`),
-    meta line (published · reviewed · "Equipo fik", `<time>`), a closed native `<details>` table of
+    meta line (published · reviewed · the author, `<time>`; since 2026-10-25 "Simón Sáez, fundador de _fik_" [`guides.ts`'s `AUTHOR` + `landing.guides.authorRole`], linked to the author block on About, `/<lang>/about/#author`, and a `Person` author in the `Article` JSON-LD), a closed native `<details>` table of
     contents from the body's `h2`s (so the answer stays above the fold on a phone), sources, the
     "información general, no asesoría" notice, a "Cómo lo haces en _fik_" section in the Markdown and
     the sign-up CTA in a `[data-access-slot]`; JSON-LD `Article` + `BreadcrumbList` (index:

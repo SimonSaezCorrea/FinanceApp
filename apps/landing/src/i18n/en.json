@@ -128,7 +128,14 @@
           "body": "Attaching receipts to your movements is coming soon. Automatic bank sync doesn't exist yet and may come in the future; meanwhile you import your bank statement or the fik template, which also lets you take your data with you."
         }
       },
-      "inTheApp": "In the app"
+      "inTheApp": "In the app",
+      "author": {
+        "title": "Who writes the guides",
+        "name": "Simón Sáez",
+        "role": "Founder of fik",
+        "body": "Simón writes each guide from the regulations and official sources it cites, with an example in Chilean pesos, and records in each one when it was last reviewed.",
+        "guides": "See the guides"
+      }
     },
     "privacy": {
       "center": "Your data",
@@ -480,7 +487,7 @@
       "empty": "There are no guides in this language yet.",
       "published": "Published on {{date}}",
       "reviewed": "Reviewed on {{date}}",
-      "author": "Equipo fik (the fik team)",
+      "authorRole": "founder of fik",
       "reviewedShort": "Reviewed on {{date}}",
       "toc": "In this guide",
       "sources": "Sources",

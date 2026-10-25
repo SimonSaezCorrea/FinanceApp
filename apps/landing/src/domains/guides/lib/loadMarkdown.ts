@@ -20,6 +20,7 @@ export function markdownOf(
     reviewed: t(lang, "landing.guides.reviewed", {
       date: formatDay(isoDay(guide.reviewedAt), lang),
     }),
+    authorRole: t(lang, "landing.guides.authorRole"),
     sources: t(lang, "landing.guides.sources"),
     notice: t(lang, "landing.guides.notice"),
   });

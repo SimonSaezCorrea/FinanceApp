@@ -5,12 +5,13 @@ import { guideMarkdown } from "./markdown";
 const guide = {
   title: "Fecha de cierre",
   description: "Qué es la fecha de cierre.",
-  author: "Equipo fik",
+  author: "Simón Sáez",
   sources: [{ name: "CMF", title: "Estado de cuenta", url: "https://www.cmfchile.cl/x" }],
 };
 const labels = {
   published: "Publicada el 23 de octubre de 2026",
   reviewed: "Revisada el 23 de octubre de 2026",
+  authorRole: "fundador de fik",
   sources: "Fuentes",
   notice: "Información general.",
 };
@@ -27,7 +28,7 @@ describe("guideMarkdown", () => {
       [
         "# Fecha de cierre",
         "> Qué es la fecha de cierre.",
-        "- URL: https://mifik.cl/es/guias/x/\n- Publicada el 23 de octubre de 2026\n- Revisada el 23 de octubre de 2026\n- Equipo fik",
+        "- URL: https://mifik.cl/es/guias/x/\n- Publicada el 23 de octubre de 2026\n- Revisada el 23 de octubre de 2026\n- Simón Sáez, fundador de fik",
         "## Las dos fechas\n\nTexto.",
         "## Fuentes\n- [CMF: Estado de cuenta](https://www.cmfchile.cl/x)",
         "_Información general._",

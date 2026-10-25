@@ -1034,14 +1034,17 @@ Plan completo en la card: ganar búsquedas específicas que fik ya resuelve en v
 frente por "finanzas personales". Hecho: **Valor UF y dólar observado** (spec 033: 4 páginas, bloque
 en el home, endpoint público, rebuild programado). Pendiente:
 
-1. **Más herramientas públicas**: conversor UF ↔ CLP ↔ USD como página propia, simulador de compra
-   en cuotas (`equalPrincipalSchedule`), calculadora de pago mínimo.
+1. **Más herramientas públicas**: conversor UF ↔ CLP ↔ USD como página propia (siguiente spec). El
+   simulador de compra en cuotas y la calculadora de pago mínimo salieron de esta card a una feature
+   propia.
 2. **Guías** (colección de contenido en el landing, spec 035): publicadas fecha de cierre y de pago,
    tarjetas adicionales y cupo compartido, línea de crédito vs tarjeta, compras en dólares y cuotas
    sin interés. CuentaRUT descartada (2026-10-25): las búsquedas son de trámite con BancoEstado y
    fik no aporta más que el techo de saldo.
-3. **Señales de confianza**: autor con nombre, fuentes citadas y fecha de revisión en cada guía,
-   enlaces externos a mifik.cl.
-4. **Medir**: Lighthouse móvil en producción de las 4 páginas de indicadores (local: 100/100/100/100,
+3. **Señales de confianza**: hecho (2026-10-25) — cada guía la firma Simón Sáez, fundador de fik,
+   con enlace a su presentación en Nosotros (`/<lang>/about/#author`) y `Person` en el JSON-LD;
+   fuentes y fecha de revisión ya estaban. Queda, fuera del código, conseguir enlaces externos a
+   mifik.cl.
+4. **Medir** (subtarea aparte, para no mezclarla con lo que se construye): Lighthouse móvil en producción de las 4 páginas de indicadores (local: 100/100/100/100,
    LCP 1,7 s) y, en Search Console, impresiones de "uf"/"dólar" a las 8 semanas (SC-006).
 5. Las páginas de indicadores no tienen página por mes ni por día (fuera de alcance de la spec 033).
