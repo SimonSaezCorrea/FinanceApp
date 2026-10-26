@@ -13,6 +13,7 @@ const LISTED: readonly Page[] = [
   "ufValue",
   "dollarRate",
   "guides",
+  "editorial",
   "about",
   "pricing",
   "faq",

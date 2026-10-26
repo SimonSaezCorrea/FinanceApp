@@ -153,6 +153,40 @@ describe("public site build", () => {
     expect(existsSync(join(DIST, "logo.png"))).toBe(true);
   });
 
+  // Confianza · Política editorial: how the guides are written, in each language's own address.
+  describe("editorial policy", () => {
+    const SLUG = { es: "como-escribimos", en: "how-we-write" } as const;
+    for (const lang of LANGS) {
+      const other = lang === "es" ? "en" : "es";
+      it(`/${lang}/${SLUG[lang]}/ says who writes, the sources, the review cadence and how to report`, () => {
+        const html = htmlOf(lang, SLUG[lang]);
+        expect(html).toMatch(/<h1[^>]*id="landing-editorial-title"/);
+        expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${SLUG[lang]}/"`);
+        expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${SLUG[other]}/"`);
+        expect(html).toContain(`href="/${lang}/about/#author"`);
+        expect(html).toContain('href="mailto:contacto@mifik.cl"');
+        expect(html).toContain('href="https://github.com/SimonSaezCorrea/FinanceApp/issues/new"');
+      });
+
+      it(`every /${lang}/ footer and every guide link to it`, () => {
+        const href = `href="/${lang}/${SLUG[lang]}/"`;
+        expect(htmlOf(lang, "about")).toContain(href);
+        const guide =
+          lang === "es" ? "guias/fecha-de-cierre-tarjeta" : "guides/credit-card-statement-dates";
+        expect(htmlOf(lang, guide)).toMatch(
+          new RegExp(`data-guide-editorial[^>]*${href}|${href}[^>]*data-guide-editorial`),
+        );
+      });
+    }
+
+    it("is in the sitemap with its real language pair", () => {
+      const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
+      const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
+      for (const lang of LANGS) expect(xml).toContain(`<loc>${SITE}/${lang}/${SLUG[lang]}/</loc>`);
+      expect(xml).not.toContain(`${SITE}/en/${SLUG.es}/`);
+    });
+  });
+
   it("leaves no placeholder in any title", () => {
     for (const lang of LANGS) {
       for (const { slug } of PAGES) {

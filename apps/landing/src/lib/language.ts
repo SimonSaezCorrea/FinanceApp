@@ -15,6 +15,7 @@ export const PAGES = [
   "ufValue",
   "dollarRate",
   "guides",
+  "editorial",
   "ai",
 ] as const;
 export type Page = (typeof PAGES)[number];
@@ -24,13 +25,15 @@ export const RATE_PAGES = { ufValue: "CLF", dollarRate: "USD" } as const;
 export type RatePage = keyof typeof RATE_PAGES;
 
 /** The pages whose slug is in the page's own language. */
-export type LocalizedPage = RatePage | "guides";
+export type LocalizedPage = RatePage | "guides" | "editorial";
 
 /** Slug per language of the localized pages. Same pairs as `LOCALIZED_PAIRS` in astro.config.mjs. */
 export const LOCALIZED_SLUGS: Record<LocalizedPage, Record<Language, string>> = {
   ufValue: { es: "valor-uf", en: "uf-value" },
   dollarRate: { es: "dolar-observado", en: "dollar-rate" },
   guides: { es: "guias", en: "guides" },
+  // How the guides are written (Confianza · Política editorial).
+  editorial: { es: "como-escribimos", en: "how-we-write" },
 };
 
 export function isLocalizedPage(page: Page): page is LocalizedPage {
