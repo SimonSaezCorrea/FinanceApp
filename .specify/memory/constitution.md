@@ -1,4 +1,11 @@
 <!--
+Sync Impact Report — 2026-10-25 (amendment 2.8.2)
+- Version change: 2.8.1 → 2.8.2 (PATCH: no principle text changed).
+- ADDED operational rule: the API is never indexed — it serves `robots.txt` with `Disallow: /` and
+  marks every response `X-Robots-Tag: noindex, nofollow` (`infra/http/no-index.ts`), since the
+  `mifik.cl` Search Console domain property covers `api.mifik.cl`.
+-->
+<!--
 Sync Impact Report — 2026-10-25 (amendment 2.8.1)
 - Version change: 2.8.0 → 2.8.1 (PATCH: no principle text changed; specs/035 guides section).
 - ADDED: the public site has a content collection (Astro core, no new dependency) for the guides;
@@ -2345,4 +2352,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.8.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-25
+**Version**: 2.8.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-25

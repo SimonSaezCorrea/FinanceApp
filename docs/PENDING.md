@@ -1052,6 +1052,8 @@ en el home, endpoint público, rebuild programado). Pendiente:
 6. **El API se rastrea** (Search Console, 2026-10-25: "Se ha bloqueado debido a otro problema de tipo
    4xx"): la propiedad de dominio `mifik.cl` incluye `api.mifik.cl`, y Google pide endpoints que
    encuentra en el JavaScript (`/api/v1/auth/me` responde 401). `api.mifik.cl/robots.txt` es el
-   gestionado de Cloudflare, sin `Disallow`. Pendiente: que el API sirva su propio `robots.txt` con
-   `Disallow: /` (verificar que Cloudflare no lo reemplace), `X-Robots-Tag: noindex` en todas sus
-   respuestas, y luego "Validar corrección" en Search Console. Rama propia desde `dev`.
+   gestionado de Cloudflare, sin `Disallow`. **Hecho en código** (rama `fix/api-noindex`,
+   `infra/http/no-index.ts`): el API sirve su propio `robots.txt` con `Disallow: /` y marca toda
+   respuesta `X-Robots-Tag: noindex, nofollow`. Falta, una vez en producción: comprobar que
+   `https://api.mifik.cl/robots.txt` trae el `Disallow` (Cloudflare antepone sus content signals al del
+   origen) y apretar "Validar corrección" en Search Console.
