@@ -50,6 +50,11 @@ export const CustomFieldsRoute = lazy(() =>
     default: m.CustomFieldsRoute,
   })),
 );
+export const ReleaseNotesRoute = lazy(() =>
+  import("../domains/release-notes/routes/ReleaseNotesRoute").then((m) => ({
+    default: m.ReleaseNotesRoute,
+  })),
+);
 export const ExchangeRatesRoute = lazy(() =>
   import("../domains/exchange-rates/routes/ExchangeRatesRoute").then((m) => ({
     default: m.ExchangeRatesRoute,
@@ -87,6 +92,7 @@ const PAGE_CHUNKS: [RegExp, () => Promise<unknown>][] = [
   [/^\/savings/, () => import("../domains/savings/routes/SavingsRoute")],
   [/^\/exchange-rates/, () => import("../domains/exchange-rates/routes/ExchangeRatesRoute")],
   [/^\/import/, () => import("../domains/import/routes/ImportRoute")],
+  [/^\/whats-new/, () => import("../domains/release-notes/routes/ReleaseNotesRoute")],
   [/^\/custom-fields/, () => import("../domains/custom-fields/routes/CustomFieldsRoute")],
   [/^\/profile/, () => import("../domains/profile/routes/ProfileLayout")],
   // The profile's sections (specs/029) are chunks of their own inside its layout.

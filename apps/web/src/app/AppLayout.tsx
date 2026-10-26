@@ -14,6 +14,7 @@ import {
   Plus,
   Repeat,
   SlidersHorizontal,
+  Sparkles,
   Upload,
   UserRound,
   Wallet,
@@ -25,6 +26,7 @@ import { NavLink, useLocation } from "react-router";
 import { minWidth } from "@finance/ui/breakpoints";
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { ThemeSync } from "../domains/profile/components/ThemeSync";
+import { useHasUnseenReleaseNotes } from "../domains/release-notes/hooks/useReleaseNotes";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
@@ -55,6 +57,9 @@ const INSTALLMENTS: NavItem = { to: "/installments", key: "installments.title", 
 const DEBTS: NavItem = { to: "/debts", key: "debts.title", icon: HandCoins };
 const RECURRING: NavItem = { to: "/recurring", key: "recurring.title", icon: Repeat };
 const SAVINGS: NavItem = { to: "/savings", key: "savings.title", icon: PiggyBank };
+/** Novedades (spec 038): not a section of the person's money, so it sits by the profile, with a
+ * dot while there is a deploy the account hasn't seen. */
+const WHATS_NEW: NavItem = { to: "/whats-new", key: "nav.whatsNew", icon: Sparkles };
 const EXCHANGE_RATES: NavItem = {
   to: "/exchange-rates",
   key: "nav.exchangeRates",
@@ -84,6 +89,7 @@ const SHEET_ITEMS: NavItem[] = [
   IMPORT,
   EXCHANGE_RATES,
   CUSTOM_FIELDS,
+  WHATS_NEW,
 ];
 
 const SIDEBAR_COLLAPSED_KEY = "finance.sidebarCollapsed";
@@ -157,6 +163,7 @@ function SidebarOpen({
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const needsVerification = user?.emailVerified === false;
+  const unseenNews = useHasUnseenReleaseNotes();
   return (
     <>
       <div className="flex items-center gap-2 px-1.5 py-2">
@@ -211,7 +218,26 @@ function SidebarOpen({
         ))}
       </nav>
 
-      <div className="mt-4 flex items-center gap-1 border-t pt-3">
+      <NavLink
+        to={WHATS_NEW.to}
+        className={({ isActive }) =>
+          cn(
+            "mt-4 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+            isActive
+              ? "bg-primary/10 font-semibold text-primary"
+              : "text-foreground hover:bg-muted",
+          )
+        }
+      >
+        <span className="relative">
+          <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+          {unseenNews ? <AttentionDot className="-right-1 -top-1 h-2 w-2" /> : null}
+        </span>
+        {t(WHATS_NEW.key)}
+        {unseenNews ? <span className="sr-only">{` · ${t("nav.whatsNewUnseen")}`}</span> : null}
+      </NavLink>
+
+      <div className="mt-1 flex items-center gap-1 border-t pt-3">
         <NavLink
           to="/profile"
           className={({ isActive }) =>
@@ -262,6 +288,10 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
   const profileLabel = needsVerification
     ? `${t("profile.title")} · ${t("app.emailVerification.short")}`
     : t("profile.title");
+  const unseenNews = useHasUnseenReleaseNotes();
+  const newsLabel = unseenNews
+    ? `${t(WHATS_NEW.key)} · ${t("nav.whatsNewUnseen")}`
+    : t(WHATS_NEW.key);
   return (
     <>
       <span className="flex h-10 items-center justify-center">
@@ -317,6 +347,22 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
       </nav>
 
       <div className="mt-auto flex flex-col items-center gap-1 border-t pt-3">
+        <NavLink
+          to={WHATS_NEW.to}
+          aria-label={newsLabel}
+          className={({ isActive }) =>
+            cn(
+              RAIL_BUTTON,
+              isActive && "bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary",
+            )
+          }
+        >
+          <span className="relative">
+            <Sparkles className="h-[18px] w-[18px]" aria-hidden />
+            {unseenNews ? <AttentionDot className="-right-1 -top-1 h-2 w-2" /> : null}
+          </span>
+          <RailTip>{newsLabel}</RailTip>
+        </NavLink>
         <NavLink to="/profile" aria-label={profileLabel} className={RAIL_BUTTON}>
           <UserAvatar
             name={user?.name}
@@ -345,6 +391,8 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const needsVerification = user?.emailVerified === false;
+  const unseenNews = useHasUnseenReleaseNotes();
+  const moreAttention = needsVerification || unseenNews;
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const inSheet = [...SHEET_ITEMS.map((i) => i.to), "/profile"].some((to) =>
@@ -393,12 +441,13 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
         >
           <span className="relative">
             <MoreHorizontal className="h-5 w-5" aria-hidden />
-            {needsVerification ? <AttentionDot className="-right-1 -top-0.5" /> : null}
+            {moreAttention ? <AttentionDot className="-right-1 -top-0.5" /> : null}
           </span>
           {t("nav.more")}
           {needsVerification ? (
             <span className="sr-only">{t("app.emailVerification.short")}</span>
           ) : null}
+          {unseenNews ? <span className="sr-only">{t("nav.whatsNewUnseen")}</span> : null}
         </button>
       </nav>
 
@@ -428,7 +477,8 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
                   >
                     <span className="relative">
                       <Icon className="h-5 w-5 text-primary" aria-hidden />
-                      {to === "/profile" && needsVerification ? (
+                      {(to === "/profile" && needsVerification) ||
+                      (to === WHATS_NEW.to && unseenNews) ? (
                         <AttentionDot className="-right-1 -top-0.5" />
                       ) : null}
                     </span>
