@@ -1,4 +1,5 @@
 import { LANGUAGES, type Language, pagePath } from "../../../lib/language";
+import { FOUNDER } from "../../../lib/organization";
 
 /**
  * Spec 035 — the guides section, as plain data. A guide is a folder under `src/content/guides/`
@@ -11,7 +12,7 @@ import { LANGUAGES, type Language, pagePath } from "../../../lib/language";
 
 /** Every guide is signed by its writer, presented on the About page (`#author`). The role
  * is `landing.guides.authorRole`, in the guide's language. */
-export const AUTHOR = "Simón Sáez";
+export const AUTHOR = FOUNDER.name;
 
 export interface GuideSource {
   name: string;
