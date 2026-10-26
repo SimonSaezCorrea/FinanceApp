@@ -2,6 +2,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 import {
   ArrowLeftRight,
   CircleDollarSign,
+  CopyPlus,
   CreditCard,
   HandCoins,
   LayoutDashboard,
@@ -51,6 +52,7 @@ const CUSTOM_FIELDS: NavItem = {
   key: "nav.customFields",
   icon: SlidersHorizontal,
 };
+const TEMPLATES: NavItem = { to: "/templates", key: "nav.templates", icon: CopyPlus };
 const INSTALLMENTS: NavItem = { to: "/installments", key: "installments.title", icon: CreditCard };
 const DEBTS: NavItem = { to: "/debts", key: "debts.title", icon: HandCoins };
 const RECURRING: NavItem = { to: "/recurring", key: "recurring.title", icon: Repeat };
@@ -71,7 +73,7 @@ const GROUPS: { key: string | null; items: NavItem[] }[] = [
   { key: "nav.groups.commitments", items: [INSTALLMENTS, DEBTS, RECURRING] },
   { key: "nav.groups.goals", items: [SAVINGS] },
   { key: "nav.groups.indicators", items: [EXCHANGE_RATES] },
-  { key: "nav.groups.settings", items: [CUSTOM_FIELDS] },
+  { key: "nav.groups.settings", items: [CUSTOM_FIELDS, TEMPLATES] },
 ];
 
 /** Phone: four destinations and "+" in the tab bar; everything else in the "Más" sheet. */
@@ -84,6 +86,7 @@ const SHEET_ITEMS: NavItem[] = [
   IMPORT,
   EXCHANGE_RATES,
   CUSTOM_FIELDS,
+  TEMPLATES,
 ];
 
 const SIDEBAR_COLLAPSED_KEY = "finance.sidebarCollapsed";

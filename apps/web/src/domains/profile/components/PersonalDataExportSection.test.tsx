@@ -36,6 +36,7 @@ const DATA = {
   sessions: [],
   passkeys: [],
   wallet: [],
+  movementTemplates: [],
   financial: {
     accounts: [],
     transactions: [],

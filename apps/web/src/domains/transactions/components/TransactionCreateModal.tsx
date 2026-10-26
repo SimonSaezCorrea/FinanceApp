@@ -28,7 +28,15 @@ import {
   sendable,
   shapeOf,
 } from "../../custom-fields/lib/fieldValues";
+import { SaveAsTemplateDialog } from "../../movement-templates/components/SaveAsTemplateDialog";
+import { useMovementTemplates } from "../../movement-templates/hooks/useMovementTemplates";
+import { applyTemplate } from "../../movement-templates/lib/applyTemplate";
+import { templateFromForm } from "../../movement-templates/lib/templateFromForm";
+import { useRecurring } from "../../recurring/hooks/useRecurring";
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
+import { FormSelectField } from "../../../shared/ui/form";
 import { AttachmentsSection } from "./AttachmentsSection";
+import { emptyTransactionForm as emptyForm } from "../lib/emptyForm";
 import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
 
 function todayInput(): string {
@@ -39,28 +47,6 @@ function todayInput(): string {
 function dateInput(iso: string): string {
   return iso.slice(0, 10);
 }
-
-const emptyForm = (date: string): TransactionFormValue => ({
-  mode: "EXPENSE",
-  amount: "",
-  currency: "CLP",
-  bankAccountId: "",
-  toBankAccountId: "",
-  amountIn: "",
-  amountInEdited: false,
-  prepayFromAccountId: "",
-  cardId: "",
-  financeCharge: false,
-  categoryId: "",
-  recurringExpenseId: "",
-  description: "",
-  observation: "",
-  emisor: "",
-  receptor: "",
-  lugar: "",
-  date,
-  customFields: null,
-});
 
 /**
  * Create OR edit a movement — the shell around `TransactionFormPanel`: it owns
@@ -129,6 +115,14 @@ export function TransactionCreateModal({
   const { data: fieldList } = useCustomFields();
   const { setValues } = useFieldValueMutations();
   const editing = Boolean(initial);
+  // Movement templates (specs/037): only a brand-new movement is pre-filled from one,
+  // never an edit or a duplicate (those already start from a movement).
+  const offersTemplates = !editing && !duplicateFrom;
+  const { data: templateList } = useMovementTemplates({ enabled: open && offersTemplates });
+  const { data: seriesList } = useRecurring();
+  const { categories } = useCategoryCatalog();
+  const [templateId, setTemplateId] = useState("");
+  const [saveAsOpen, setSaveAsOpen] = useState(false);
 
   const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
   // What the form looked like right after it finished prefilling — compared
@@ -189,6 +183,7 @@ export function TransactionCreateModal({
     const source = initial ?? duplicateFrom;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
     setCreatedId(null);
+    setTemplateId("");
     const bankAccountId = source?.bankAccountId ?? defaultBankAccountId ?? "";
     // A brand-new expense on a CREDIT_CARD account has no "Cuenta propia"
     // choice (see TransactionFormPanel) — default straight to its primary
@@ -355,6 +350,26 @@ export function TransactionCreateModal({
     else next[fieldId] = value;
     patch({ customFields: next });
   };
+
+  /** "Usar plantilla": the form takes the template's values (FR-006) — nothing is
+   * created, every field stays editable, and saving goes through the ordinary create. */
+  function pickTemplate(id: string) {
+    setTemplateId(id);
+    const template = templateList?.find((tpl) => tpl.id === id);
+    if (!template) return;
+    setForm((current) =>
+      applyTemplate(template, {
+        accounts,
+        selectableIds: new Set(selectable.map((a) => a.id)),
+        lockedAccountId: lockAccount ? current.bankAccountId || undefined : undefined,
+        categories,
+        recurringIds: new Set((seriesList ?? []).map((r) => r.id)),
+        fields,
+        current,
+      }),
+    );
+  }
+  const canSaveAsTemplate = offersTemplates && (form.mode === "EXPENSE" || form.mode === "INCOME");
 
   function submit(keepOpen = false) {
     const done = (saved?: { id?: string }) => {
@@ -548,44 +563,77 @@ export function TransactionCreateModal({
           )
         }
       >
-        <TransactionFormPanel
-          value={form}
-          onChange={patch}
-          accounts={accounts}
-          selectable={selectable}
-          editing={editing}
-          // In transfer mode this locks the ORIGIN row instead of hiding the
-          // account row: the origin is the account being viewed, only the
-          // destination is a choice.
-          accountLocked={lockAccount && !!form.bankAccountId}
-          original={initial ?? null}
-          customFields={
-            shownFields.length > 0 ? (
-              <CustomFieldInputs
-                fields={shownFields}
-                values={fieldValues}
-                onChange={setFieldValue}
-              />
-            ) : null
-          }
-          // Offered from inside an account too: the whole pair can be created
-          // from here (this account is just the source, pre-filled), and
-          // `accountLocked` above already reveals the selector in transfer mode
-          // so the origin can still be changed.
-          allowTransfer
-          attachments={
-            <AttachmentsSection
-              transactionId={initial?.id ?? createdId ?? undefined}
-              onPendingCountChange={setPendingAttachments}
-              onPendingSettled={(allSucceeded) => {
-                // A failed upload keeps the panel open showing its Retry; a clean
-                // run closes it, since the movement itself is already saved.
-                if (allSucceeded) handleOpenChange(false);
-              }}
+        <div className="flex flex-col gap-5">
+          {offersTemplates && (templateList?.length ?? 0) > 0 ? (
+            <FormSelectField
+              id="tx-template"
+              label={t("templates.use")}
+              value={templateId}
+              onChange={pickTemplate}
+              placeholder={t("templates.usePlaceholder")}
+              options={(templateList ?? []).map((tpl) => ({ value: tpl.id, label: tpl.name }))}
             />
-          }
-        />
+          ) : null}
+          <TransactionFormPanel
+            value={form}
+            onChange={patch}
+            accounts={accounts}
+            selectable={selectable}
+            editing={editing}
+            // In transfer mode this locks the ORIGIN row instead of hiding the
+            // account row: the origin is the account being viewed, only the
+            // destination is a choice.
+            accountLocked={lockAccount && !!form.bankAccountId}
+            original={initial ?? null}
+            customFields={
+              shownFields.length > 0 ? (
+                <CustomFieldInputs
+                  fields={shownFields}
+                  values={fieldValues}
+                  onChange={setFieldValue}
+                />
+              ) : null
+            }
+            // Offered from inside an account too: the whole pair can be created
+            // from here (this account is just the source, pre-filled), and
+            // `accountLocked` above already reveals the selector in transfer mode
+            // so the origin can still be changed.
+            allowTransfer
+            attachments={
+              <AttachmentsSection
+                transactionId={initial?.id ?? createdId ?? undefined}
+                onPendingCountChange={setPendingAttachments}
+                onPendingSettled={(allSucceeded) => {
+                  // A failed upload keeps the panel open showing its Retry; a clean
+                  // run closes it, since the movement itself is already saved.
+                  if (allSucceeded) handleOpenChange(false);
+                }}
+              />
+            }
+          />
+          {canSaveAsTemplate ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start"
+              onClick={() => setSaveAsOpen(true)}
+            >
+              {t("templates.saveAs.action")}
+            </Button>
+          ) : null}
+        </div>
       </FormSurface>
+
+      <SaveAsTemplateDialog
+        open={saveAsOpen}
+        onOpenChange={setSaveAsOpen}
+        hasAmount={/[1-9]/.test(form.amount)}
+        defaultName={form.description}
+        buildBody={(name, keepAmount) =>
+          templateFromForm(form, { name, keepAmount, accounts, fields, fieldValues })
+        }
+      />
 
       <ConfirmModal
         open={confirmLeave}

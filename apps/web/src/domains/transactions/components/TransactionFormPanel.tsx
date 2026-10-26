@@ -109,6 +109,9 @@ interface Props {
   attachments?: ReactNode;
   /** The person's custom field rows (specs/036), injected by the shell. */
   customFields?: ReactNode;
+  /** Editing a movement TEMPLATE (specs/037): no date, no projected balance and only
+   * Gasto/Ingreso — a template is neither a transfer nor a prepago. */
+  templateMode?: boolean;
 }
 
 /**
@@ -128,6 +131,7 @@ export function TransactionFormPanel({
   allowTransfer = false,
   attachments,
   customFields,
+  templateMode = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
@@ -253,24 +257,26 @@ export function TransactionFormPanel({
       label: t("transactions.type.EXPENSE"),
       activeClassName: "bg-destructive/15 font-semibold text-destructive",
     },
-    ...(isCreditLine
-      ? [
-          {
-            value: "PREPAY" as const,
-            label: t("transactions.type.PREPAY"),
-            // Accent, not destructive: same tone `BillingSection`'s own "Pagar"/
-            // "Prepagar" buttons use for an action that moves money FORWARD
-            // (paying down debt), as opposed to Gasto (which creates it).
-            activeClassName: "bg-accent/15 font-semibold text-accent",
-          },
-        ]
-      : [
-          {
-            value: "INCOME" as const,
-            label: t("transactions.type.INCOME"),
-            activeClassName: "bg-success/15 font-semibold text-success",
-          },
-        ]),
+    ...(isCreditLine && templateMode
+      ? []
+      : isCreditLine
+        ? [
+            {
+              value: "PREPAY" as const,
+              label: t("transactions.type.PREPAY"),
+              // Accent, not destructive: same tone `BillingSection`'s own "Pagar"/
+              // "Prepagar" buttons use for an action that moves money FORWARD
+              // (paying down debt), as opposed to Gasto (which creates it).
+              activeClassName: "bg-accent/15 font-semibold text-accent",
+            },
+          ]
+        : [
+            {
+              value: "INCOME" as const,
+              label: t("transactions.type.INCOME"),
+              activeClassName: "bg-success/15 font-semibold text-success",
+            },
+          ]),
     ...(allowTransfer && !isCreditLine
       ? [
           {
@@ -391,12 +397,14 @@ export function TransactionFormPanel({
       ) : null}
 
       <div className="flex flex-col">
-        <FormDateField
-          id="tx-date"
-          label={t("transactions.form.date")}
-          value={value.date}
-          onChange={(date) => onChange({ date })}
-        />
+        {templateMode ? null : (
+          <FormDateField
+            id="tx-date"
+            label={t("transactions.form.date")}
+            value={value.date}
+            onChange={(date) => onChange({ date })}
+          />
+        )}
 
         {/* Picked from the global catalogue — only the categories that fit this
             movement's type (a transfer is neither, so it gets every non-system
@@ -517,7 +525,7 @@ export function TransactionFormPanel({
             Prepay mode shows "lo que debe hoy" above instead — a projection
             here would need to reason about the pool shrinking, the opposite of
             what `projectedAfterSave` computes for an ordinary EXPENSE. */}
-        {isPrepay ? null : (
+        {isPrepay || templateMode ? null : (
           <DetailRow
             label={
               projected?.kind === "credit"

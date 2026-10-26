@@ -9,6 +9,7 @@ import i18n from "../../../i18n";
 import { ApiRequestError } from "@finance/client";
 import { AuthProvider } from "../../auth/hooks/useAuth";
 import { accountsApi } from "../../accounts/api/accountsApi";
+import { movementTemplatesApi } from "../../movement-templates/api/movementTemplatesApi";
 import { transactionsApi } from "../api/transactionsApi";
 import { TransactionCreateModal } from "./TransactionCreateModal";
 
@@ -41,6 +42,10 @@ vi.mock("../api/transactionsApi", () => ({
     transfer: { get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
     attachments: { list: vi.fn(), upload: vi.fn(), url: vi.fn(), remove: vi.fn() },
   },
+}));
+
+vi.mock("../../movement-templates/api/movementTemplatesApi", () => ({
+  movementTemplatesApi: { list: vi.fn(), create: vi.fn(), replace: vi.fn(), remove: vi.fn() },
 }));
 
 vi.mock("../../accounts/api/accountsApi", () => ({
@@ -83,6 +88,77 @@ describe("TransactionCreateModal", () => {
     });
     vi.mocked(transactionsApi.create).mockResolvedValue({ id: "t1" } as never);
     vi.mocked(transactionsApi.attachments.list).mockResolvedValue([]);
+    vi.mocked(movementTemplatesApi.list).mockResolvedValue([]);
+  });
+
+  // specs/037: "Usar plantilla" only pre-fills; the movement is saved by the ordinary create.
+  it("fills the form from a template and saves it through the ordinary create", async () => {
+    vi.mocked(movementTemplatesApi.list).mockResolvedValue([
+      {
+        id: "tpl1",
+        name: "Arriendo mensual",
+        type: "EXPENSE",
+        amount: "450000.0000",
+        currency: "CLP",
+        bankAccountId: "a1",
+        cardId: null,
+        categoryId: null,
+        recurringExpenseId: null,
+        description: "Arriendo",
+        observation: null,
+        emisor: null,
+        receptor: "Inmobiliaria",
+        lugar: null,
+        financeCharge: false,
+        customFields: {},
+      },
+    ]);
+    renderModal();
+
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("templates.use") }));
+    const options = await screen.findAllByRole("button", { name: /^Arriendo mensual/ });
+    fireEvent.click(options[options.length - 1]!);
+
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText(i18n.t("transactions.form.amount")) as HTMLInputElement).value,
+      ).not.toBe(""),
+    );
+    expect(movementTemplatesApi.create).not.toHaveBeenCalled();
+    expect(transactionsApi.create).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("transactions.form.submit") }));
+    await waitFor(() => expect(transactionsApi.create).toHaveBeenCalledOnce());
+    expect(vi.mocked(transactionsApi.create).mock.calls[0]![0]).toMatchObject({
+      type: "EXPENSE",
+      amount: "450000",
+      bankAccountId: "a1",
+      description: "Arriendo",
+      receptor: "Inmobiliaria",
+    });
+  });
+
+  it("saves the form as a template without recording the movement", async () => {
+    vi.mocked(movementTemplatesApi.create).mockResolvedValue({ id: "tpl2" } as never);
+    renderModal({ defaultBankAccountId: "a1", lockAccount: true });
+
+    fireEvent.change(screen.getByLabelText(i18n.t("transactions.form.amount")), {
+      target: { value: "15000" },
+    });
+    fireEvent.change(screen.getByLabelText(i18n.t("transactions.form.description")), {
+      target: { value: "Bencina" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("templates.saveAs.action") }));
+    const name = await screen.findByLabelText(i18n.t("templates.form.name"));
+    expect((name as HTMLInputElement).value).toBe("Bencina");
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("templates.saveAs.confirm") }));
+
+    await waitFor(() => expect(movementTemplatesApi.create).toHaveBeenCalledOnce());
+    const body = vi.mocked(movementTemplatesApi.create).mock.calls[0]![0];
+    expect(body).toMatchObject({ name: "Bencina", type: "EXPENSE", bankAccountId: "a1" });
+    // "Guardar también el monto" starts off: the amount is left free.
+    expect(body.amount).toBeUndefined();
+    expect(transactionsApi.create).not.toHaveBeenCalled();
   });
 
   /** The account view opens the form with its own account locked in; the movement

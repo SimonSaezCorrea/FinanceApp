@@ -1,12 +1,13 @@
 import type { Workbook, Worksheet } from "exceljs";
 import type { TFunction } from "i18next";
 
-import type { auth, reference, wallet } from "@finance/contracts";
+import type { auth, movementTemplates, reference, wallet } from "@finance/contracts";
 
 import { authApi, passkeyApi } from "@finance/client";
 
 import { walletApi } from "../../dashboard/api/walletApi";
 import { loadExistingData } from "../../import/lib/loadExistingData";
+import { movementTemplatesApi } from "../../movement-templates/api/movementTemplatesApi";
 import type { ExistingData } from "../../import/lib/templateData";
 import { consentsApi } from "../api/consentsApi";
 import { sessionsApi } from "../api/sessionsApi";
@@ -25,6 +26,8 @@ export interface PersonalData {
   sessions: auth.Session[];
   passkeys: auth.Passkey[];
   wallet: wallet.WalletItem[];
+  /** Movement templates (specs/037). */
+  movementTemplates: movementTemplates.MovementTemplate[];
   financial: ExistingData;
 }
 
@@ -34,15 +37,17 @@ export type PersonalDataFormat = "xlsx" | "json";
 export const PERSONAL_DATA_JSON_VERSION = 1;
 
 export async function loadPersonalData(categories: reference.Category[]): Promise<PersonalData> {
-  const [user, emails, consents, sessions, passkeys, walletItems, financial] = await Promise.all([
-    authApi.me(),
-    authApi.listEmails(),
-    consentsApi.list(),
-    sessionsApi.list(),
-    passkeyApi.list(),
-    walletApi.list(),
-    loadExistingData(categories),
-  ]);
+  const [user, emails, consents, sessions, passkeys, walletItems, templates, financial] =
+    await Promise.all([
+      authApi.me(),
+      authApi.listEmails(),
+      consentsApi.list(),
+      sessionsApi.list(),
+      passkeyApi.list(),
+      walletApi.list(),
+      movementTemplatesApi.list(),
+      loadExistingData(categories),
+    ]);
   return {
     user,
     emails: emails.items,
@@ -50,6 +55,7 @@ export async function loadPersonalData(categories: reference.Category[]): Promis
     sessions,
     passkeys,
     wallet: walletItems,
+    movementTemplates: templates,
     financial,
   };
 }
@@ -59,7 +65,9 @@ export async function loadPersonalData(categories: reference.Category[]): Promis
 export function personalDataJson(data: PersonalData, exportedAt: Date): string {
   const f = data.financial;
   const usedCategoryIds = new Set(
-    [...f.transactions, ...f.plans, ...f.recurring].map((r) => r.categoryId).filter(Boolean),
+    [...f.transactions, ...f.plans, ...f.recurring, ...data.movementTemplates]
+      .map((r) => r.categoryId)
+      .filter(Boolean),
   );
   return JSON.stringify(
     {
@@ -80,6 +88,7 @@ export function personalDataJson(data: PersonalData, exportedAt: Date): string {
       savingsGoals: f.goals,
       savingsEntries: f.entries,
       wallet: data.wallet,
+      movementTemplates: data.movementTemplates,
       categories: f.categories
         .filter((c) => usedCategoryIds.has(c.id))
         .map((c) => ({ id: c.id, code: c.code, kind: c.kind })),
