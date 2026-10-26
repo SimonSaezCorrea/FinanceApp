@@ -30,7 +30,8 @@
       "legal": "Legal",
       "copyright": "© {{year}} fik",
       "llms": "Para asistentes de IA",
-      "editorial": "Cómo escribimos"
+      "editorial": "Cómo escribimos",
+      "releaseNotes": "Novedades"
     },
     "home": {
       "eyebrow": "Finanzas personales en Chile",
@@ -377,6 +378,10 @@
       "editorial": {
         "title": "Cómo escribimos las guías · fik",
         "description": "Quién escribe las guías de fik, de qué fuentes oficiales salen sus datos, cada cuánto se revisan y cómo reportar un error."
+      },
+      "releaseNotes": {
+        "title": "Novedades de fik · fik",
+        "description": "Qué cambió en fik en cada actualización: funciones nuevas, mejoras, correcciones y cambios, con su fecha."
       }
     },
     "access": {
@@ -531,6 +536,12 @@
     },
     "editorial": {
       "title": "Cómo escribimos las guías"
+    },
+    "releaseNotes": {
+      "title": "Novedades",
+      "lead": "Lo que cambió en fik en cada actualización, escrito para personas. Lo más reciente primero.",
+      "since": "Registramos cada cambio desde el 26 de octubre de 2026.",
+      "empty": "Todavía no hay novedades registradas."
     }
   }
 }

@@ -14,6 +14,7 @@ const LISTED: readonly Page[] = [
   "dollarRate",
   "guides",
   "editorial",
+  "releaseNotes",
   "about",
   "pricing",
   "faq",
