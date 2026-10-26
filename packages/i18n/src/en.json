@@ -113,7 +113,8 @@
     "more": "More",
     "moreSections": "More sections",
     "exchangeRates": "Exchange rates",
-    "customFields": "Custom columns"
+    "customFields": "Custom columns",
+    "templates": "Templates"
   },
   "theme": {
     "label": "Theme",
@@ -2697,7 +2698,11 @@
     "CUSTOM_FIELD_FILTER_INVALID": "That column filter can’t be applied.",
     "COVER_FIELD_NOT_BOOLEAN": "Only the pending movements of a Yes / No column can be transferred.",
     "COVER_SELECTION_INVALID": "Choose movements of one type and one currency, that of both accounts, that the column applies to.",
-    "COVER_SELECTION_CHANGED": "Some movement changed meanwhile. Refresh the list and try again."
+    "COVER_SELECTION_CHANGED": "Some movement changed meanwhile. Refresh the list and try again.",
+    "MOVEMENT_TEMPLATE_NOT_FOUND": "That template doesn't exist.",
+    "MOVEMENT_TEMPLATE_NAME_TAKEN": "You already have a template with that name.",
+    "MOVEMENT_TEMPLATE_LIMIT_REACHED": "You've reached the maximum of 50 templates. Delete one to create another.",
+    "RECURRING_NOT_FOUND": "That fixed expense doesn't exist."
   },
   "exchangeRates": {
     "title": "Exchange rates",
@@ -2986,6 +2991,49 @@
         "me": "Me",
         "partner": "Partner"
       }
+    }
+  },
+  "templates": {
+    "title": "Templates",
+    "subtitle": "Movements you repeat often, ready to record in one tap.",
+    "new": "New template",
+    "edit": "Edit template",
+    "editNamed": "Edit the template “{{name}}”",
+    "deleteNamed": "Delete the template “{{name}}”",
+    "listLabel": "Your templates",
+    "freeAmount": "Any amount",
+    "limit": "{{count}} of {{max}} templates",
+    "use": "Use a template",
+    "usePlaceholder": "Pick a template",
+    "empty": {
+      "title": "You don't have any templates yet",
+      "description": "A template keeps the account, card, category and the rest of a movement you repeat, like “Fuel” or “Rent”. When recording a movement, pick “Use a template” and just confirm.",
+      "create": "Create the first one"
+    },
+    "form": {
+      "newEyebrow": "New template",
+      "editEyebrow": "Edit template",
+      "submit": "Create template",
+      "name": "Name",
+      "namePlaceholder": "E.g. Fuel",
+      "amountHint": "The amount is optional: leave it empty if it changes every time. The date is always the day you use it."
+    },
+    "toast": {
+      "created": "Template created",
+      "updated": "Template saved",
+      "deleted": "Template deleted"
+    },
+    "delete": {
+      "title": "Delete “{{name}}”?",
+      "description": "Movements you recorded with it don't change.",
+      "confirm": "Delete template"
+    },
+    "saveAs": {
+      "action": "Save as template",
+      "title": "Save as template",
+      "description": "Everything in the form is kept except the date. The movement isn't recorded yet.",
+      "confirm": "Save template",
+      "keepAmount": "Also keep the amount"
     }
   }
 }

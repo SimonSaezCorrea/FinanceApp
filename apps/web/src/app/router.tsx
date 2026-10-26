@@ -8,6 +8,7 @@ import {
   AccountDetailRoute,
   AccountsRoute,
   CustomFieldsRoute,
+  TemplatesRoute,
   DashboardPage,
   DebtsRoute,
   ExchangeRatesRoute,
@@ -90,6 +91,11 @@ export const router = createBrowserRouter([
             path: "/custom-fields",
             element: <CustomFieldsRoute />,
             handle: handle({ title: "nav.customFields" }),
+          },
+          {
+            path: "/templates",
+            element: <TemplatesRoute />,
+            handle: handle({ title: "nav.templates" }),
           },
           {
             path: "/import",

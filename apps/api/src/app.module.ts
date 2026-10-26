@@ -15,6 +15,7 @@ import { CountryModule } from "./domains/country/country.module";
 import { ExchangeRateModule } from "./domains/exchange-rate/exchange-rate.module";
 import { CategoryModule } from "./domains/category/category.module";
 import { CustomFieldModule } from "./domains/custom-field/custom-field.module";
+import { MovementTemplateModule } from "./domains/movement-template/movement-template.module";
 import { CurrencyModule } from "./domains/currency/currency.module";
 import { FinancialInstitutionModule } from "./domains/financial-institution/financial-institution.module";
 import { SavingsGoalModule } from "./domains/savings-goal/savings-goal.module";
@@ -39,6 +40,7 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     TransactionModule,
     TransactionAttachmentModule,
     CustomFieldModule,
+    MovementTemplateModule,
     InstallmentPlanModule,
     DebtModule,
     SavingsGoalModule,

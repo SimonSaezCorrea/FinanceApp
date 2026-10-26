@@ -63,24 +63,24 @@ model User {
   /// Single source of truth for "does login require a second factor?" (specs/021). A non-null
   /// mfaSecretEncrypted with mfaEnabled=false means an enrollment was started but never
   /// confirmed — nothing protects the account in that state.
-  mfaEnabled         Boolean   @default(false)
+  mfaEnabled          Boolean   @default(false)
   /// AES-256-GCM ciphertext of the TOTP secret, format "iv:authTag:ciphertext" (hex). Encrypted
   /// (not hashed) because validating a code requires recomputing the expected HOTP from the
   /// plaintext secret — encryption/decryption happen ONLY in PrismaUserRepository, never in the
   /// domain layer (mirrors the existing Prisma.Decimal<->string boundary conversion for money).
-  mfaSecretEncrypted String?
+  mfaSecretEncrypted  String?
   /// Consecutive invalid second-factor attempts since the last valid one. Reset to 0 on success.
-  mfaFailedAttempts  Int       @default(0)
+  mfaFailedAttempts   Int       @default(0)
   /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
   /// the future is rejected without even evaluating the code (defense against timing attacks).
-  mfaLockedUntil     DateTime?
+  mfaLockedUntil      DateTime?
   /// Consecutive wrong passwords at login (by RUT) since the last correct one. Reset to 0 on
   /// success. Same mechanism and limits as the second factor's counter, kept separate so a
   /// wrong password never eats into the TOTP attempts or vice versa.
-  loginFailedAttempts Int      @default(0)
+  loginFailedAttempts Int       @default(0)
   /// Set once loginFailedAttempts reaches the lockout threshold; every login while this is in
   /// the future is rejected without comparing the password.
-  loginLockedUntil   DateTime?
+  loginLockedUntil    DateTime?
 
   country            Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts       BankAccount[]
@@ -101,6 +101,7 @@ model User {
   emailTokens        EmailToken[]
   customFields       CustomField[]
   fieldValues        TransactionFieldValue[]
+  movementTemplates  MovementTemplate[]
 
   @@index([countryId])
   @@map("user")
@@ -474,6 +475,8 @@ model BankAccount {
   linkedDebts          Debt[]                @relation("DebtPaymentAccount")
   /// Savings contributions whose real money came out of this account.
   savingsEntries       SavingsEntry[]
+  /// Movement templates (specs/037) that pre-fill this account; `SetNull` on delete.
+  movementTemplates    MovementTemplate[]
 
   @@index([userId])
   @@index([status])
@@ -543,52 +546,52 @@ model BillingSettings {
 /// OPEN (`closedAt` null, still accumulating) → PENDING (`closedAt` set by
 /// generation, awaiting payment) → PAID (`paidAt` set).
 model CreditStatement {
-  id                String    @id @default(uuid(7))
-  accountId         String
+  id                      String    @id @default(uuid(7))
+  accountId               String
   /// When this period started accumulating (the previous statement's `closedAt`, or
   /// the account's `createdAt` for the very first one).
-  periodStart       DateTime
+  periodStart             DateTime
   /// Sealed by generation (cron/manual button) once `billingCycleDay` passes — null
   /// while still open/accumulating.
-  closedAt          DateTime?
+  closedAt                DateTime?
   /// Set when paid. Only then is `amount` meaningful (frozen at pay time) and only
   /// then can `amount` be corrected manually (no cascade to the linked payment
   /// transaction or to `creditUsed` — a deliberate, personal-use simplification).
-  paidAt            DateTime?
+  paidAt                  DateTime?
   /// When payment is due, as the user typed it from the bank's statement at
   /// "Generar facturación" (end of that day, user's time zone). Null for a period
   /// still OPEN, or one closed before this column existed (its due date is then
   /// derived from `BillingSettings.paymentDueDay`, if configured).
-  dueDate           DateTime?
+  dueDate                 DateTime?
   /// The close the user scheduled for an OPEN period ("Editar fechas" on it): the
   /// statement is generated with these dates when it arrives (hourly cron) or earlier
   /// from "Generar facturación". Null once closed, or when nothing was scheduled.
-  plannedCloseAt    DateTime?
+  plannedCloseAt          DateTime?
   /// Frozen snapshot amount, set at pay time. Null/ignored while unpaid — the
   /// live amount is computed by summing linked transactions instead.
-  amount            Decimal?  @db.Decimal(18, 4)
+  amount                  Decimal?  @db.Decimal(18, 4)
   /// How much was actually paid for this period. A payment SETTLES the period
   /// whatever its size (paying the minimum closes it too) — anything left over
   /// rolls into the next period's `carriedOverAmount` instead of keeping this one
   /// payable, which is how a real credit card works. Zero while unpaid.
-  paidAmount        Decimal   @default(0) @db.Decimal(18, 4)
+  paidAmount              Decimal   @default(0) @db.Decimal(18, 4)
   /// Debt brought forward from the PREVIOUS period, when that one was settled with
   /// less than its total. The period's total owed is its linked transactions plus
   /// this — the figure is kept here rather than as a fake movement so that
   /// "Sincronizar pagos" (which recomputes from real movements) can't erase it.
-  carriedOverAmount Decimal   @default(0) @db.Decimal(18, 4)
+  carriedOverAmount       Decimal   @default(0) @db.Decimal(18, 4)
   /// The period this one's leftover was rolled into (set at pay time when the
   /// payment didn't cover everything). Null when the period was paid in full.
-  carriedToId       String?
+  carriedToId             String?
   /// The bank account the payment was made from (never the credit account itself).
-  paidFromAccountId String?
+  paidFromAccountId       String?
   /// The real EXPENSE transaction created on `paidFromAccount` at pay time.
-  paidTransactionId String?   @unique
+  paidTransactionId       String?   @unique
   /// Spec 019: sum of every prepago applied while this period was still OPEN (or
   /// applied against it before it closed). Subtracted inside `totalFor()`, so a
   /// live OPEN/PENDING period and an eventual PENDING statement already reflect
   /// what was abonado early — no separate reconciliation job needed for that case.
-  prepaidAmount     Decimal   @default(0) @db.Decimal(18, 4)
+  prepaidAmount           Decimal   @default(0) @db.Decimal(18, 4)
   /// Spec 028: the period's currency. An account whose primary card holds limits in
   /// other currencies keeps one OPEN period per currency. The default only exists so
   /// the column could be added to rows saved before it (all CLP); every period
@@ -608,8 +611,8 @@ model CreditStatement {
   settlementTransactionId String?   @unique
   /// The account-currency period that received the transfer's charge.
   transferredToId         String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   account            BankAccount          @relation("CreditStatementAccount", fields: [accountId], references: [id], onDelete: Cascade)
   paidFromAccount    BankAccount?         @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
@@ -669,6 +672,7 @@ model CardAccount {
   limits            CardLimit[]
   installmentPlans  InstallmentPlan[]
   recurringExpenses RecurringExpense[]
+  movementTemplates MovementTemplate[]
 
   @@index([accountId])
   @@index([userId])
@@ -1237,12 +1241,13 @@ model RecurringExpense {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  card         CardAccount?  @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount       BankAccount?       @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  card              CardAccount?       @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  category          Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   /// Movements generated FOR this series — see `Transaction.recurringExpenseId`.
-  transactions Transaction[]
+  transactions      Transaction[]
+  movementTemplates MovementTemplate[]
 
   @@index([userId])
   @@index([bankAccountId])
@@ -1276,9 +1281,10 @@ model Category {
   /// Picker order within its group.
   sortOrder Int          @default(0)
 
-  transactions     Transaction[]
-  installmentPlans InstallmentPlan[]
-  recurring        RecurringExpense[]
+  transactions      Transaction[]
+  installmentPlans  InstallmentPlan[]
+  recurring         RecurringExpense[]
+  movementTemplates MovementTemplate[]
 
   @@map("category")
 }
@@ -1526,4 +1532,48 @@ model AccountDeletionLog {
   identifierHash String?
 
   @@map("account-deletion-log")
+}
+
+/// A reusable movement (specs/037): everything a hand-made income/expense carries except
+/// its date, the amount optional. Using one only pre-fills the movement form — the
+/// movement itself is saved by the ordinary create. Every reference is a `SetNull` FK:
+/// deleting the account/card/category/series never blocks, the template just loses it.
+model MovementTemplate {
+  id                 String          @id @default(uuid(7))
+  userId             String
+  name               String
+  /// `name` lower-cased, without accents, spaces collapsed — the uniqueness key.
+  nameKey            String
+  type               TransactionType
+  /// `null` = "monto libre".
+  amount             Decimal?        @db.Decimal(18, 4)
+  currency           String?
+  bankAccountId      String?
+  cardId             String?
+  categoryId         String?
+  recurringExpenseId String?
+  description        String?
+  observation        String?
+  emisor             String?
+  receptor           String?
+  lugar              String?
+  financeCharge      Boolean         @default(false)
+  /// `{ [customFieldId]: boolean | string }` — not a FK: a deleted field's key is
+  /// dropped when read.
+  customFieldValues  Json            @default("{}")
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount      BankAccount?      @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  card             CardAccount?      @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  recurringExpense RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, nameKey])
+  @@index([bankAccountId])
+  @@index([cardId])
+  @@index([categoryId])
+  @@index([recurringExpenseId])
+  @@map("movement-template")
 }

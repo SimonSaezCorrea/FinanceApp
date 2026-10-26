@@ -370,16 +370,13 @@ adicional.
 
 ## Movimientos (Transacciones)
 
-### 1. Plantillas de movimientos
+### 1. Plantillas de movimientos — resuelto (specs/037, 2026-10-25)
 
-No existe la posibilidad de crear, usar o editar una **plantilla de movimiento** reutilizable (cuenta,
-categoría, descripción, tarjeta, etc. predefinidos para crear movimientos similares rápido — ej.
-"Bencina", "Arriendo mensual"). Hoy no hay ninguna reutilización: la categoría sale de un catálogo global (ver punto 2), pero no hay
-modelo de plantilla ni acciones "Guardar como plantilla" / "Usar plantilla" en el formulario.
-
-**Para hacerlo real**: modelo `TransactionTemplate` (userId, nombre, y los mismos campos opcionales de
-una transacción salvo monto/fecha), endpoint CRUD, y en el formulario de creación un selector "Usar
-plantilla" que prellene los campos más un botón "Guardar como plantilla".
+Implementado: tabla-dominio `movement-template` (`GET/POST /movement-templates`, `PUT/DELETE
+/movement-templates/:id`), pantalla "Plantillas" (`/templates`, grupo Configuración) y, en el
+formulario de nuevo movimiento, "Usar plantilla" (solo prellena) y "Guardar como plantilla". Gratis,
+máximo 50 por persona. Queda fuera, a propósito: plantillas de traspaso o prepago, adjuntos en una
+plantilla, registrar con un toque sin abrir el formulario y usar plantillas desde la importación.
 
 ### 2. Categorías personalizadas (creadas por el usuario)
 
@@ -863,7 +860,7 @@ que se decidan. Se exploraron en el lienzo "fik · Precios" (variantes PL2, PL2a
 - **Precio**: sin definir.
 - **Qué sumaría el plan de pago** (nada de esto existe hoy):
   - _Organización_: espacios separados (personal, negocio, la casa), etiquetas propias además de la
-    categoría, plantillas de movimientos frecuentes (ver "Movimientos · 1. Plantillas").
+    categoría (las plantillas de movimientos ya existen y son gratis, specs/037).
   - _Automatización_: reglas que categorizan solas, recurrentes que se registran el día que tocan (hoy
     los recurrentes son solo informativos), recordatorios antes de cada vencimiento.
   - _Conexión_: sincronización con bancos — el único ítem con un costo real por cuenta (se le paga a un
