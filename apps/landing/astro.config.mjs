@@ -21,6 +21,7 @@ const LOCALIZED_PAIRS = [
   { es: "/es/valor-uf/", en: "/en/uf-value/" },
   { es: "/es/dolar-observado/", en: "/en/dollar-rate/" },
   { es: "/es/guias/", en: "/en/guides/" },
+  { es: "/es/como-escribimos/", en: "/en/how-we-write/" },
   // Every guide written in both languages (spec 035), read from its frontmatter slug.
   ...guideSitemapPairs(fileURLToPath(new URL("./src/content/guides", import.meta.url))),
 ];

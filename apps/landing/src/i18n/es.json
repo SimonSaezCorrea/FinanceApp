@@ -29,7 +29,8 @@
       "allGuides": "Todas las guías",
       "legal": "Legal",
       "copyright": "© {{year}} fik",
-      "llms": "Para asistentes de IA"
+      "llms": "Para asistentes de IA",
+      "editorial": "Cómo escribimos"
     },
     "home": {
       "eyebrow": "Finanzas personales en Chile",
@@ -372,6 +373,10 @@
       "ai": {
         "title": "fik para asistentes de IA · fik",
         "description": "Un resumen de fik para ChatGPT, Claude u otro asistente de IA: qué hace la app, sus páginas y guías, y la UF y el dólar del día."
+      },
+      "editorial": {
+        "title": "Cómo escribimos las guías · fik",
+        "description": "Quién escribe las guías de fik, de qué fuentes oficiales salen sus datos, cada cuánto se revisan y cómo reportar un error."
       }
     },
     "access": {
@@ -505,7 +510,8 @@
         "copied": "Copiada",
         "copyFailed": "No se pudo copiar",
         "markdown": "Mostrar como Markdown"
-      }
+      },
+      "editorialLink": "Cómo escribimos"
     },
     "ai": {
       "title": "fik para asistentes de IA",
@@ -522,6 +528,9 @@
     },
     "market": {
       "CL": "Chile"
+    },
+    "editorial": {
+      "title": "Cómo escribimos las guías"
     }
   }
 }

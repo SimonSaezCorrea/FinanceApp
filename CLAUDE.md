@@ -1847,6 +1847,14 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     instalments move into the full part 25% every 6 months until 2028-06-04; an issuer may waive it at
     most 2 months in a row if the debt is repaid within 24 months), which supersedes D.S. 44's
     "not below the period's interest" floor. Guides that touch the minimum payment must cite NCG 537.
+    Amendment (editorial policy, 2026-10-25): **`/es/como-escribimos/` and `/en/how-we-write/`** (page
+    key `editorial`, another `LOCALIZED_SLUGS` entry; route `src/pages/[lang]/[editorial]/index.astro`,
+    text in `src/editorial/how-we-write.{es,en}.md`, same pattern as the privacy policy): who writes the
+    guides, the official sources, the review cadence — **when a rule a guide covers changes, and at
+    least once a year** —, general information not advice, independence (no bank pays, no ads) and how
+    to report a mistake (`contacto@mifik.cl` or a GitHub issue). Linked from every guide's meta line
+    (`[data-guide-editorial]`, `landing.guides.editorialLink`), the footer's _fik_ column (after Nosotros) and
+    `/llms.txt`. Keep the published cadence true: a guide past a year without review must be reviewed.
     Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
     profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
     builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the

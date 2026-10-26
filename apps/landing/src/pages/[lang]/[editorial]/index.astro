@@ -1,0 +1,32 @@
+---
+import { HERO_TITLE } from "../../../domains/landing/components/bits";
+import { Content as En } from "../../../editorial/how-we-write.en.md";
+import { Content as Es } from "../../../editorial/how-we-write.es.md";
+import { t } from "../../../i18n";
+import PageLayout from "../../../layouts/PageLayout.astro";
+import { type Language, LANGUAGES, LOCALIZED_SLUGS } from "../../../lib/language";
+
+/**
+ * How the guides are written (Confianza · Política editorial): who writes them, where the facts come
+ * from, how often they are reviewed (when a rule changes, and at least once a year), what they are
+ * not, independence and how to report a mistake (email or a GitHub issue). The text lives in
+ * `src/editorial/how-we-write.<lang>.md`. Linked from every guide's meta line and the footer.
+ */
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({
+    params: { lang, editorial: LOCALIZED_SLUGS.editorial[lang] },
+  }));
+}
+
+const lang = Astro.params.lang as Language;
+const Body = lang === "es" ? Es : En;
+---
+
+<PageLayout lang={lang} page="editorial">
+  <article class="prose-fik mx-auto flex max-w-[46rem] flex-col gap-6 pb-16 pt-8 sm:pt-10 lg:pt-16">
+    <h1 id="landing-editorial-title" tabindex="-1" class={HERO_TITLE}>
+      {t(lang, "landing.editorial.title")}
+    </h1>
+    <Body />
+  </article>
+</PageLayout>

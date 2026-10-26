@@ -7,7 +7,7 @@ import { isoDay } from "../lib/dates";
 
 /** Published · reviewed · author (spec 035, FR-007), both dates always shown (the review date is
  * what tells a reader the sources were checked), as `<time>` for crawlers. The author's name links
- * to their presentation on the About page. */
+ * to their presentation on the About page; "Cómo escribimos" to the editorial policy. */
 interface Props {
   lang: Language;
   publishedAt: Date;
@@ -29,4 +29,10 @@ const role = brandHtml(t(lang, "landing.guides.authorRole"));
     <a href={`${pagePath(lang, "about")}#author`} class="font-medium text-foreground underline-offset-4 hover:underline">{author}</a
     >{", "}<span set:html={role} />
   </span>
+  <span aria-hidden="true">·</span>
+  <a
+    data-guide-editorial
+    href={pagePath(lang, "editorial")}
+    class="underline-offset-4 hover:text-foreground hover:underline">{t(lang, "landing.guides.editorialLink")}</a
+  >
 </p>
