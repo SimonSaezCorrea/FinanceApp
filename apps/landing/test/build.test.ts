@@ -79,7 +79,7 @@ describe("public site build", () => {
   }
 
   it("never repeats a title within a language, nor a description across the ten pages", () => {
-    // The home is the brand alone ("fik") in every language; hreflang already pairs them.
+    // The home says the brand and what it is for its market ("fik · Finanzas personales en Chile").
     for (const lang of LANGS) {
       const titles = PAGES.map(({ slug }) => title(htmlOf(lang, slug)));
       expect(new Set(titles).size).toBe(titles.length);
@@ -106,6 +106,22 @@ describe("public site build", () => {
       const site = data.find((d) => d["@type"] === "WebSite");
       expect(site?.name).toBe("fik");
       expect(site?.url).toBe(`${SITE}/`);
+    });
+
+    // "fik" alone collides with other brands in search: the home names the domain and the market,
+    // and the structured data lists the longer names people may search for.
+    it(`/${lang}/ is titled for its market and lists the brand's longer names`, () => {
+      const html = htmlOf(lang, "");
+      expect(title(html)).toBe(
+        lang === "es" ? "fik · Finanzas personales en Chile" : "fik · Personal finance in Chile",
+      );
+      const data = JSON.parse(
+        attr(html, /<script type="application\/ld\+json">([^<]*)<\/script>/) ?? "[]",
+      ) as { "@type": string; alternateName: string | string[] }[];
+      for (const type of ["WebSite", "Organization"]) {
+        const names = [data.find((d) => d["@type"] === type)?.alternateName].flat();
+        expect(names).toEqual(expect.arrayContaining(["mifik", "fik finanzas", "fik finance"]));
+      }
     });
 
     // Who stands behind the site (Search Console's trust signals): the repository as the brand's
@@ -135,6 +151,16 @@ describe("public site build", () => {
 
   it("publishes the square logo the organization points at", () => {
     expect(existsSync(join(DIST, "logo.png"))).toBe(true);
+  });
+
+  it("leaves no placeholder in any title", () => {
+    for (const lang of LANGS) {
+      for (const { slug } of PAGES) {
+        expect(title(htmlOf(lang, slug))).not.toContain("{{");
+        expect(description(htmlOf(lang, slug))).not.toContain("{{");
+      }
+    }
+    expect(readFileSync(join(DIST, "llms.txt"), "utf8")).not.toContain("{{");
   });
 
   it("keeps structured data off the other pages", () => {

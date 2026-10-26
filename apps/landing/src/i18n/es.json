@@ -321,8 +321,8 @@
     "skipToContent": "Saltar al contenido",
     "meta": {
       "home": {
-        "title": "fik",
-        "description": "La columna que hace cuadrar tus finanzas. Finanzas personales en Chile con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
+        "title": "fik · Finanzas personales en {{country}}",
+        "description": "La columna que hace cuadrar tus finanzas. Finanzas personales en {{country}} con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
       },
       "about": {
         "title": "Nosotros · fik",
@@ -519,6 +519,9 @@
       "copied": "Copiado",
       "copyFailed": "No se pudo copiar",
       "openText": "Abrir como texto"
+    },
+    "market": {
+      "CL": "Chile"
     }
   }
 }
