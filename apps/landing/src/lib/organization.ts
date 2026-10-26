@@ -3,6 +3,12 @@
  * One place, so the founder and the contact never read differently on two pages.
  */
 
+/**
+ * Other names the brand goes by: "fik" alone collides with unrelated brands in search, so the
+ * structured data also lists the domain's name and the descriptive ones (es/en).
+ */
+export const BRAND_NAMES: readonly string[] = ["mifik", "fik finanzas", "fik finance"];
+
 /** The address every person writes to (also in the privacy policy and security.txt). */
 export const CONTACT_EMAIL = "contacto@mifik.cl";
 

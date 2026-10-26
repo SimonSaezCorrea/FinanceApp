@@ -25,7 +25,8 @@ import Header from "../domains/landing/components/Header.astro";
 import MobileMenu from "../domains/landing/components/MobileMenu.astro";
 import { t } from "../i18n";
 import { LANGUAGES, type Language, type Page, pagePath } from "../lib/language";
-import { BRAND_PROFILES, CONTACT_EMAIL, FOUNDER } from "../lib/organization";
+import { metaDescription, metaTitle } from "../lib/market";
+import { BRAND_NAMES, BRAND_PROFILES, CONTACT_EMAIL, FOUNDER } from "../lib/organization";
 
 /**
  * Every public page (spec 031, contracts/page-metadata.md): its own title, description, canonical,
@@ -58,8 +59,8 @@ const title =
   Astro.props.title ??
   (notFound
     ? `${t(lang, "app.notFound.title")} · fik`
-    : t(lang, `landing.meta.${metaKey}.title`));
-const description = Astro.props.description ?? t(lang, `landing.meta.${metaKey}.description`);
+    : metaTitle(lang, metaKey));
+const description = Astro.props.description ?? metaDescription(lang, metaKey);
 const image = `${site}/og/fik-${lang}.png`;
 // Visit statistics (Cloudflare Web Analytics: aggregated, no cookies), declared in the privacy
 // policy. Added here by hand instead of Cloudflare's automatic injection so it runs ONLY on the
@@ -76,7 +77,7 @@ const structuredData =
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "fik",
-          alternateName: ["mifik", "mifik.cl"],
+          alternateName: [...BRAND_NAMES, "mifik.cl"],
           url: `${site}/`,
           inLanguage: lang === "es" ? "es-CL" : "en-US",
         },
@@ -84,7 +85,7 @@ const structuredData =
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "fik",
-          alternateName: "mifik",
+          alternateName: BRAND_NAMES,
           url: `${site}/`,
           email: CONTACT_EMAIL,
           slogan: t(lang, "brand.slogan"),

@@ -2424,8 +2424,7 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
   **The slogan no longer sits next to the name.** It is now **"La columna que hace cuadrar tus
   finanzas"** / "The backbone that keeps your finances balanced" (`brand.slogan`) and appears in the landing footer
   (above `landing.footer.tagline`), a "Lo que buscamos" note (`landing.about.name.*`) inside Nosotros' "Cómo la construimos" card, the start of the home meta description, the OG image and its alt
-  text. The home tab title is the brand alone ("fik") in both languages, so `build.test.ts`
-  checks title uniqueness per language. Both favicons (`apps/{web,landing}/public/favicon.svg`) are the compact tile.
+  text. The home tab title was the brand alone ("fik"); since 2026-10-25 it is **"fik · Finanzas personales en Chile"** / "fik · Personal finance in Chile" (`fik` alone collided with other brands in search). The country is never written into the string: `landing.meta.home.{title,description}` carry `{{country}}`, filled by `apps/landing/src/lib/market.ts` (`SITE_MARKET = "CL"`, `landing.market.<code>`, `metaTitle`/`metaDescription`, used by `PageLayout` and `/llms.txt`), so another market is that constant plus a catalog entry. Other pages keep the " · fik" suffix; the WebSite/Organization JSON-LD lists `alternateName` "mifik", "fik finanzas", "fik finance" (`BRAND_NAMES` in `lib/organization.ts`). Both favicons (`apps/{web,landing}/public/favicon.svg`) are the compact tile.
   `scripts/og.mjs` draws the same logo, reading `scripts/fonts/CaveatBrush-Regular.ttf` (OFL,
   committed with its `OFL.txt`) since resvg can't use the woff2 files.
   Amendment (per-route tab titles, a real 404 page, a crash boundary, and a scrollbar-gutter

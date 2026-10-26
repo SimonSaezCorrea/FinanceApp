@@ -4,6 +4,7 @@ import { t } from "../../../i18n";
 import { APP_URL } from "../../../lib/config";
 import { buildRatesSnapshot } from "../../../lib/exchangeRates";
 import { type Language, LANGUAGES, type Page, pagePath } from "../../../lib/language";
+import { metaDescription, metaTitle } from "../../../lib/market";
 import { type LlmsSection, llmsText } from "./llmsText";
 
 /** The pages listed per language, in reading order (the email-link pages and the 404 are not). */
@@ -33,9 +34,9 @@ export async function buildLlmsText(site: URL | undefined): Promise<string> {
     {
       heading: SECTION_HEADING[lang],
       links: LISTED.map((page) => ({
-        title: t(lang, `landing.meta.${page}.title`).replace(/ · fik$/, ""),
+        title: metaTitle(lang, page).replace(/ · fik$/, ""),
         url: `${origin}${pagePath(lang, page)}`,
-        description: t(lang, `landing.meta.${page}.description`),
+        description: metaDescription(lang, page),
       })),
     },
     {

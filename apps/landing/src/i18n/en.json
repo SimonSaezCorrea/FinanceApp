@@ -321,8 +321,8 @@
     "skipToContent": "Skip to content",
     "meta": {
       "home": {
-        "title": "fik",
-        "description": "The backbone that keeps your finances balanced. Personal finance in Chile with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
+        "title": "fik · Personal finance in {{country}}",
+        "description": "The backbone that keeps your finances balanced. Personal finance in {{country}} with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
       },
       "about": {
         "title": "About · fik",
@@ -519,6 +519,9 @@
       "copied": "Copied",
       "copyFailed": "Couldn't copy",
       "openText": "Open as text"
+    },
+    "market": {
+      "CL": "Chile"
     }
   }
 }
