@@ -113,7 +113,9 @@
     "more": "Más",
     "moreSections": "Más secciones",
     "exchangeRates": "Tipos de cambio",
-    "customFields": "Columnas propias"
+    "customFields": "Columnas propias",
+    "whatsNew": "Novedades",
+    "whatsNewUnseen": "hay novedades"
   },
   "theme": {
     "label": "Tema",
@@ -2986,6 +2988,20 @@
         "me": "Yo",
         "partner": "Pareja"
       }
+    }
+  },
+  "releaseNotes": {
+    "title": "Novedades",
+    "lead": "Lo que cambió en fik en cada actualización, lo más reciente primero.",
+    "since": "Registramos los cambios desde el 26 de octubre de 2026.",
+    "empty": "Todavía no hay novedades registradas.",
+    "loadError": "No pudimos cargar las novedades.",
+    "kinds": {
+      "new": "Nuevo",
+      "improved": "Mejoras",
+      "fixed": "Correcciones",
+      "changed": "Cambios",
+      "security": "Seguridad"
     }
   }
 }

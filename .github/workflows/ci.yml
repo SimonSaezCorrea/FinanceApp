@@ -37,6 +37,30 @@ jobs:
           echo "tested=$tested" >> "$GITHUB_OUTPUT"
           echo "Already passed on dev: $tested"
 
+  # Novedades (spec 038): every feat/fix commit that reaches main must be listed in a release
+  # record (packages/release-notes/releases/). Runs on EVERY push to main, even when `gate` skips
+  # the rest, so a push that skipped the pre-push hook still fails here and Deploy never runs.
+  release-notes:
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Every feat/fix is in a release record
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "::warning::No previous main to compare with (first push or rewritten history): check skipped."
+            exit 0
+          fi
+          node packages/release-notes/scripts/check.mjs --range "$BEFORE..$GITHUB_SHA"
+
   # Repo-wide checks that need no database and no build.
   checks:
     needs: gate

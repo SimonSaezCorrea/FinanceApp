@@ -113,7 +113,9 @@
     "more": "More",
     "moreSections": "More sections",
     "exchangeRates": "Exchange rates",
-    "customFields": "Custom columns"
+    "customFields": "Custom columns",
+    "whatsNew": "What's new",
+    "whatsNewUnseen": "new updates"
   },
   "theme": {
     "label": "Theme",
@@ -2986,6 +2988,20 @@
         "me": "Me",
         "partner": "Partner"
       }
+    }
+  },
+  "releaseNotes": {
+    "title": "What's new",
+    "lead": "What changed in fik with each update, newest first.",
+    "since": "We have recorded every change since October 26, 2026.",
+    "empty": "No updates recorded yet.",
+    "loadError": "We couldn't load the updates.",
+    "kinds": {
+      "new": "New",
+      "improved": "Improvements",
+      "fixed": "Fixes",
+      "changed": "Changes",
+      "security": "Security"
     }
   }
 }

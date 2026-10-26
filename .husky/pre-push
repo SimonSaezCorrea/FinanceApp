@@ -16,6 +16,11 @@ if [ -n "$to_main" ]; then
     echo "✖ Ese commit no está en dev: a main solo se empuja lo que ya pasó por dev." >&2
     exit 1
   fi
+  # Novedades (spec 038): todo feat/fix que llega a main tiene que estar en un registro. Lee los
+  # registros del commit que se empuja, no del working tree.
+  if git rev-parse --verify -q refs/remotes/origin/main >/dev/null; then
+    node packages/release-notes/scripts/check.mjs --range "refs/remotes/origin/main..$to_main" --ref "$to_main" || exit 1
+  fi
 fi
 
 # Lint + typecheck de lo que cambió respecto del remoto (los tests quedan para CI).
