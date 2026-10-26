@@ -1048,7 +1048,9 @@ en el home, endpoint público, rebuild programado). Pendiente:
    mifik.cl.
 4. **Medir** (subtarea aparte, para no mezclarla con lo que se construye): Lighthouse móvil en producción de las 4 páginas de indicadores (local: 100/100/100/100,
    LCP 1,7 s) y, en Search Console, impresiones de "uf"/"dólar" a las 8 semanas (SC-006).
-5. Las páginas de indicadores no tienen página por mes ni por día (fuera de alcance de la spec 033).
+5. Páginas por mes o por día de UF y dólar: **descartadas** (2026-10-25), sin valor suficiente frente a
+   la fecha elegible de las páginas de indicadores. El euro entra como indicador solo cuando la app
+   agregue EUR como moneda (card "Añadir Euro").
 6. **El API se rastrea** (Search Console, 2026-10-25: "Se ha bloqueado debido a otro problema de tipo
    4xx"): la propiedad de dominio `mifik.cl` incluye `api.mifik.cl`, y Google pide endpoints que
    encuentra en el JavaScript (`/api/v1/auth/me` responde 401). `api.mifik.cl/robots.txt` es el
