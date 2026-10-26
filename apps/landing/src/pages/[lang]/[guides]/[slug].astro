@@ -14,6 +14,7 @@ import { markdownOf } from "../../../domains/guides/lib/loadMarkdown";
 import { t } from "../../../i18n";
 import PageLayout from "../../../layouts/PageLayout.astro";
 import { type Language, LOCALIZED_SLUGS, pagePath } from "../../../lib/language";
+import { FOUNDER } from "../../../lib/organization";
 
 /**
  * A guide (spec 035): `/es/guias/<slug>/`, `/en/guides/<slug>/`, built from its Markdown file in
@@ -54,6 +55,7 @@ const structuredData = JSON.stringify([
       name: guide.author,
       jobTitle: t(lang, "landing.about.author.role"),
       url: `${site}${pagePath(lang, "about")}#author`,
+      sameAs: FOUNDER.profiles,
       worksFor: { "@type": "Organization", name: "fik", url: `${site}/` },
     },
     publisher: { "@type": "Organization", name: "fik", url: `${site}/`, logo: `${site}/favicon.svg` },

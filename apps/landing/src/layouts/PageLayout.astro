@@ -25,6 +25,7 @@ import Header from "../domains/landing/components/Header.astro";
 import MobileMenu from "../domains/landing/components/MobileMenu.astro";
 import { t } from "../i18n";
 import { LANGUAGES, type Language, type Page, pagePath } from "../lib/language";
+import { BRAND_PROFILES, CONTACT_EMAIL, FOUNDER } from "../lib/organization";
 
 /**
  * Every public page (spec 031, contracts/page-metadata.md): its own title, description, canonical,
@@ -85,8 +86,25 @@ const structuredData =
           name: "fik",
           alternateName: "mifik",
           url: `${site}/`,
-          email: "contacto@mifik.cl",
+          email: CONTACT_EMAIL,
           slogan: t(lang, "brand.slogan"),
+          // A raster square: search engines don't take the SVG favicon as a logo.
+          logo: `${site}/logo.png`,
+          sameAs: BRAND_PROFILES,
+          // Everyone writes to the same address; no phone on purpose (it would be a personal one).
+          contactPoint: {
+            "@type": "ContactPoint",
+            email: CONTACT_EMAIL,
+            contactType: "customer support",
+            areaServed: "CL",
+            availableLanguage: ["es", "en"],
+          },
+          founder: {
+            "@type": "Person",
+            name: FOUNDER.name,
+            url: `${site}${pagePath(lang, "about")}#author`,
+            sameAs: FOUNDER.profiles,
+          },
         },
       ])
     : null;

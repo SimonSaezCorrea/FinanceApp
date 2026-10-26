@@ -107,7 +107,35 @@ describe("public site build", () => {
       expect(site?.name).toBe("fik");
       expect(site?.url).toBe(`${SITE}/`);
     });
+
+    // Who stands behind the site (Search Console's trust signals): the repository as the brand's
+    // one profile so far, the contact everyone writes to, a square raster logo and the founder.
+    it(`/${lang}/ declares the organization: profile, contact, logo and founder`, () => {
+      const json = attr(htmlOf(lang, ""), /<script type="application\/ld\+json">([^<]*)<\/script>/);
+      const data = JSON.parse(json ?? "[]") as Record<string, unknown>[];
+      const org = data.find((d) => d["@type"] === "Organization") as Record<string, any>;
+      expect(org.sameAs).toEqual(["https://github.com/SimonSaezCorrea/FinanceApp"]);
+      expect(org.logo).toBe(`${SITE}/logo.png`);
+      expect(org.contactPoint).toMatchObject({
+        "@type": "ContactPoint",
+        email: "contacto@mifik.cl",
+        contactType: "customer support",
+        areaServed: "CL",
+        availableLanguage: ["es", "en"],
+      });
+      expect(org.contactPoint.telephone).toBeUndefined();
+      expect(org.founder).toMatchObject({
+        "@type": "Person",
+        name: "Simón Sáez",
+        url: `${SITE}/${lang}/about/#author`,
+        sameAs: ["https://www.linkedin.com/in/simon-saez"],
+      });
+    });
   }
+
+  it("publishes the square logo the organization points at", () => {
+    expect(existsSync(join(DIST, "logo.png"))).toBe(true);
+  });
 
   it("keeps structured data off the other pages", () => {
     expect(htmlOf("es", "faq")).not.toContain("application/ld+json");
@@ -384,6 +412,9 @@ describe("public site build", () => {
           expect(author["@type"]).toBe("Person");
           expect(author.name).toBe("Simón Sáez");
           expect(author.url).toBe(`${SITE}/${lang}/about/#author`);
+          expect((author as { sameAs?: string[] }).sameAs).toEqual([
+            "https://www.linkedin.com/in/simon-saez",
+          ]);
           // …where that address lands: the author block on the About page.
           const about = readFileSync(join(DIST, lang, "about", "index.html"), "utf8");
           expect(about).toMatch(/<section id="author"[^>]*>[\s\S]*?Simón Sáez/);

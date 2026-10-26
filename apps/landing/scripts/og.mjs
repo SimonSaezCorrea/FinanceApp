@@ -143,3 +143,21 @@ export const EMAIL_LOGO_PNG_BASE64 =
 console.log(
   `email logo ${logoPng.length} bytes → apps/api/src/infra/email/templates/logo.generated.ts`,
 );
+
+// The square logo search engines read from the home's Organization JSON-LD (`logo`): Google wants
+// a raster image at least 112px square, so the same drawing goes centred on white (where results
+// show it), 512×512 → public/logo.png.
+const squareLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="-46 -166 200 200">
+  <rect x="-46" y="-166" width="200" height="200" fill="#ffffff"/>
+  ${emailLogo.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}
+</svg>`;
+const squarePng = new Resvg(squareLogo, {
+  font: {
+    fontFiles: [join(root, "scripts/fonts/CaveatBrush-Regular.ttf")],
+    loadSystemFonts: false,
+  },
+})
+  .render()
+  .asPng();
+writeFileSync(join(root, "public/logo.png"), squarePng);
+console.log(`logo.png ${squarePng.length} bytes`);
