@@ -114,7 +114,9 @@
     "moreSections": "More sections",
     "exchangeRates": "Exchange rates",
     "customFields": "Custom columns",
-    "templates": "Templates"
+    "templates": "Templates",
+    "whatsNew": "What's new",
+    "whatsNewUnseen": "new updates"
   },
   "theme": {
     "label": "Theme",
@@ -3034,6 +3036,20 @@
       "description": "Everything in the form is kept except the date. The movement isn't recorded yet.",
       "confirm": "Save template",
       "keepAmount": "Also keep the amount"
+    }
+  },
+  "releaseNotes": {
+    "title": "What's new",
+    "lead": "What changed in fik with each update, newest first.",
+    "since": "We have recorded every change since October 26, 2026.",
+    "empty": "No updates recorded yet.",
+    "loadError": "We couldn't load the updates.",
+    "kinds": {
+      "new": "New",
+      "improved": "Improvements",
+      "fixed": "Fixes",
+      "changed": "Changes",
+      "security": "Security"
     }
   }
 }

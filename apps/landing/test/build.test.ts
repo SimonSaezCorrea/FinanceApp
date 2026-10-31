@@ -187,6 +187,42 @@ describe("public site build", () => {
     });
   });
 
+  // Spec 038: Novedades, one record per deploy, from packages/release-notes.
+  describe("release notes (spec 038)", () => {
+    const SLUG = { es: "novedades", en: "whats-new" } as const;
+    const FIRST = "2026-10-26-guias-chile";
+    for (const lang of LANGS) {
+      const other = lang === "es" ? "en" : "es";
+      it(`/${lang}/${SLUG[lang]}/ lists the deploys with their own anchor, paired with the other language`, () => {
+        const html = htmlOf(lang, SLUG[lang]);
+        expect(html).toMatch(/<h1[^>]*id="release-notes-title"/);
+        expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${SLUG[lang]}/"`);
+        expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${SLUG[other]}/"`);
+        expect(html).toMatch(new RegExp(`<article[^>]*id="${FIRST}"`));
+        expect(html).toContain(`href="#${FIRST}"`);
+        expect(html).toContain('<time datetime="2026-10-26"');
+        expect(html).toContain('data-release-kind="new"');
+        expect(html).toContain('data-release-kind="fixed"');
+        expect(html).toContain('"@type":"CollectionPage"');
+        expect(html).not.toMatch(/astro-island/);
+      });
+
+      it(`every /${lang}/ footer links to it`, () => {
+        expect(htmlOf(lang, "about")).toContain(`href="/${lang}/${SLUG[lang]}/"`);
+        expect(htmlOf(lang, "")).toContain(`href="/${lang}/${SLUG[lang]}/"`);
+      });
+    }
+
+    it("is in the sitemap with its real pair and in llms.txt", () => {
+      const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
+      const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
+      for (const lang of LANGS) expect(xml).toContain(`<loc>${SITE}/${lang}/${SLUG[lang]}/</loc>`);
+      expect(xml).not.toContain(`${SITE}/en/${SLUG.es}/`);
+      const llms = readFileSync(join(DIST, "llms.txt"), "utf8");
+      for (const lang of LANGS) expect(llms).toContain(`(${SITE}/${lang}/${SLUG[lang]}/)`);
+    });
+  });
+
   it("leaves no placeholder in any title", () => {
     for (const lang of LANGS) {
       for (const { slug } of PAGES) {

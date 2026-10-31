@@ -30,7 +30,8 @@
       "legal": "Legal",
       "copyright": "© {{year}} fik",
       "llms": "For AI assistants",
-      "editorial": "How we write"
+      "editorial": "How we write",
+      "releaseNotes": "What's new"
     },
     "home": {
       "eyebrow": "Personal finance in Chile",
@@ -377,6 +378,10 @@
       "editorial": {
         "title": "How we write the guides · fik",
         "description": "Who writes fik's guides, which official sources their facts come from, how often they are reviewed and how to report a mistake."
+      },
+      "releaseNotes": {
+        "title": "What's new in fik · fik",
+        "description": "What changed in fik with each update: new features, improvements, fixes and changes, with their date."
       }
     },
     "access": {
@@ -531,6 +536,12 @@
     },
     "editorial": {
       "title": "How we write the guides"
+    },
+    "releaseNotes": {
+      "title": "What's new",
+      "lead": "What changed in fik with each update, written for people. Newest first.",
+      "since": "We have recorded every change since October 26, 2026.",
+      "empty": "No updates recorded yet."
     }
   }
 }

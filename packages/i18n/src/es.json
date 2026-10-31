@@ -114,7 +114,9 @@
     "moreSections": "Más secciones",
     "exchangeRates": "Tipos de cambio",
     "customFields": "Columnas propias",
-    "templates": "Plantillas"
+    "templates": "Plantillas",
+    "whatsNew": "Novedades",
+    "whatsNewUnseen": "hay novedades"
   },
   "theme": {
     "label": "Tema",
@@ -3034,6 +3036,20 @@
       "description": "Se guarda todo lo del formulario salvo la fecha. El movimiento todavía no se registra.",
       "confirm": "Guardar plantilla",
       "keepAmount": "Guardar también el monto"
+    }
+  },
+  "releaseNotes": {
+    "title": "Novedades",
+    "lead": "Lo que cambió en fik en cada actualización, lo más reciente primero.",
+    "since": "Registramos los cambios desde el 26 de octubre de 2026.",
+    "empty": "Todavía no hay novedades registradas.",
+    "loadError": "No pudimos cargar las novedades.",
+    "kinds": {
+      "new": "Nuevo",
+      "improved": "Mejoras",
+      "fixed": "Correcciones",
+      "changed": "Cambios",
+      "security": "Seguridad"
     }
   }
 }

@@ -17,6 +17,7 @@ import {
   NotFoundPage,
   ProfileLayout,
   RecurringRoute,
+  ReleaseNotesRoute,
   SavingsRoute,
   TransactionsRoute,
 } from "./lazyPages";
@@ -96,6 +97,12 @@ export const router = createBrowserRouter([
             path: "/templates",
             element: <TemplatesRoute />,
             handle: handle({ title: "nav.templates" }),
+          },
+          {
+            // Novedades (spec 038): what changed in each deploy.
+            path: "/whats-new",
+            element: <ReleaseNotesRoute />,
+            handle: handle({ title: "releaseNotes.title" }),
           },
           {
             path: "/import",

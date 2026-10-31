@@ -1,0 +1,111 @@
+---
+import { releaseCatalog, releasesIn } from "@finance/release-notes";
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
+
+import { HERO_TITLE } from "../../../domains/landing/components/bits";
+import { changeHtml } from "../../../domains/releases/lib/render";
+import { formatDay } from "../../../domains/rates/lib/chileDay";
+import { t } from "../../../i18n";
+import PageLayout from "../../../layouts/PageLayout.astro";
+import { type Language, LANGUAGES, LOCALIZED_SLUGS, pagePath } from "../../../lib/language";
+
+/**
+ * Novedades (spec 038): what changed in each production deploy, newest first, from the records in
+ * `packages/release-notes/releases/` (the same ones the app shows). A broken record stops the build
+ * naming its file. Each deploy has its own anchor (`#<id>`). No script: plain HTML.
+ */
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({
+    params: { lang, releaseNotes: LOCALIZED_SLUGS.releaseNotes[lang] },
+  }));
+}
+
+const lang = Astro.params.lang as Language;
+const releases = releasesIn(releaseCatalog(), lang);
+
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const url = `${site}${pagePath(lang, "releaseNotes")}`;
+const structuredData = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: t(lang, "landing.releaseNotes.title"),
+    url,
+    inLanguage: lang === "es" ? "es-CL" : "en-US",
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: releases.map((r, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${url}#${r.id}`,
+        name: r.title,
+      })),
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "fik", item: `${site}${pagePath(lang, "home")}` },
+      { "@type": "ListItem", position: 2, name: t(lang, "landing.releaseNotes.title"), item: url },
+    ],
+  },
+]).replace(/</g, "\\u003c");
+---
+
+<PageLayout lang={lang} page="releaseNotes">
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+
+  <section aria-labelledby="release-notes-title" class="flex flex-col gap-10 py-10 lg:py-16">
+    <div class="flex max-w-[60ch] flex-col gap-3">
+      <h1 id="release-notes-title" tabindex="-1" class={HERO_TITLE}>
+        {t(lang, "landing.releaseNotes.title")}
+      </h1>
+      <p class="text-lg leading-relaxed text-muted-foreground" set:html={brandHtml(t(lang, "landing.releaseNotes.lead"))} />
+      <p class="text-sm text-muted-foreground">{t(lang, "landing.releaseNotes.since")}</p>
+    </div>
+
+    {
+      releases.length === 0 ? (
+        <p class="text-muted-foreground">{t(lang, "landing.releaseNotes.empty")}</p>
+      ) : (
+        <ol class="flex max-w-[46rem] flex-col gap-6">
+          {releases.map((release) => (
+            <li>
+              <article
+                id={release.id}
+                data-release={release.id}
+                aria-labelledby={`${release.id}-title`}
+                class="flex scroll-mt-24 flex-col gap-4 rounded-2xl border bg-card p-5 sm:p-6"
+              >
+                <header class="flex flex-col gap-1">
+                  <time datetime={release.date} class="text-sm text-muted-foreground">
+                    {formatDay(release.date, lang)}
+                  </time>
+                  <h2 id={`${release.id}-title`} class="text-xl font-semibold tracking-tight">
+                    <a href={`#${release.id}`} class="hover:underline" set:html={brandHtml(release.title)} />
+                  </h2>
+                  {release.summary ? (
+                    <p class="leading-relaxed text-muted-foreground" set:html={brandHtml(release.summary)} />
+                  ) : null}
+                </header>
+                {release.groups.map((group) => (
+                  <section data-release-kind={group.kind} class="flex flex-col gap-2">
+                    <h3 class="text-sm font-semibold text-foreground">
+                      {t(lang, `releaseNotes.kinds.${group.kind}`)}
+                    </h3>
+                    <ul class="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:text-[0.9em]">
+                      {group.items.map((item) => (
+                        <li set:html={changeHtml(item)} />
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </article>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </section>
+</PageLayout>

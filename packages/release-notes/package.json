@@ -1,0 +1,24 @@
+{
+  "name": "@finance/release-notes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Novedades (spec 038): one record per production deploy, read by the public site and the app, and the check that every feat/fix reaching main is covered. Source-only.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@finance/config": "workspace:*",
+    "@types/node": "^26.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.2"
+  }
+}

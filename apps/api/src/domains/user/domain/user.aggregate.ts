@@ -48,6 +48,8 @@ export interface UserProps {
   emailVerifiedAt?: Date | null;
   /** The first-steps guide was finished or closed (it never shows again). */
   onboardingClosedAt?: Date | null;
+  /** The newest Novedades record the person saw (spec 038); null/absent = none. */
+  releaseNotesSeenId?: string | null;
 }
 
 /** `email` is not part of a profile edit (specs/032): it changes only by confirming a pending
@@ -197,6 +199,20 @@ export class User {
   closeOnboarding(at: Date): boolean {
     if (this.props.onboardingClosedAt) return false;
     this.props.onboardingClosedAt = at;
+    return true;
+  }
+
+  get releaseNotesSeenId(): string | null {
+    return this.props.releaseNotesSeenId ?? null;
+  }
+
+  /** The person opened Novedades with `releaseId` as the newest record (spec 038). Only moves
+   * forward — ids start with their date, so comparing them orders them —: repeating it, or an
+   * older id (a stale tab), changes nothing (Principle VII form a). Returns whether it changed. */
+  markReleaseNotesSeen(releaseId: string): boolean {
+    const current = this.props.releaseNotesSeenId;
+    if (current && current >= releaseId) return false;
+    this.props.releaseNotesSeenId = releaseId;
     return true;
   }
 
@@ -397,6 +413,7 @@ export class User {
       phone: this.props.phone,
       hideBalances: this.props.hideBalances,
       onboardingClosed: this.onboardingClosed,
+      releaseNotesSeenId: this.releaseNotesSeenId,
       extraCurrencies: this.props.extraCurrencies,
       budgetAlertThreshold: this.props.budgetAlertThreshold,
       mfaEnabled: this.props.mfaEnabled,
