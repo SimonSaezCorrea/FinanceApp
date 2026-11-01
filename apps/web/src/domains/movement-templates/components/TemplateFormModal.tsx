@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { movementTemplates as templatesContract } from "@finance/contracts";
 import type { customFields, movementTemplates } from "@finance/contracts";
 
 import { ApiRequestError } from "@finance/client";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { CustomFieldInputs } from "../../custom-fields/components/CustomFieldInputs";
@@ -17,10 +19,10 @@ import {
   type TransactionFormValue,
 } from "../../transactions/components/TransactionFormPanel";
 import { emptyTransactionForm } from "../../transactions/lib/emptyForm";
-import { FormTextField } from "../../../shared/ui/form";
 import { useMovementTemplateMutations } from "../hooks/useMovementTemplates";
 import { applyTemplate } from "../lib/applyTemplate";
 import { templateFromForm } from "../lib/templateFromForm";
+import { TemplatePreview } from "./TemplatePreview";
 
 function todayInput(): string {
   const d = new Date();
@@ -30,7 +32,8 @@ function todayInput(): string {
 /**
  * Create or edit a movement template (specs/037) with the movement form itself — same
  * fields, same rules, minus the date (a template is used "today"), the projected balance
- * and transfers/prepagos — plus the template's name on top.
+ * and transfers/prepagos. On top, the movement it records as it will look when used, then
+ * the template's name (canvas "Nueva plantilla", design B).
  */
 export function TemplateFormModal({
   open,
@@ -141,6 +144,7 @@ export function TemplateFormModal({
       surface="panel"
       eyebrow={editing ? t("templates.form.editEyebrow") : t("templates.form.newEyebrow")}
       title={<span className="sr-only">{editing ? t("templates.edit") : t("templates.new")}</span>}
+      description={t("templates.form.subtitle")}
       hideCancel
       submitLabel={editing ? undefined : t("templates.form.submit")}
       onSubmit={submit}
@@ -149,19 +153,38 @@ export function TemplateFormModal({
       dirty={dirty}
     >
       <div className="flex flex-col gap-5">
-        <FormTextField
-          id="template-name"
-          label={t("templates.form.name")}
-          value={name}
-          onChange={(v) => {
-            setName(v);
-            setNameError(null);
-          }}
-          placeholder={t("templates.form.namePlaceholder")}
-          error={nameError}
-          hint={t("templates.form.amountHint")}
-          showEditIcon
-        />
+        <TemplatePreview name={name} form={form} accounts={accounts} />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="template-name" className="text-sm text-muted-foreground">
+            {t("templates.form.name")}
+          </label>
+          <div className="relative">
+            <Input
+              id="template-name"
+              value={name}
+              maxLength={templatesContract.MOVEMENT_TEMPLATE_NAME_MAX}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameError(null);
+              }}
+              placeholder={t("templates.form.namePlaceholder")}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? "template-name-error" : undefined}
+              className="h-11 pr-16 font-medium"
+            />
+            <span
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-dim tabular-nums"
+              aria-hidden
+            >
+              {name.length}/{templatesContract.MOVEMENT_TEMPLATE_NAME_MAX}
+            </span>
+          </div>
+          {nameError ? (
+            <p id="template-name-error" className="text-xs text-destructive">
+              {nameError}
+            </p>
+          ) : null}
+        </div>
         <TransactionFormPanel
           value={form}
           onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}

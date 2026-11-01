@@ -33,8 +33,8 @@ import { useMovementTemplates } from "../../movement-templates/hooks/useMovement
 import { applyTemplate } from "../../movement-templates/lib/applyTemplate";
 import { templateFromForm } from "../../movement-templates/lib/templateFromForm";
 import { useRecurring } from "../../recurring/hooks/useRecurring";
+import { useCategories } from "../../reference/hooks/useReference";
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
-import { FormSelectField } from "../../../shared/ui/form";
 import { AttachmentsSection } from "./AttachmentsSection";
 import { emptyTransactionForm as emptyForm } from "../lib/emptyForm";
 import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
@@ -64,6 +64,7 @@ export function TransactionCreateModal({
   defaultBankAccountId,
   initialMode,
   lockAccount = false,
+  initialTemplateId,
   onDismiss,
   onSaved,
   size,
@@ -102,6 +103,9 @@ export function TransactionCreateModal({
    * move the movement out of the view the user is looking at.
    */
   lockAccount?: boolean;
+  /** Open a brand-new movement already filled from this template ("Usar plantilla" in
+   * Plantillas) — the same as picking it in the form's own template selector. */
+  initialTemplateId?: string;
 }>) {
   const { t } = useTranslation();
   const { create, update } = useTransactionMutations();
@@ -118,10 +122,12 @@ export function TransactionCreateModal({
   // Movement templates (specs/037): only a brand-new movement is pre-filled from one,
   // never an edit or a duplicate (those already start from a movement).
   const offersTemplates = !editing && !duplicateFrom;
-  const { data: templateList } = useMovementTemplates({ enabled: open && offersTemplates });
-  const { data: seriesList } = useRecurring();
+  const { data: templateList } = useMovementTemplates({
+    enabled: open && offersTemplates && Boolean(initialTemplateId),
+  });
+  const { data: seriesList, isPending: seriesPending } = useRecurring();
   const { categories } = useCategoryCatalog();
-  const [templateId, setTemplateId] = useState("");
+  const { isPending: categoriesPending } = useCategories();
   const [saveAsOpen, setSaveAsOpen] = useState(false);
 
   const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
@@ -183,7 +189,6 @@ export function TransactionCreateModal({
     const source = initial ?? duplicateFrom;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
     setCreatedId(null);
-    setTemplateId("");
     const bankAccountId = source?.bankAccountId ?? defaultBankAccountId ?? "";
     // A brand-new expense on a CREDIT_CARD account has no "Cuenta propia"
     // choice (see TransactionFormPanel) — default straight to its primary
@@ -351,10 +356,10 @@ export function TransactionCreateModal({
     patch({ customFields: next });
   };
 
-  /** "Usar plantilla": the form takes the template's values (FR-006) — nothing is
-   * created, every field stays editable, and saving goes through the ordinary create. */
+  /** "Usar plantilla" (picked in Movimientos' "Nuevo movimiento ▾", its shortcuts or
+   * Plantillas): the form takes the template's values (FR-006) — nothing is created, every
+   * field stays editable, and saving goes through the ordinary create. */
   function pickTemplate(id: string) {
-    setTemplateId(id);
     const template = templateList?.find((tpl) => tpl.id === id);
     if (!template) return;
     setForm((current) =>
@@ -369,6 +374,22 @@ export function TransactionCreateModal({
       }),
     );
   }
+  // "Usar plantilla" from outside the form: once per opening, after the prefill above and once
+  // the lists the template is checked against have settled (else a card or category reads as gone).
+  const appliedTemplateFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      appliedTemplateFor.current = null;
+      return;
+    }
+    if (!initialTemplateId || appliedTemplateFor.current === initialTemplateId) return;
+    // Settled, not necessarily successful: a list that failed to load must not leave the form
+    // unfilled — the template's category or series is then simply left for the person.
+    if (!templateList || !accountList || seriesPending || categoriesPending) return;
+    appliedTemplateFor.current = initialTemplateId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
+    pickTemplate(initialTemplateId);
+  });
   const canSaveAsTemplate = offersTemplates && (form.mode === "EXPENSE" || form.mode === "INCOME");
 
   function submit(keepOpen = false) {
@@ -564,16 +585,6 @@ export function TransactionCreateModal({
         }
       >
         <div className="flex flex-col gap-5">
-          {offersTemplates && (templateList?.length ?? 0) > 0 ? (
-            <FormSelectField
-              id="tx-template"
-              label={t("templates.use")}
-              value={templateId}
-              onChange={pickTemplate}
-              placeholder={t("templates.usePlaceholder")}
-              options={(templateList ?? []).map((tpl) => ({ value: tpl.id, label: tpl.name }))}
-            />
-          ) : null}
           <TransactionFormPanel
             value={form}
             onChange={patch}

@@ -93,6 +93,12 @@ describe("applyTemplate", () => {
     });
   });
 
+  it("records the template's name when it has no description, only when used", () => {
+    const noDescription = template({ name: "Café", description: null });
+    expect(applyTemplate(noDescription, ctx()).description).toBe("Café");
+    expect(applyTemplate(noDescription, ctx({ withDefaults: false })).description).toBe("");
+  });
+
   it("leaves the amount empty for a 'monto libre' template", () => {
     expect(applyTemplate(template(), ctx()).amount).toBe("");
   });

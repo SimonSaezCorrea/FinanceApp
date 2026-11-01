@@ -23,6 +23,7 @@ vi.mock("../../accounts/hooks/useAccounts", () => ({
     data: [{ id: "a1", name: "Corriente", type: "CHECKING", status: "ACTIVE", cards: [] }],
   }),
   useCreditStatements: () => ({ data: [] }),
+  useAccountMutations: () => ({ prepayCreditStatement: { mutate: vi.fn(), isPending: false } }),
 }));
 
 const api = vi.mocked(movementTemplatesApi);
@@ -48,13 +49,13 @@ const template = (over: Partial<movementTemplates.MovementTemplate>) =>
     ...over,
   }) as movementTemplates.MovementTemplate;
 
-function renderRoute() {
+function renderRoute(path = "/templates") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>
         <AuthProvider>
-          <MemoryRouter>
+          <MemoryRouter initialEntries={[path]}>
             <TemplatesRoute />
           </MemoryRouter>
         </AuthProvider>
@@ -87,16 +88,28 @@ describe("TemplatesRoute (specs/037)", () => {
     ]);
     renderRoute();
     expect(await screen.findByText("Arriendo mensual")).toBeTruthy();
-    expect(screen.getByText("$450.000")).toBeTruthy();
+    expect(screen.getByText("−$450.000")).toBeTruthy();
     expect(screen.getByText(i18n.t("templates.freeAmount"))).toBeTruthy();
-    expect(screen.getAllByText(/Corriente/).length).toBe(2);
+    expect(screen.getAllByText("Gasto · Corriente").length).toBe(2);
     expect(screen.getByText(i18n.t("templates.limit", { count: 2, max: 50 }))).toBeTruthy();
+  });
+
+  it("opens a template as its own screen with the movement it records", async () => {
+    api.list.mockResolvedValue([template({ amount: "30000", currency: "CLP", lugar: "Copec" })]);
+    renderRoute();
+    fireEvent.click(await screen.findByRole("link", { name: /Bencina/ }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Bencina" })).toBeTruthy();
+    const preview = screen.getByRole("region", { name: i18n.t("templates.preview.label") });
+    expect(preview.textContent).toContain("−$30.000");
+    expect(preview.textContent).toContain("Copec");
+    expect(screen.getByRole("button", { name: i18n.t("templates.use") })).toBeTruthy();
+    expect(screen.getByRole("link", { name: i18n.t("templates.back") })).toBeTruthy();
   });
 
   it("deletes a template after confirming", async () => {
     api.list.mockResolvedValue([template({})]);
     api.remove.mockResolvedValue(undefined);
-    renderRoute();
+    renderRoute("/templates?plantilla=019a0000-0000-7000-8000-0000000000t1");
     fireEvent.click(
       await screen.findByRole("button", {
         name: i18n.t("templates.deleteNamed", { name: "Bencina" }),
@@ -117,6 +130,11 @@ describe("TemplatesRoute (specs/037)", () => {
     fireEvent.change(await screen.findByLabelText(i18n.t("templates.form.name")), {
       target: { value: "Bencina" },
     });
+    // The preview on top shows the movement as it'll look: titled by the name, no fixed amount.
+    const preview = screen.getByRole("region", { name: i18n.t("templates.preview.label") });
+    expect(preview.textContent).toContain("Bencina");
+    expect(preview.textContent).toContain(i18n.t("templates.freeAmount"));
+    expect(screen.getByText("7/60")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: i18n.t("templates.form.submit") }));
     await waitFor(() => expect(api.create).toHaveBeenCalledOnce());
     expect(api.create.mock.calls[0]![0]).toMatchObject({ name: "Bencina", type: "EXPENSE" });

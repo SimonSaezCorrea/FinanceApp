@@ -92,7 +92,7 @@ describe("TransactionCreateModal", () => {
   });
 
   // specs/037: "Usar plantilla" only pre-fills; the movement is saved by the ordinary create.
-  it("fills the form from a template and saves it through the ordinary create", async () => {
+  it("opens filled from a template and saves it through the ordinary create", async () => {
     vi.mocked(movementTemplatesApi.list).mockResolvedValue([
       {
         id: "tpl1",
@@ -113,11 +113,8 @@ describe("TransactionCreateModal", () => {
         customFields: {},
       },
     ]);
-    renderModal();
-
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("templates.use") }));
-    const options = await screen.findAllByRole("button", { name: /^Arriendo mensual/ });
-    fireEvent.click(options[options.length - 1]!);
+    // Picked outside the form (Movimientos' "Nuevo movimiento ▾", a shortcut, Plantillas).
+    renderModal({ initialTemplateId: "tpl1" });
 
     await waitFor(() =>
       expect(

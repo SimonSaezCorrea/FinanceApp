@@ -15,6 +15,8 @@ import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { useInfiniteTransactions } from "../../transactions/hooks/useTransactions";
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
 import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
+import { NewMovementButton } from "../../movement-templates/components/NewMovementButton";
+import { useMovementTemplates } from "../../movement-templates/hooks/useMovementTemplates";
 import { TransactionDetailModal } from "../../transactions/components/TransactionDetailModal";
 import { TransactionDeleteConfirm } from "../../transactions/components/TransactionDeleteConfirm";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
@@ -496,6 +498,20 @@ function MovementsSection({
       (f.scope.accountIds.length === 0 || f.scope.accountIds.includes(account.id)),
   );
   const [modalOpen, setModalOpen] = useState(false);
+  // A template used from here keeps THIS account (the form opens locked to it); the
+  // templates that already record on it are offered first.
+  const { data: templateList } = useMovementTemplates();
+  const templates = [...(templateList ?? [])].sort(
+    (a, b) => Number(b.bankAccountId === account.id) - Number(a.bankAccountId === account.id),
+  );
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const openNew = (fromTemplate: string | null = null) => {
+    setEditTx(null);
+    setDuplicateTx(null);
+    setReturnToDetail(null);
+    setTemplateId(fromTemplate);
+    setModalOpen(true);
+  };
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
@@ -537,22 +553,15 @@ function MovementsSection({
             />
           ) : null}
           <span className="flex shrink-0 items-center gap-2">
-            <Button
-              variant="accent"
+            {/* Icon-only on the narrowest phones: the label doesn't fit next to the
+                filter below the `sm` breakpoint. */}
+            <NewMovementButton
+              templates={templates}
+              onNew={() => openNew()}
+              onUseTemplate={(id) => openNew(id)}
               size="sm"
-              className="shrink-0"
-              onClick={() => {
-                setEditTx(null);
-                setDuplicateTx(null);
-                setReturnToDetail(null);
-                setModalOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" aria-hidden />
-              {/* Icon-only on the narrowest phones: the label doesn't fit next to the
-                  filter below the `sm` breakpoint. */}
-              <span className="sr-only sm:not-sr-only">{t("transactions.new")}</span>
-            </Button>
+              compactLabel
+            />
           </span>
         </div>
       </div>
@@ -594,9 +603,13 @@ function MovementsSection({
 
       <TransactionCreateModal
         open={modalOpen}
-        onOpenChange={setModalOpen}
+        onOpenChange={(next) => {
+          setModalOpen(next);
+          if (!next) setTemplateId(null);
+        }}
         initial={editTx ?? undefined}
         duplicateFrom={duplicateTx ?? undefined}
+        initialTemplateId={editTx || duplicateTx ? undefined : (templateId ?? undefined)}
         defaultBankAccountId={account.id}
         lockAccount
         onSaved={setSavedId}

@@ -87,7 +87,9 @@ export function applyTemplate(
     financeCharge,
     categoryId,
     recurringExpenseId,
-    description: template.description ?? "",
+    // A template without a description records its name: that's what the person called it.
+    // Editing the template keeps the field as it was saved.
+    description: template.description ?? (ctx.withDefaults === false ? "" : template.name),
     observation: template.observation ?? "",
     emisor: template.emisor ?? "",
     receptor: template.receptor ?? "",

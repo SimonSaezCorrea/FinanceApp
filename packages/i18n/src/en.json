@@ -3006,7 +3006,6 @@
     "freeAmount": "Any amount",
     "limit": "{{count}} of {{max}} templates",
     "use": "Use a template",
-    "usePlaceholder": "Pick a template",
     "empty": {
       "title": "You don't have any templates yet",
       "description": "A template keeps the account, card, category and the rest of a movement you repeat, like “Fuel” or “Rent”. When recording a movement, pick “Use a template” and just confirm.",
@@ -3018,7 +3017,10 @@
       "submit": "Create template",
       "name": "Name",
       "namePlaceholder": "E.g. Fuel",
-      "amountHint": "The amount is optional: leave it empty if it changes every time. The date is always the day you use it."
+      "amountHint": "Optional amount · leave it empty if it changes every time",
+      "subtitle": "A shortcut to record this movement in one tap.",
+      "amountPlaceholder": "Any amount",
+      "descriptionPlaceholder": "Left empty, the name is used"
     },
     "toast": {
       "created": "Template created",
@@ -3036,7 +3038,21 @@
       "description": "Everything in the form is kept except the date. The movement isn't recorded yet.",
       "confirm": "Save template",
       "keepAmount": "Also keep the amount"
-    }
+    },
+    "preview": {
+      "label": "How the movement will look when you use it",
+      "untitled": "New template",
+      "noAccount": "No account picked",
+      "date": "Date: the day you use it"
+    },
+    "back": "All templates",
+    "detail": {
+      "edit": "Edit",
+      "none": "None"
+    },
+    "useMenu": "Use a template",
+    "manage": "Manage templates",
+    "shortcuts": "Shortcuts"
   },
   "releaseNotes": {
     "title": "What's new",

@@ -3006,7 +3006,6 @@
     "freeAmount": "Monto libre",
     "limit": "{{count}} de {{max}} plantillas",
     "use": "Usar plantilla",
-    "usePlaceholder": "Elegir una plantilla",
     "empty": {
       "title": "Todavía no tienes plantillas",
       "description": "Una plantilla guarda la cuenta, la tarjeta, la categoría y lo demás de un movimiento que repites, como «Bencina» o «Arriendo». Al registrar un movimiento eliges «Usar plantilla» y solo confirmas.",
@@ -3018,7 +3017,10 @@
       "submit": "Crear plantilla",
       "name": "Nombre",
       "namePlaceholder": "Ej. Bencina",
-      "amountHint": "El monto es opcional: déjalo vacío si cambia cada vez. La fecha siempre será la del día en que la uses."
+      "amountHint": "Monto opcional · déjalo vacío si cambia cada vez",
+      "subtitle": "Un atajo para registrar este movimiento en un toque.",
+      "amountPlaceholder": "Monto libre",
+      "descriptionPlaceholder": "Si la dejas vacía, se usa el nombre"
     },
     "toast": {
       "created": "Plantilla creada",
@@ -3036,7 +3038,21 @@
       "description": "Se guarda todo lo del formulario salvo la fecha. El movimiento todavía no se registra.",
       "confirm": "Guardar plantilla",
       "keepAmount": "Guardar también el monto"
-    }
+    },
+    "preview": {
+      "label": "Así quedará el movimiento al usarla",
+      "untitled": "Nueva plantilla",
+      "noAccount": "Sin cuenta elegida",
+      "date": "Fecha: el día que la uses"
+    },
+    "back": "Todas las plantillas",
+    "detail": {
+      "edit": "Editar",
+      "none": "Ninguna"
+    },
+    "useMenu": "Usar una plantilla",
+    "manage": "Administrar plantillas",
+    "shortcuts": "Atajos"
   },
   "releaseNotes": {
     "title": "Novedades",
