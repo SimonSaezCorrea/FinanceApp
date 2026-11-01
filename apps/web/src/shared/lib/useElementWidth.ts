@@ -75,3 +75,10 @@ export const PROFILE_PANES_MIN_WIDTH = 820;
  * Below it the list opens each column as its own screen, like the profile.
  */
 export const CUSTOM_FIELDS_PANES_MIN_WIDTH = 820;
+
+/**
+ * Width "Plantillas" needs to show its list beside the open template's detail, the same layout
+ * as "Columnas propias": 288px of list + 24px gap + ~500px of detail (the preview card and its
+ * rows). Below it the list opens each template as its own screen.
+ */
+export const TEMPLATES_PANES_MIN_WIDTH = 820;

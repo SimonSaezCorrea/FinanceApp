@@ -153,8 +153,22 @@ export const currentUserSchema = z.object({
   emailVerified: z.boolean(),
   /** The first-steps guide was finished or closed: the app never shows it again. */
   onboardingClosed: z.boolean(),
+  /** The newest Novedades record the person saw (spec 038); null = none. Optional so the app
+   * still reads an API that predates it (the app deploys first). */
+  releaseNotesSeenId: z.string().nullable().optional(),
 });
 export type CurrentUser = z.infer<typeof currentUserSchema>;
+
+/** A Novedades record id (spec 038): the deploy's day, then words — `2026-10-26-guias-chile`. A
+ * business identifier (the record's folder name), never a row id. */
+export const releaseIdSchema = z
+  .string()
+  .max(80)
+  .regex(/^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+/** `POST /auth/me/release-notes/seen`: the newest record the person just saw. */
+export const markReleaseNotesSeenRequestSchema = z.object({ releaseId: releaseIdSchema }).strict();
+export type MarkReleaseNotesSeenRequest = z.infer<typeof markReleaseNotesSeenRequestSchema>;
 
 /** `email` is not editable here (specs/032): changing it goes through `POST /auth/me/emails`,
  * which leaves the new address pending until confirmed. `.strict()` so sending it is a

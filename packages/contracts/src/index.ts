@@ -18,5 +18,6 @@ export * as reference from "./reference/index";
 export * as idempotency from "./idempotency/index";
 export * as exchangeRates from "./exchange-rates/index";
 export * as customFields from "./custom-fields/index";
+export * as movementTemplates from "./movement-templates/index";
 
 export { API_BASE_PATH, API_VERSION } from "./http";

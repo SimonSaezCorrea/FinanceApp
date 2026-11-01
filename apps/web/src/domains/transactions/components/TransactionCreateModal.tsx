@@ -28,7 +28,15 @@ import {
   sendable,
   shapeOf,
 } from "../../custom-fields/lib/fieldValues";
+import { SaveAsTemplateDialog } from "../../movement-templates/components/SaveAsTemplateDialog";
+import { useMovementTemplates } from "../../movement-templates/hooks/useMovementTemplates";
+import { applyTemplate } from "../../movement-templates/lib/applyTemplate";
+import { templateFromForm } from "../../movement-templates/lib/templateFromForm";
+import { useRecurring } from "../../recurring/hooks/useRecurring";
+import { useCategories } from "../../reference/hooks/useReference";
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { AttachmentsSection } from "./AttachmentsSection";
+import { emptyTransactionForm as emptyForm } from "../lib/emptyForm";
 import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
 
 function todayInput(): string {
@@ -39,28 +47,6 @@ function todayInput(): string {
 function dateInput(iso: string): string {
   return iso.slice(0, 10);
 }
-
-const emptyForm = (date: string): TransactionFormValue => ({
-  mode: "EXPENSE",
-  amount: "",
-  currency: "CLP",
-  bankAccountId: "",
-  toBankAccountId: "",
-  amountIn: "",
-  amountInEdited: false,
-  prepayFromAccountId: "",
-  cardId: "",
-  financeCharge: false,
-  categoryId: "",
-  recurringExpenseId: "",
-  description: "",
-  observation: "",
-  emisor: "",
-  receptor: "",
-  lugar: "",
-  date,
-  customFields: null,
-});
 
 /**
  * Create OR edit a movement — the shell around `TransactionFormPanel`: it owns
@@ -78,6 +64,7 @@ export function TransactionCreateModal({
   defaultBankAccountId,
   initialMode,
   lockAccount = false,
+  initialTemplateId,
   onDismiss,
   onSaved,
   size,
@@ -116,6 +103,9 @@ export function TransactionCreateModal({
    * move the movement out of the view the user is looking at.
    */
   lockAccount?: boolean;
+  /** Open a brand-new movement already filled from this template ("Usar plantilla" in
+   * Plantillas) — the same as picking it in the form's own template selector. */
+  initialTemplateId?: string;
 }>) {
   const { t } = useTranslation();
   const { create, update } = useTransactionMutations();
@@ -129,6 +119,16 @@ export function TransactionCreateModal({
   const { data: fieldList } = useCustomFields();
   const { setValues } = useFieldValueMutations();
   const editing = Boolean(initial);
+  // Movement templates (specs/037): only a brand-new movement is pre-filled from one,
+  // never an edit or a duplicate (those already start from a movement).
+  const offersTemplates = !editing && !duplicateFrom;
+  const { data: templateList } = useMovementTemplates({
+    enabled: open && offersTemplates && Boolean(initialTemplateId),
+  });
+  const { data: seriesList, isPending: seriesPending } = useRecurring();
+  const { categories } = useCategoryCatalog();
+  const { isPending: categoriesPending } = useCategories();
+  const [saveAsOpen, setSaveAsOpen] = useState(false);
 
   const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
   // What the form looked like right after it finished prefilling — compared
@@ -356,6 +356,42 @@ export function TransactionCreateModal({
     patch({ customFields: next });
   };
 
+  /** "Usar plantilla" (picked in Movimientos' "Nuevo movimiento ▾", its shortcuts or
+   * Plantillas): the form takes the template's values (FR-006) — nothing is created, every
+   * field stays editable, and saving goes through the ordinary create. */
+  function pickTemplate(id: string) {
+    const template = templateList?.find((tpl) => tpl.id === id);
+    if (!template) return;
+    setForm((current) =>
+      applyTemplate(template, {
+        accounts,
+        selectableIds: new Set(selectable.map((a) => a.id)),
+        lockedAccountId: lockAccount ? current.bankAccountId || undefined : undefined,
+        categories,
+        recurringIds: new Set((seriesList ?? []).map((r) => r.id)),
+        fields,
+        current,
+      }),
+    );
+  }
+  // "Usar plantilla" from outside the form: once per opening, after the prefill above and once
+  // the lists the template is checked against have settled (else a card or category reads as gone).
+  const appliedTemplateFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      appliedTemplateFor.current = null;
+      return;
+    }
+    if (!initialTemplateId || appliedTemplateFor.current === initialTemplateId) return;
+    // Settled, not necessarily successful: a list that failed to load must not leave the form
+    // unfilled — the template's category or series is then simply left for the person.
+    if (!templateList || !accountList || seriesPending || categoriesPending) return;
+    appliedTemplateFor.current = initialTemplateId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
+    pickTemplate(initialTemplateId);
+  });
+  const canSaveAsTemplate = offersTemplates && (form.mode === "EXPENSE" || form.mode === "INCOME");
+
   function submit(keepOpen = false) {
     const done = (saved?: { id?: string }) => {
       toast.success(editing ? t("transactions.updated") : t("transactions.created"));
@@ -548,44 +584,67 @@ export function TransactionCreateModal({
           )
         }
       >
-        <TransactionFormPanel
-          value={form}
-          onChange={patch}
-          accounts={accounts}
-          selectable={selectable}
-          editing={editing}
-          // In transfer mode this locks the ORIGIN row instead of hiding the
-          // account row: the origin is the account being viewed, only the
-          // destination is a choice.
-          accountLocked={lockAccount && !!form.bankAccountId}
-          original={initial ?? null}
-          customFields={
-            shownFields.length > 0 ? (
-              <CustomFieldInputs
-                fields={shownFields}
-                values={fieldValues}
-                onChange={setFieldValue}
+        <div className="flex flex-col gap-5">
+          <TransactionFormPanel
+            value={form}
+            onChange={patch}
+            accounts={accounts}
+            selectable={selectable}
+            editing={editing}
+            // In transfer mode this locks the ORIGIN row instead of hiding the
+            // account row: the origin is the account being viewed, only the
+            // destination is a choice.
+            accountLocked={lockAccount && !!form.bankAccountId}
+            original={initial ?? null}
+            customFields={
+              shownFields.length > 0 ? (
+                <CustomFieldInputs
+                  fields={shownFields}
+                  values={fieldValues}
+                  onChange={setFieldValue}
+                />
+              ) : null
+            }
+            // Offered from inside an account too: the whole pair can be created
+            // from here (this account is just the source, pre-filled), and
+            // `accountLocked` above already reveals the selector in transfer mode
+            // so the origin can still be changed.
+            allowTransfer
+            attachments={
+              <AttachmentsSection
+                transactionId={initial?.id ?? createdId ?? undefined}
+                onPendingCountChange={setPendingAttachments}
+                onPendingSettled={(allSucceeded) => {
+                  // A failed upload keeps the panel open showing its Retry; a clean
+                  // run closes it, since the movement itself is already saved.
+                  if (allSucceeded) handleOpenChange(false);
+                }}
               />
-            ) : null
-          }
-          // Offered from inside an account too: the whole pair can be created
-          // from here (this account is just the source, pre-filled), and
-          // `accountLocked` above already reveals the selector in transfer mode
-          // so the origin can still be changed.
-          allowTransfer
-          attachments={
-            <AttachmentsSection
-              transactionId={initial?.id ?? createdId ?? undefined}
-              onPendingCountChange={setPendingAttachments}
-              onPendingSettled={(allSucceeded) => {
-                // A failed upload keeps the panel open showing its Retry; a clean
-                // run closes it, since the movement itself is already saved.
-                if (allSucceeded) handleOpenChange(false);
-              }}
-            />
-          }
-        />
+            }
+          />
+          {canSaveAsTemplate ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start"
+              onClick={() => setSaveAsOpen(true)}
+            >
+              {t("templates.saveAs.action")}
+            </Button>
+          ) : null}
+        </div>
       </FormSurface>
+
+      <SaveAsTemplateDialog
+        open={saveAsOpen}
+        onOpenChange={setSaveAsOpen}
+        hasAmount={/[1-9]/.test(form.amount)}
+        defaultName={form.description}
+        buildBody={(name, keepAmount) =>
+          templateFromForm(form, { name, keepAmount, accounts, fields, fieldValues })
+        }
+      />
 
       <ConfirmModal
         open={confirmLeave}

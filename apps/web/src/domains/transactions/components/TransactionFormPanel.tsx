@@ -109,6 +109,9 @@ interface Props {
   attachments?: ReactNode;
   /** The person's custom field rows (specs/036), injected by the shell. */
   customFields?: ReactNode;
+  /** Editing a movement TEMPLATE (specs/037): no date, no projected balance and only
+   * Gasto/Ingreso — a template is neither a transfer nor a prepago. */
+  templateMode?: boolean;
 }
 
 /**
@@ -128,6 +131,7 @@ export function TransactionFormPanel({
   allowTransfer = false,
   attachments,
   customFields,
+  templateMode = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
@@ -253,24 +257,26 @@ export function TransactionFormPanel({
       label: t("transactions.type.EXPENSE"),
       activeClassName: "bg-destructive/15 font-semibold text-destructive",
     },
-    ...(isCreditLine
-      ? [
-          {
-            value: "PREPAY" as const,
-            label: t("transactions.type.PREPAY"),
-            // Accent, not destructive: same tone `BillingSection`'s own "Pagar"/
-            // "Prepagar" buttons use for an action that moves money FORWARD
-            // (paying down debt), as opposed to Gasto (which creates it).
-            activeClassName: "bg-accent/15 font-semibold text-accent",
-          },
-        ]
-      : [
-          {
-            value: "INCOME" as const,
-            label: t("transactions.type.INCOME"),
-            activeClassName: "bg-success/15 font-semibold text-success",
-          },
-        ]),
+    ...(isCreditLine && templateMode
+      ? []
+      : isCreditLine
+        ? [
+            {
+              value: "PREPAY" as const,
+              label: t("transactions.type.PREPAY"),
+              // Accent, not destructive: same tone `BillingSection`'s own "Pagar"/
+              // "Prepagar" buttons use for an action that moves money FORWARD
+              // (paying down debt), as opposed to Gasto (which creates it).
+              activeClassName: "bg-accent/15 font-semibold text-accent",
+            },
+          ]
+        : [
+            {
+              value: "INCOME" as const,
+              label: t("transactions.type.INCOME"),
+              activeClassName: "bg-success/15 font-semibold text-success",
+            },
+          ]),
     ...(allowTransfer && !isCreditLine
       ? [
           {
@@ -304,99 +310,177 @@ export function TransactionFormPanel({
     },
   ];
 
+  // Gasto / Ingreso (and Prepagar / Traspaso where they apply).
+  const typeSwitch =
+    typeOptions.length > 1 ? (
+      <Segmented
+        aria-label={t("transactions.form.type")}
+        value={value.mode}
+        onChange={(v: TransactionFormValue["mode"]) => {
+          // A category that doesn't fit the new type (an expense one on an
+          // income) is dropped rather than left for the API to refuse.
+          const nextType = v === "INCOME" || v === "EXPENSE" ? v : undefined;
+          const keepsCategory =
+            !value.categoryId || optionsFor(nextType).some((o) => o.value === value.categoryId);
+          // Neither an income nor a transfer can carry a card.
+          onChange({
+            mode: v,
+            ...(v === "EXPENSE" ? {} : { cardId: "" }),
+            ...(keepsCategory ? {} : { categoryId: "" }),
+          });
+        }}
+        className="w-full"
+        variant="neutral"
+        options={typeOptions}
+      />
+    ) : null;
+
   return (
     <div className="flex flex-col gap-5">
-      {/* The description IS the movement's title: it's what the list shows and
-          what the user is actually naming. */}
-      <FormBigTextField
-        id="tx-desc"
-        value={value.description}
-        onChange={(description) => onChange({ description })}
-        placeholder={t("transactions.form.description")}
-        aria-label={t("transactions.form.description")}
-        showEditIcon
-      />
+      {templateMode ? (
+        <>
+          {/* A template's amount is optional and its name is the title, so the amount
+              is a plain field beside the type, with its hint right under it. */}
+          <div className="flex flex-col gap-1.5">
+            <div className={cn("grid grid-cols-1 gap-2.5", typeSwitch && "sm:grid-cols-2")}>
+              {typeSwitch}
+              <div className="flex gap-1.5">
+                <div className="relative min-w-0 flex-1">
+                  <span
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  >
+                    {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
+                  </span>
+                  <input
+                    id="tx-amount"
+                    inputMode={currencyScale(value.currency) > 0 ? "decimal" : "numeric"}
+                    data-testid="tx-amount"
+                    value={formatTypedAmount(value.amount, locale)}
+                    onChange={(e) =>
+                      onChange({
+                        amount: parseTypedAmount(
+                          e.target.value,
+                          locale,
+                          currencyScale(value.currency),
+                        ),
+                      })
+                    }
+                    placeholder={t("templates.form.amountPlaceholder")}
+                    aria-describedby="tx-amount-hint"
+                    className="h-11 w-full rounded-md border border-input bg-background pl-7 pr-3 text-right text-base font-semibold tabular-nums placeholder:font-normal placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+                    aria-label={t("transactions.form.amount")}
+                  />
+                </div>
+                <CurrencyField
+                  id="tx-currency"
+                  variant="inline"
+                  className="w-auto shrink-0"
+                  value={value.currency}
+                  onChange={(currency) =>
+                    onChange({
+                      currency,
+                      amount: limitDecimals(value.amount, currencyScale(currency)),
+                    })
+                  }
+                  searchPlaceholder={t("common.search")}
+                  noResultsLabel={t("common.noResults")}
+                  aria-label={t("transactions.form.currency")}
+                />
+              </div>
+            </div>
+            <p id="tx-amount-hint" className="text-right text-xs text-muted-foreground">
+              {t("templates.form.amountHint")}
+            </p>
+          </div>
+          <FormTextField
+            id="tx-desc"
+            label={t("transactions.form.description")}
+            value={value.description}
+            onChange={(description) => onChange({ description })}
+            placeholder={t("templates.form.descriptionPlaceholder")}
+            showEditIcon
+          />
+        </>
+      ) : (
+        <>
+          {/* The description IS the movement's title: it's what the list shows and
+            what the user is actually naming. */}
+          <FormBigTextField
+            id="tx-desc"
+            value={value.description}
+            onChange={(description) => onChange({ description })}
+            placeholder={t("transactions.form.description")}
+            aria-label={t("transactions.form.description")}
+            showEditIcon
+          />
 
-      {/* Amount: sign on the left, figure as the protagonist, currency trailing.
-          Both colored by the selected nav tab (red/green/blue) — the sign
-          alone said too little at a glance. Sticky so it stays on screen once
-          a numeric keyboard eats the viewport. */}
-      <div className="sticky top-0 z-10 flex items-baseline gap-3 border-b border-border bg-card pb-3">
-        <span className={cn("text-3xl font-semibold", AMOUNT_TONE_CLASS[amountTone])} aria-hidden>
-          {isTransfer ? "±" : isIncome ? "+" : "−"}
-        </span>
-        <span
-          className={cn("shrink-0 text-2xl font-bold", AMOUNT_TONE_CLASS[amountTone])}
-          aria-hidden
-        >
-          {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
-        </span>
-        <input
-          inputMode={currencyScale(value.currency) > 0 ? "decimal" : "numeric"}
-          data-testid="tx-amount"
-          value={formatTypedAmount(value.amount, locale)}
-          // A peso has no cents, a dollar has two: the cents a movement really has can be typed.
-          onChange={(e) =>
-            onChange({
-              amount: parseTypedAmount(e.target.value, locale, currencyScale(value.currency)),
-            })
-          }
-          placeholder="0"
-          className={cn(
-            "min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums focus-visible:outline-none",
-            AMOUNT_TONE_CLASS[amountTone],
-            AMOUNT_PLACEHOLDER_TONE_CLASS[amountTone],
-          )}
-          aria-label={t("transactions.form.amount")}
-        />
-        <CurrencyField
-          id="tx-currency"
-          variant="inline"
-          className="w-auto shrink-0"
-          value={value.currency}
-          onChange={(currency) =>
-            // Cents the new currency does not have go with the old one.
-            onChange({ currency, amount: limitDecimals(value.amount, currencyScale(currency)) })
-          }
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          aria-label={t("transactions.form.currency")}
-        />
-      </div>
+          {/* Amount: sign on the left, figure as the protagonist, currency trailing.
+            Both colored by the selected nav tab (red/green/blue) — the sign
+            alone said too little at a glance. Sticky so it stays on screen once
+            a numeric keyboard eats the viewport. */}
+          <div className="sticky top-0 z-10 flex items-baseline gap-3 border-b border-border bg-card pb-3">
+            <span
+              className={cn("text-3xl font-semibold", AMOUNT_TONE_CLASS[amountTone])}
+              aria-hidden
+            >
+              {isTransfer ? "±" : isIncome ? "+" : "−"}
+            </span>
+            <span
+              className={cn("shrink-0 text-2xl font-bold", AMOUNT_TONE_CLASS[amountTone])}
+              aria-hidden
+            >
+              {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
+            </span>
+            <input
+              inputMode={currencyScale(value.currency) > 0 ? "decimal" : "numeric"}
+              data-testid="tx-amount"
+              value={formatTypedAmount(value.amount, locale)}
+              // A peso has no cents, a dollar has two: the cents a movement really has can be typed.
+              onChange={(e) =>
+                onChange({
+                  amount: parseTypedAmount(e.target.value, locale, currencyScale(value.currency)),
+                })
+              }
+              placeholder="0"
+              className={cn(
+                "min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums focus-visible:outline-none",
+                AMOUNT_TONE_CLASS[amountTone],
+                AMOUNT_PLACEHOLDER_TONE_CLASS[amountTone],
+              )}
+              aria-label={t("transactions.form.amount")}
+            />
+            <CurrencyField
+              id="tx-currency"
+              variant="inline"
+              className="w-auto shrink-0"
+              value={value.currency}
+              onChange={(currency) =>
+                // Cents the new currency does not have go with the old one.
+                onChange({ currency, amount: limitDecimals(value.amount, currencyScale(currency)) })
+              }
+              searchPlaceholder={t("common.search")}
+              noResultsLabel={t("common.noResults")}
+              aria-label={t("transactions.form.currency")}
+            />
+          </div>
 
-      {/* A credit-line account only ever offers Gasto — a switch with one
-          option is a control with nothing to choose, so it's dropped rather
-          than shown disabled/single-pill. */}
-      {typeOptions.length > 1 ? (
-        <Segmented
-          aria-label={t("transactions.form.type")}
-          value={value.mode}
-          onChange={(v: TransactionFormValue["mode"]) => {
-            // A category that doesn't fit the new type (an expense one on an
-            // income) is dropped rather than left for the API to refuse.
-            const nextType = v === "INCOME" || v === "EXPENSE" ? v : undefined;
-            const keepsCategory =
-              !value.categoryId || optionsFor(nextType).some((o) => o.value === value.categoryId);
-            // Neither an income nor a transfer can carry a card.
-            onChange({
-              mode: v,
-              ...(v === "EXPENSE" ? {} : { cardId: "" }),
-              ...(keepsCategory ? {} : { categoryId: "" }),
-            });
-          }}
-          className="w-full"
-          variant="neutral"
-          options={typeOptions}
-        />
-      ) : null}
+          {/* A credit-line account only ever offers Gasto — a switch with one
+            option is a control with nothing to choose, so it's dropped rather
+            than shown disabled/single-pill. */}
+          {typeSwitch}
+        </>
+      )}
 
       <div className="flex flex-col">
-        <FormDateField
-          id="tx-date"
-          label={t("transactions.form.date")}
-          value={value.date}
-          onChange={(date) => onChange({ date })}
-        />
+        {templateMode ? null : (
+          <FormDateField
+            id="tx-date"
+            label={t("transactions.form.date")}
+            value={value.date}
+            onChange={(date) => onChange({ date })}
+          />
+        )}
 
         {/* Picked from the global catalogue — only the categories that fit this
             movement's type (a transfer is neither, so it gets every non-system
@@ -517,7 +601,7 @@ export function TransactionFormPanel({
             Prepay mode shows "lo que debe hoy" above instead — a projection
             here would need to reason about the pool shrinking, the opposite of
             what `projectedAfterSave` computes for an ordinary EXPENSE. */}
-        {isPrepay ? null : (
+        {isPrepay || templateMode ? null : (
           <DetailRow
             label={
               projected?.kind === "credit"

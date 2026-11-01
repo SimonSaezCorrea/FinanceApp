@@ -26,6 +26,10 @@ import { BulkAssignBar } from "../components/BulkAssignBar";
 import { CoverTransferPanel } from "../components/CoverTransferPanel";
 import { CustomFieldFilter } from "../components/CustomFieldFilter";
 import { useCustomFields } from "../../custom-fields/hooks/useCustomFields";
+import { NewMovementButton } from "../../movement-templates/components/NewMovementButton";
+import { TemplateFormModal } from "../../movement-templates/components/TemplateFormModal";
+import { TemplateShortcuts } from "../../movement-templates/components/TemplateShortcuts";
+import { useMovementTemplates } from "../../movement-templates/hooks/useMovementTemplates";
 import {
   filterFromSearchParams,
   toApiFilter,
@@ -235,10 +239,28 @@ export function TransactionsRoute() {
     setFilters((f) => ({ ...f, type: value === "ALL" ? undefined : value }));
   }
 
+  // Plantillas (canvas design O): picked from "Nuevo movimiento ▾" or the shortcuts strip,
+  // the form opens already filled with the template.
+  const { data: templateList } = useMovementTemplates();
+  const templates = templateList ?? [];
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateFormOpen, setTemplateFormOpen] = useState(false);
+  const openNew = (fromTemplate: string | null = null) => {
+    setEditTx(null);
+    setDuplicateTx(null);
+    setFormNested(false);
+    setTemplateId(fromTemplate);
+    setModalOpen(true);
+  };
+
   const createModal = (
     <TransactionCreateModal
       open={modalOpen}
-      onOpenChange={setModalOpen}
+      onOpenChange={(next) => {
+        setModalOpen(next);
+        if (!next) setTemplateId(null);
+      }}
+      initialTemplateId={editTx || duplicateTx ? undefined : (templateId ?? undefined)}
       initial={editTx ?? undefined}
       duplicateFrom={duplicateTx ?? undefined}
       // Full-size even when nested in the detail panel (unlike `CardFormPanel`'s
@@ -267,19 +289,19 @@ export function TransactionsRoute() {
             >
               {selecting ? t("customFields.bulk.cancel") : t("customFields.bulk.select")}
             </Button>
-            <Button
-              variant="accent"
-              onClick={() => {
-                setEditTx(null);
-                setDuplicateTx(null);
-                setFormNested(false);
-                setModalOpen(true);
-              }}
-            >
-              + {t("transactions.new")}
-            </Button>
+            <NewMovementButton
+              templates={templates}
+              onNew={() => openNew()}
+              onUseTemplate={(id) => openNew(id)}
+            />
           </div>
         }
+      />
+
+      <TemplateShortcuts
+        templates={templates}
+        onUse={(id) => openNew(id)}
+        onCreate={() => setTemplateFormOpen(true)}
       />
 
       <TransactionKpiStrip
@@ -408,6 +430,7 @@ export function TransactionsRoute() {
           new one as an outside click on the old one, so nesting is what lets
           the detail panel stay open underneath instead of closing first. */}
       {!formNested && createModal}
+      <TemplateFormModal open={templateFormOpen} onOpenChange={setTemplateFormOpen} />
 
       <TransactionDetailModal
         transaction={detailTx}

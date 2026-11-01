@@ -113,7 +113,10 @@
     "more": "Más",
     "moreSections": "Más secciones",
     "exchangeRates": "Tipos de cambio",
-    "customFields": "Columnas propias"
+    "customFields": "Columnas propias",
+    "templates": "Plantillas",
+    "whatsNew": "Novedades",
+    "whatsNewUnseen": "hay novedades"
   },
   "theme": {
     "label": "Tema",
@@ -2697,7 +2700,11 @@
     "CUSTOM_FIELD_FILTER_INVALID": "Ese filtro por columna no se puede aplicar.",
     "COVER_FIELD_NOT_BOOLEAN": "Solo se pueden transferir los pendientes de una columna Sí / No.",
     "COVER_SELECTION_INVALID": "Elige movimientos de un solo tipo y una sola moneda, la de ambas cuentas, a los que la columna aplique.",
-    "COVER_SELECTION_CHANGED": "Algún movimiento cambió mientras tanto. Actualiza la lista e inténtalo de nuevo."
+    "COVER_SELECTION_CHANGED": "Algún movimiento cambió mientras tanto. Actualiza la lista e inténtalo de nuevo.",
+    "MOVEMENT_TEMPLATE_NOT_FOUND": "Esa plantilla no existe.",
+    "MOVEMENT_TEMPLATE_NAME_TAKEN": "Ya tienes una plantilla con ese nombre.",
+    "MOVEMENT_TEMPLATE_LIMIT_REACHED": "Llegaste al máximo de 50 plantillas. Elimina una para crear otra.",
+    "RECURRING_NOT_FOUND": "Ese gasto fijo no existe."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",
@@ -2986,6 +2993,79 @@
         "me": "Yo",
         "partner": "Pareja"
       }
+    }
+  },
+  "templates": {
+    "title": "Plantillas",
+    "subtitle": "Movimientos que repites seguido, listos para registrar en un toque.",
+    "new": "Nueva plantilla",
+    "edit": "Editar plantilla",
+    "editNamed": "Editar la plantilla «{{name}}»",
+    "deleteNamed": "Eliminar la plantilla «{{name}}»",
+    "listLabel": "Tus plantillas",
+    "freeAmount": "Monto libre",
+    "limit": "{{count}} de {{max}} plantillas",
+    "use": "Usar plantilla",
+    "empty": {
+      "title": "Todavía no tienes plantillas",
+      "description": "Una plantilla guarda la cuenta, la tarjeta, la categoría y lo demás de un movimiento que repites, como «Bencina» o «Arriendo». Al registrar un movimiento eliges «Usar plantilla» y solo confirmas.",
+      "create": "Crear la primera"
+    },
+    "form": {
+      "newEyebrow": "Nueva plantilla",
+      "editEyebrow": "Editar plantilla",
+      "submit": "Crear plantilla",
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Bencina",
+      "amountHint": "Monto opcional · déjalo vacío si cambia cada vez",
+      "subtitle": "Un atajo para registrar este movimiento en un toque.",
+      "amountPlaceholder": "Monto libre",
+      "descriptionPlaceholder": "Si la dejas vacía, se usa el nombre"
+    },
+    "toast": {
+      "created": "Plantilla creada",
+      "updated": "Plantilla guardada",
+      "deleted": "Plantilla eliminada"
+    },
+    "delete": {
+      "title": "¿Eliminar «{{name}}»?",
+      "description": "Los movimientos que registraste con ella no cambian.",
+      "confirm": "Eliminar plantilla"
+    },
+    "saveAs": {
+      "action": "Guardar como plantilla",
+      "title": "Guardar como plantilla",
+      "description": "Se guarda todo lo del formulario salvo la fecha. El movimiento todavía no se registra.",
+      "confirm": "Guardar plantilla",
+      "keepAmount": "Guardar también el monto"
+    },
+    "preview": {
+      "label": "Así quedará el movimiento al usarla",
+      "untitled": "Nueva plantilla",
+      "noAccount": "Sin cuenta elegida",
+      "date": "Fecha: el día que la uses"
+    },
+    "back": "Todas las plantillas",
+    "detail": {
+      "edit": "Editar",
+      "none": "Ninguna"
+    },
+    "useMenu": "Usar una plantilla",
+    "manage": "Administrar plantillas",
+    "shortcuts": "Atajos"
+  },
+  "releaseNotes": {
+    "title": "Novedades",
+    "lead": "Lo que cambió en fik en cada actualización, lo más reciente primero.",
+    "since": "Registramos los cambios desde el 26 de octubre de 2026.",
+    "empty": "Todavía no hay novedades registradas.",
+    "loadError": "No pudimos cargar las novedades.",
+    "kinds": {
+      "new": "Nuevo",
+      "improved": "Mejoras",
+      "fixed": "Correcciones",
+      "changed": "Cambios",
+      "security": "Seguridad"
     }
   }
 }

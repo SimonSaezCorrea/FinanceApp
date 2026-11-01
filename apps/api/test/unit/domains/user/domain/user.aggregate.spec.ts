@@ -162,3 +162,18 @@ describe("User.closeOnboarding (2026-10-11)", () => {
     expect(user.toContract().onboardingClosed).toBe(true);
   });
 });
+
+describe("User.markReleaseNotesSeen (spec 038)", () => {
+  it("starts with nothing seen and only moves forward", () => {
+    const user = User.fromPersistence(baseProps());
+    expect(user.toContract().releaseNotesSeenId).toBeNull();
+
+    expect(user.markReleaseNotesSeen("2026-10-26-guias-chile")).toBe(true);
+    expect(user.markReleaseNotesSeen("2026-10-26-guias-chile")).toBe(false);
+    expect(user.markReleaseNotesSeen("2026-10-01-older")).toBe(false);
+    expect(user.releaseNotesSeenId).toBe("2026-10-26-guias-chile");
+
+    expect(user.markReleaseNotesSeen("2026-11-02-next")).toBe(true);
+    expect(user.toContract().releaseNotesSeenId).toBe("2026-11-02-next");
+  });
+});

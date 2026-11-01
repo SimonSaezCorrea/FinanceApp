@@ -49,6 +49,7 @@ import { VerifyPasskeyLoginCommand } from "../application/commands/verify-passke
 import { VerifyStepUpPasskeyCommand } from "../application/commands/verify-step-up-passkey.command";
 import { VerifyStepUpCommand } from "../application/commands/verify-step-up.command";
 import { CloseOnboardingCommand } from "../application/commands/close-onboarding.command";
+import { MarkReleaseNotesSeenCommand } from "../application/commands/mark-release-notes-seen.command";
 import { ForgotPasswordCommand } from "../application/commands/forgot-password.command";
 import { RemoveUserEmailCommand } from "../application/commands/remove-user-email.command";
 import { RequestEmailChangeCommand } from "../application/commands/request-email-change.command";
@@ -460,6 +461,18 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   closeOnboarding(@CurrentUser() user: AuthUser): Promise<void> {
     return this.commandBus.execute(new CloseOnboardingCommand(user.id));
+  }
+
+  /** Novedades (spec 038): the person saw up to `releaseId`; the dot goes away on every device. */
+  @Post("me/release-notes/seen")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  markReleaseNotesSeen(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.markReleaseNotesSeenRequestSchema))
+    body: auth.MarkReleaseNotesSeenRequest,
+  ): Promise<void> {
+    return this.commandBus.execute(new MarkReleaseNotesSeenCommand(user.id, body.releaseId));
   }
 
   // --- Account emails (specs/032) -------------------------------------------------------------

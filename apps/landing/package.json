@@ -20,6 +20,7 @@
     "@finance/contracts": "workspace:*",
     "@finance/i18n": "workspace:*",
     "@finance/money": "workspace:*",
+    "@finance/release-notes": "workspace:*",
     "@finance/ui": "workspace:*",
     "@fontsource-variable/geist": "^5.2.9",
     "@fontsource-variable/inter": "^5.2.8",

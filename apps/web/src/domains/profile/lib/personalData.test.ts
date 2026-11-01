@@ -77,6 +77,7 @@ function sample(): PersonalData {
       { id: ID(5), name: "Mi notebook", createdAt: "2026-10-02T11:00:00.000Z", lastUsedAt: null },
     ],
     wallet: [],
+    movementTemplates: [],
     financial: {
       accounts: [],
       transactions: [
@@ -117,6 +118,7 @@ describe("personalDataJson", () => {
       "savingsGoals",
       "savingsEntries",
       "wallet",
+      "movementTemplates",
     ]) {
       expect(json[key]).toEqual([]);
     }

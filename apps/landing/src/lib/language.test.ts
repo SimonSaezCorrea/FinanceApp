@@ -86,3 +86,11 @@ describe("pagePath for the guides section (spec 035)", () => {
     expect(isRatePage("guides")).toBe(false);
   });
 });
+
+describe("pagePath for Novedades (spec 038)", () => {
+  it("uses the slug of each language", () => {
+    expect(pagePath("es", "releaseNotes")).toBe("/es/novedades/");
+    expect(pagePath("en", "releaseNotes")).toBe("/en/whats-new/");
+    expect(isLocalizedPage("releaseNotes")).toBe(true);
+  });
+});
