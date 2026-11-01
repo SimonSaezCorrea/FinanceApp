@@ -17,6 +17,7 @@ import {
   CardAccountMismatchError,
   CardLimitExceededError,
   CardRequiredError,
+  CardInactiveError,
 } from "../../../../../../src/domains/transaction/domain/errors";
 import type { TransactionRepositoryPort } from "../../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
@@ -195,6 +196,20 @@ describe("CreateTransactionHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(CardAccountMismatchError);
+  });
+
+  it("rejects a deactivated card before writing", async () => {
+    const saveNewWithTx = vi.fn();
+    const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
+      account: creditAccount(),
+      card: { ...creditCard, isActive: false },
+    });
+    await expect(
+      handler.execute(
+        cmd({ ...base, type: "EXPENSE", amount: "1000", bankAccountId: "aC", cardId: "cC" }),
+      ),
+    ).rejects.toBeInstanceOf(CardInactiveError);
+    expect(saveNewWithTx).not.toHaveBeenCalled();
   });
 
   it("allows a credit-line expense within the pool, links the OPEN statement, and persists atomically", async () => {

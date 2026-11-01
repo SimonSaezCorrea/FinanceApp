@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cardMetaLine } from "../../accounts/lib/accountMeta";
+import { selectableCards } from "../../accounts/lib/selectableCards";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
@@ -102,7 +103,8 @@ export function InstallmentFormPanel({
   const cardOptions = useMemo(
     () =>
       accounts.flatMap((account) =>
-        account.cards.map((card) => ({
+        // Deactivated cards aren't offered, except the one the plan already has.
+        selectableCards(account, value.cardId).map((card) => ({
           id: card.id,
           accountId: account.id,
           kind: card.kind,
@@ -110,7 +112,7 @@ export function InstallmentFormPanel({
           description: cardMetaLine(account, card, (type) => t(`accounts.type.${type}`)),
         })),
       ),
-    [accounts, t],
+    [accounts, t, value.cardId],
   );
   const selectedCard = cardOptions.find((c) => c.id === value.cardId) ?? null;
   const paymentCardValue = value.cardId ? `card:${value.cardId}` : "";

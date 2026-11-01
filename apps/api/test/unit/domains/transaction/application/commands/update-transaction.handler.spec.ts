@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { UpdateTransactionHandler } from "../../../../../../src/domains/transaction/application/commands/update-transaction.handler";
 import { UpdateTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/update-transaction.command";
 import {
+  CardInactiveError,
   TransactionLinkedToInstallmentError,
   TransactionLinkedToStatementError,
   TransactionNotFoundError,
@@ -164,6 +165,36 @@ describe("UpdateTransactionHandler", () => {
       // line, so neither takes cash out of the account.
       [],
     );
+  });
+
+  it("keeps a card deactivated after the movement was recorded", async () => {
+    const current = txFixture();
+    const saveUpdate = vi.fn().mockResolvedValue(current);
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }),
+      {
+        accountById: () => creditAccount(),
+        cardByAccount: () => ({ ...card("CREDIT"), isActive: false }),
+      },
+    );
+    await handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" }));
+    expect(saveUpdate).toHaveBeenCalled();
+  });
+
+  it("refuses moving a movement onto a deactivated card", async () => {
+    const current = txFixture({ cardId: "cOther" });
+    const saveUpdate = vi.fn();
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }),
+      {
+        accountById: () => creditAccount(),
+        cardByAccount: () => ({ ...card("CREDIT"), isActive: false }),
+      },
+    );
+    await expect(
+      handler.execute(new UpdateTransactionCommand("u1", "tX", { cardId: "cC" })),
+    ).rejects.toBeInstanceOf(CardInactiveError);
+    expect(saveUpdate).not.toHaveBeenCalled();
   });
 
   it("reverts the old contribution and applies the new one on a cross-account move", async () => {

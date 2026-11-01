@@ -54,6 +54,13 @@ export class CardAccountMismatchError extends DomainError {
   }
 }
 
+/** A deactivated card can't take new movements; the ones it already has keep it. */
+export class CardInactiveError extends DomainError {
+  constructor() {
+    super("CARD_INACTIVE");
+  }
+}
+
 export class CardLimitExceededError extends DomainError {
   constructor() {
     super("CARD_LIMIT_EXCEEDED");

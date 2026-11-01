@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
+import { defaultCardId, selectableCards } from "../../accounts/lib/selectableCards";
 import type { customFields, transactions } from "@finance/contracts";
 
 import {
@@ -194,11 +195,16 @@ export function TransactionCreateModal({
     // choice (see TransactionFormPanel) — default straight to its primary
     // card instead of leaving the required field unset.
     const defaultAccount = accountList?.find((a) => a.id === bankAccountId);
-    const defaultCardId =
-      source?.cardId ??
-      (!source && defaultAccount?.type === "CREDIT_CARD"
-        ? (defaultAccount.cards.find((c) => c.isPrimary)?.id ?? "")
-        : "");
+    // A duplicate is a NEW movement: a card deactivated since then gives way to
+    // the account's default one. Editing keeps whatever card it had.
+    const keepsCard =
+      !!source?.cardId &&
+      (!!initial || !!selectableCards(defaultAccount).some((c) => c.id === source.cardId));
+    const initialCardId = keepsCard
+      ? source!.cardId!
+      : defaultAccount?.type === "CREDIT_CARD" && (!source || !!source.cardId)
+        ? defaultCardId(defaultAccount)
+        : "";
     const prefilled: TransactionFormValue = {
       ...emptyForm(initial ? dateInput(initial.occurredAt) : todayInput()),
       mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? initialMode ?? "EXPENSE"),
@@ -207,7 +213,7 @@ export function TransactionCreateModal({
       amount: source?.amount ? amountToInput(source.amount) : "",
       currency: source?.currency ?? "CLP",
       bankAccountId,
-      cardId: defaultCardId,
+      cardId: initialCardId,
       financeCharge: source?.financeCharge ?? false,
       categoryId: source?.categoryId ?? "",
       recurringExpenseId: source?.recurringExpenseId ?? "",

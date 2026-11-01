@@ -49,7 +49,7 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
-import { AccountNotFoundError } from "../../domain/errors";
+import { AccountNotFoundError, CardInactiveError } from "../../domain/errors";
 import type { AccountContext, CardContext, CardLimitContext } from "../../domain/movement-policy";
 import { MovementPolicy } from "../../domain/movement-policy";
 import { Transaction } from "../../domain/transaction.aggregate";
@@ -131,6 +131,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     const card = input.cardId
       ? await this.cards.findOnAccount(command.userId, input.bankAccountId, input.cardId)
       : null;
+    if (card && !card.isActive) throw new CardInactiveError();
     const cardLimit =
       card?.kind === "CREDIT"
         ? await this.cardLimits.findForCardCurrency(command.userId, input.cardId!, input.currency)

@@ -2590,6 +2590,7 @@
     "INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT": "No puedes pagar una cuota desde una cuenta de tarjeta de crédito.",
     "TRANSACTION_LINKED_TO_INSTALLMENT": "Este movimiento respalda una cuota. Para cambiarlo, deshaz el pago de la cuota desde su plan.",
     "CARD_ACCOUNT_MISMATCH": "La tarjeta no pertenece a esa cuenta.",
+    "CARD_INACTIVE": "Esa tarjeta está desactivada. Elige otra o vuelve a activarla.",
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "El tope de la tarjeta no puede superar el cupo de la cuenta.",

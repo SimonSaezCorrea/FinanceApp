@@ -39,6 +39,7 @@ import {
 } from "../../../installment-payment/domain/ports/installment-payment-lookup.port";
 import {
   AccountNotFoundError,
+  CardInactiveError,
   TransactionLinkedToInstallmentError,
   TransactionLinkedToStatementError,
   TransactionNotFoundError,
@@ -216,6 +217,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       const card = effective.cardId
         ? await this.cards.findOnAccount(userId, effective.bankAccountId, effective.cardId)
         : null;
+      // Keeping the card it already had is fine; moving it onto a deactivated one isn't.
+      if (card && !card.isActive && card.id !== current.cardId) throw new CardInactiveError();
       newCard = card;
       const cardLimit =
         card?.kind === "CREDIT"

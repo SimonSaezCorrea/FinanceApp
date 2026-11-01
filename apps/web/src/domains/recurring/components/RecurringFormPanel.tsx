@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
+import { selectableCards } from "../../accounts/lib/selectableCards";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
@@ -93,9 +94,11 @@ export function RecurringFormPanel({
   // the same way here as it does in Movimientos.
   const typeLabel = (accType: accountsContract.AccountType) => t(`accounts.type.${accType}`);
   const selectedAccount = accounts.find((a) => a.id === value.bankAccountId);
+  // Deactivated cards aren't offered, except the one the series already has.
+  const cards = selectableCards(selectedAccount, value.cardId);
   const cardOptions = [
     { value: "", label: t("transactions.form.ownAccount") },
-    ...(selectedAccount?.cards ?? []).map((c) => ({
+    ...cards.map((c) => ({
       value: c.id,
       label: c.name,
       description: selectedAccount ? cardMetaLine(selectedAccount, c, typeLabel) : undefined,
@@ -216,7 +219,7 @@ export function RecurringFormPanel({
             options={accountOptions}
           />
 
-          {selectedAccount && selectedAccount.cards.length > 0 ? (
+          {selectedAccount && cards.length > 0 ? (
             <FormSelectField
               id="recurring-card"
               label={t("transactions.form.card")}

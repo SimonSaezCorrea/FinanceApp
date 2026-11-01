@@ -2590,6 +2590,7 @@
     "INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT": "An instalment cannot be paid from a credit-card account.",
     "TRANSACTION_LINKED_TO_INSTALLMENT": "This movement backs an instalment. To change it, undo the instalment's payment from its plan.",
     "CARD_ACCOUNT_MISMATCH": "The card does not belong to that account.",
+    "CARD_INACTIVE": "That card is deactivated. Pick another one or activate it again.",
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "A card's limit can't exceed the account's own credit pool.",

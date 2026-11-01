@@ -18,7 +18,7 @@ const account = (
     type,
     currency,
     status: "ACTIVE",
-    cards: cards.map((c) => ({ id: "x", kind: "DEBIT", isPrimary: false, ...c })),
+    cards: cards.map((c) => ({ id: "x", kind: "DEBIT", isPrimary: false, isActive: true, ...c })),
   }) as unknown as accounts.BankAccount;
 
 const CHECKING = account("chk", "CHECKING", [{ id: "deb", kind: "DEBIT" }]);
