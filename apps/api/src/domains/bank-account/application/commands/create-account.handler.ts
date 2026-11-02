@@ -67,6 +67,7 @@ export class CreateAccountHandler extends BaseCommandHandler<
       initialBalance: input.initialBalance,
       creditLimit: input.creditLimit,
       creditUsedInitial: input.creditUsedInitial,
+      extraCreditLimits: input.extraCreditLimits,
       cards: input.cards,
     });
     const plan: CreateAccountPlan = {
@@ -88,6 +89,7 @@ export class CreateAccountHandler extends BaseCommandHandler<
       paymentMethod: input.paymentMethod ?? "MANUAL",
       paymentDueDay: input.paymentDueDay ?? null,
       paymentDueCycleType: input.paymentDueCycleType ?? "BUSINESS_DAY",
+      extraCreditLimits: planned.extraCreditLimits,
       cards: planned.cards.map((c) => ({
         name: c.name,
         kind: c.kind,

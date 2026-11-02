@@ -89,6 +89,14 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     );
   }
 
+  async existsForCard(userId: string, cardId: string): Promise<boolean> {
+    const row = await this.prisma.installmentPlan.findFirst({
+      where: { userId, cardId },
+      select: { id: true },
+    });
+    return row !== null;
+  }
+
   async list(userId: string): Promise<InstallmentPlan[]> {
     const rows = await this.prisma.installmentPlan.findMany({
       where: { userId },

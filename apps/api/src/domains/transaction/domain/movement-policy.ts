@@ -7,6 +7,7 @@ import {
   CardNotAllowedError,
   CardRequiredError,
   CardSubLimitExceededError,
+  CreditPoolCurrencyNotFoundError,
   BalanceCeilingExceededError,
   OverdraftLimitExceededError,
   PrepaidInsufficientBalanceError,
@@ -57,6 +58,15 @@ export interface CardLimitContext {
 }
 
 /**
+ * A movement in a currency OTHER than its credit card account's own (spec 039): the account's
+ * credit in that currency, if it has any, with what is already used of it (excluding the
+ * movement being edited). `pool: null` = the account has no credit there.
+ */
+export interface ForeignCreditContext {
+  pool: { limitAmount: string; used: string } | null;
+}
+
+/**
  * `MovementPolicy`: pure domain rules (spec 007) — zero Prisma, zero I/O, so
  * fully unit-testable against plain fixtures. Ported unchanged from the
  * pre-migration `TransactionsService.validateMovement` /
@@ -94,6 +104,9 @@ export class MovementPolicy {
      * so re-saving it doesn't check against a balance that still carries its own
      * old charge. */
     prepaidOffset = "0",
+    /** Spec 039: the account's credit in the movement's currency when that currency is not the
+     * account's own (only meaningful on a credit card account). */
+    foreign: ForeignCreditContext | null = null,
   ): string {
     // A prepaid account can only spend what was provisioned into it, whatever the
     // channel: with a card, without one, or as the outgoing leg of a transfer.
@@ -102,6 +115,11 @@ export class MovementPolicy {
     this.assertWithinOverdraft(m, account, prepaidOffset);
     // ...and only hold as much as its ceiling allows, where one is declared.
     this.assertWithinCeiling(m, account, prepaidOffset);
+
+    if (account.type === "CREDIT_CARD" && isForeign(m, account)) {
+      this.validateForeign(m, card, cardLimit, cardUsage, foreign);
+      return "0";
+    }
 
     if (m.type === "INCOME") {
       // An income normally belongs to the account. The one exception is paying a
@@ -170,6 +188,9 @@ export class MovementPolicy {
     cardLimit: CardLimitContext | null,
   ): string {
     if (account.type === "CASH") return "0";
+    // Spec 039: a credit card account's movement in another currency belongs to the account's
+    // credit in THAT currency (derived from movements), never to the pool in its own.
+    if (account.type === "CREDIT_CARD" && isForeign(m, account)) return "0";
     // A card's own limit IN THE ACCOUNT'S CURRENCY is a sub-limit carved out of
     // the account's global cupo — what the card spends still uses the global one
     // (the bank caps the card AND the account). Only a limit in ANOTHER currency
@@ -185,6 +206,38 @@ export class MovementPolicy {
     if (m.financeCharge) return account.type === "CREDIT_CARD" ? m.amount : "0";
     if (!card || card.kind !== "CREDIT") return "0";
     return ownPool ? "0" : m.amount;
+  }
+
+  /**
+   * A credit card account's movement in another currency (spec 039): the account must have
+   * credit in that currency. An EXPENSE — a card's purchase or an issuer charge — must fit
+   * that credit and, when made with an additional card that has a sub-limit there, the
+   * sub-limit too. An INCOME pays that credit back, with or without naming a card (older
+   * settlements carry the primary card).
+   */
+  private static validateForeign(
+    m: EffectiveMovement,
+    card: CardContext | null,
+    cardLimit: CardLimitContext | null,
+    cardUsage: { income: string; expense: string },
+    foreign: ForeignCreditContext | null,
+  ): void {
+    if (!foreign?.pool) throw new CreditPoolCurrencyNotFoundError();
+    if (m.cardId && !card) throw new CardAccountMismatchError();
+    if (m.type === "INCOME") {
+      if (card && card.kind !== "CREDIT") throw new CardNotAllowedError();
+      return;
+    }
+    if (m.financeCharge) {
+      if (m.cardId) throw new CardNotAllowedError();
+    } else {
+      if (!m.cardId) throw new CardRequiredError();
+      this.assertWithinCardLimit(m, cardLimit, cardUsage);
+    }
+    const projected = toMoney(foreign.pool.used).plus(toMoney(m.amount));
+    if (projected.greaterThan(toMoney(foreign.pool.limitAmount))) {
+      throw new CardLimitExceededError();
+    }
   }
 
   /**

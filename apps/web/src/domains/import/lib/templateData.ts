@@ -364,7 +364,12 @@ export function existingRows(
       .sort((x, y) => Number(y.isPrimary) - Number(x.isPrimary))
       .map((c): ExistingRow => {
         const own = c.isPrimary ? undefined : c.limits.find((l) => l.currency === a.currency);
-        const extra = c.limits.find((l) => l.currency !== a.currency);
+        // Spec 039: the primary's row carries the ACCOUNT's credit in another currency (the
+        // template keeps its one-extra-limit-per-card column); an additional card, its sub-limit.
+        const accountExtra = a.creditPools.find((p) => p.currency !== a.currency);
+        const extra = c.isPrimary
+          ? accountExtra && { currency: accountExtra.currency, limitAmount: accountExtra.limit }
+          : c.limits.find((l) => l.currency !== a.currency);
         return {
           id: c.id,
           cells: {

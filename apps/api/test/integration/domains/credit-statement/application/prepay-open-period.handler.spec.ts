@@ -14,6 +14,7 @@ import { PrepayOpenPeriodCommand } from "../../../../../src/domains/credit-state
 import { PrepayOpenPeriodHandler } from "../../../../../src/domains/credit-statement/application/commands/prepay-open-period.handler";
 import { PaymentExceedsRemainingError } from "../../../../../src/domains/credit-statement/domain/errors";
 import { PrismaCardAccountRepository } from "../../../../../src/domains/card-account/infrastructure/prisma-card-account.repository";
+import { PrismaAccountCreditLimitRepository } from "../../../../../src/domains/account-credit-limit/infrastructure/prisma-account-credit-limit.repository";
 import { PrismaCardLimitRepository } from "../../../../../src/domains/card-limit/infrastructure/prisma-card-limit.repository";
 import { PrismaInstallmentPaymentRepository } from "../../../../../src/domains/installment-payment/infrastructure/prisma-installment-payment.repository";
 import { PrismaTransactionRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction.repository";
@@ -64,6 +65,7 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       prisma,
       buildCategoryLookup(prisma),
       new PrismaRecurringExpenseRepository(prisma),
+      new PrismaAccountCreditLimitRepository(prisma),
     );
   }
 

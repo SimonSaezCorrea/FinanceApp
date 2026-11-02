@@ -41,6 +41,8 @@ export class UpdateCardHandler extends BaseCommandHandler<
   protected async loadContext(command: UpdateCardCommand): Promise<Context> {
     const account = await this.accountRepo.findById(command.userId, command.accountId);
     if (!account) throw new AccountNotFoundError();
+    // The active primary is never deactivated here: `replace-primary` names its successor.
+    account.assertCardUpdateKeepsPrimary(command.cardId, command.input.isActive);
     const placement: ResolvedCardPlacement = account.resolveCardPlacement(
       command.input,
       command.cardId,
@@ -68,6 +70,9 @@ export class UpdateCardHandler extends BaseCommandHandler<
         creditLimit: placement.accountCreditLimit,
         creditUsedInitial: placement.accountCreditUsedInitial,
       });
+      // Limits sent for the primary in other currencies are the account's credit there
+      // (spec 039; what clients older than it send) — never a sub-limit on the card.
+      account.mergeExtraCreditLimits(placement.accountExtraCreditLimits ?? []);
     }
     return { account, plan };
   }

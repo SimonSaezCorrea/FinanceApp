@@ -185,10 +185,7 @@ export function AccountCreateModal({
             isVirtual: false,
             isAdditional: false,
             usesAccountPool: true,
-            limits: [
-              { currency, limitAmount: creditLimit || "0" },
-              ...cleanExtraLimits(extraLimits, currency),
-            ],
+            limits: [{ currency, limitAmount: creditLimit || "0" }],
           }
         : undefined;
     const allCards = autoPrimaryCard ? [autoPrimaryCard, ...cards] : cards;
@@ -208,6 +205,8 @@ export function AccountCreateModal({
         initialBalance: isCreditLineType ? "0" : initialBalance || "0",
         creditLimit: isCreditLineType ? creditLimit || "0" : undefined,
         creditUsedInitial: isCreditLineType ? creditUsedInitial || "0" : undefined,
+        // Spec 039: the credit in other currencies is the ACCOUNT's, every card spends from it.
+        extraCreditLimits: isCreditLineType ? cleanExtraLimits(extraLimits, currency) : undefined,
         overdraftLimit: hasOverdraft ? overdraftLimit || "0" : undefined,
         cards: allCards.length > 0 ? allCards : undefined,
       },
@@ -248,7 +247,17 @@ export function AccountCreateModal({
     currentBalance: initialBalance || "0",
     creditLimit: creditLimit || "0",
     creditUsed: creditUsedInitial || "0",
-    creditPools: [],
+    // What a drafted additional card's sub-limits may use (spec 039): the credit typed above.
+    creditPools: isCreditLineType
+      ? [
+          { currency, limit: creditLimit || "0", used: "0" },
+          ...cleanExtraLimits(extraLimits, currency).map((l) => ({
+            currency: l.currency,
+            limit: l.limitAmount,
+            used: "0",
+          })),
+        ]
+      : [],
     billingCycleDay: null,
     billingCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",

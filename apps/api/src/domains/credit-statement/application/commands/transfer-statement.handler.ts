@@ -34,7 +34,7 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
-import { settlementCardId } from "../foreign-settlement";
+import { assertSettlementCredit } from "../foreign-settlement";
 import { toStatementDto } from "../statement-dto.mapper";
 import { TransferStatementCommand } from "./transfer-statement.command";
 
@@ -166,6 +166,7 @@ export class TransferStatementHandler extends BaseIdempotentCommandHandler<
         context.occurredAt,
       );
       const categoryId = await this.categories.idForSystemCode("CURRENCY_TRANSFER");
+      assertSettlementCredit(context.account, statement.currency);
 
       await this.transactions.createWithTx(tx, {
         id: context.settlementTransactionId,
@@ -177,7 +178,7 @@ export class TransferStatementHandler extends BaseIdempotentCommandHandler<
         occurredAt: context.occurredAt,
         categoryId,
         description: context.account.name,
-        cardId: settlementCardId(context.account, statement.currency),
+        cardId: null,
         creditStatementId: null,
         settlesStatementId: statement.id,
       });

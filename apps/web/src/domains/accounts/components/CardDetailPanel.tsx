@@ -1,8 +1,10 @@
+import { Star } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
+import { Button } from "@finance/ui/src/shared/ui/button";
 
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Skeleton } from "../../../shared/ui/skeleton";
@@ -51,6 +53,7 @@ export function CardDetailPanel({
   variant = "surface",
   movementsAside,
   movementsHint,
+  onMakePrimary,
 }: Readonly<{
   account: accounts.BankAccount;
   card: accounts.Card;
@@ -59,6 +62,8 @@ export function CardDetailPanel({
   /** Trailing content of the movements heading (e.g. "filtering the table"). */
   movementsAside?: ReactNode;
   movementsHint?: string;
+  /** Spec 039: offered on an ACTIVE additional credit card — makes it the account's primary. */
+  onMakePrimary?: () => void;
 }>) {
   const { t, i18n } = useTranslation();
   const { nameOf: categoryName } = useCategoryCatalog();
@@ -95,9 +100,14 @@ export function CardDetailPanel({
   const pct = limit > 0 ? Math.max(0, Math.min(100, Math.round((used / limit) * 100))) : 0;
   const isCredit = card.kind === "CREDIT";
   const available = money(String(Math.max(0, limit - used)));
-  // Extra pools = a CardLimit in any OTHER currency (the primary's extra
-  // currencies, or a non-primary card's own sub-limit outside the account's one).
-  const extraPools = card.limits.filter((l) => l.currency !== account.currency);
+  // Other currencies (spec 039): the primary uses the ACCOUNT's credit there; an additional
+  // card shows its own sub-limits, which live within that credit.
+  const extraPools = card.isPrimary
+    ? account.creditPools
+        .filter((p) => p.currency !== account.currency)
+        .map((p) => ({ currency: p.currency, used: p.used, limitAmount: p.limit }))
+    : card.limits.filter((l) => l.currency !== account.currency);
+  const canMakePrimary = isCredit && card.isActive && !card.isPrimary;
   const expiry = `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`;
   const role = card.isPrimary ? t("cards.primaryBadge") : t("cards.additionalBadge");
   const limitSource = ownLimit ? t("cards.detail.ownLimit") : t("cards.detail.accountPool");
@@ -241,7 +251,7 @@ export function CardDetailPanel({
       {extraPools.length > 0 ? (
         <div className="flex flex-col gap-1.5 rounded-md border border-border p-3">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t("cards.form.extraLimits")}
+            {card.isPrimary ? t("accounts.pools.title") : t("accounts.pools.subLimit")}
           </span>
           {/* Real issuers usually run ONE limit and convert a foreign purchase into
               the account's currency against it. This app has no exchange rate, so it
@@ -263,6 +273,13 @@ export function CardDetailPanel({
             </div>
           ))}
         </div>
+      ) : null}
+
+      {canMakePrimary && onMakePrimary ? (
+        <Button variant="outline" size="sm" className="self-start" onClick={onMakePrimary}>
+          <Star className="h-3.5 w-3.5" aria-hidden />
+          {t("accounts.primary.makePrimary")}
+        </Button>
       ) : null}
 
       {/* What this card still owes in instalments — derivable only since a plan

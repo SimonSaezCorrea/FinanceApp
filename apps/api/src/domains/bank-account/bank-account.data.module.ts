@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { BillingSettingsDataModule } from "../billing-settings/billing-settings.data.module";
+import { AccountCreditLimitDataModule } from "../account-credit-limit/account-credit-limit.data.module";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
 import { FinancialInstitutionDataModule } from "../financial-institution/financial-institution.data.module";
 import { BANK_ACCOUNT_LOOKUP } from "./domain/ports/bank-account-lookup.port";
@@ -19,7 +20,12 @@ import { PrismaBankAccountRepository } from "./infrastructure/prisma-bank-accoun
  * which is what keeps the module graph acyclic.
  */
 @Module({
-  imports: [CardAccountDataModule, BillingSettingsDataModule, FinancialInstitutionDataModule],
+  imports: [
+    CardAccountDataModule,
+    BillingSettingsDataModule,
+    FinancialInstitutionDataModule,
+    AccountCreditLimitDataModule,
+  ],
   providers: [
     { provide: BANK_ACCOUNT_REPOSITORY, useClass: PrismaBankAccountRepository },
     { provide: BANK_ACCOUNT_LOOKUP, useClass: PrismaBankAccountLookupRepository },

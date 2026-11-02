@@ -6,6 +6,7 @@ import {
   CardNotAllowedError,
   CardRequiredError,
   CardSubLimitExceededError,
+  CreditPoolCurrencyNotFoundError,
 } from "../../../../../src/domains/transaction/domain/errors";
 import { MovementPolicy } from "../../../../../src/domains/transaction/domain/movement-policy";
 import type {
@@ -64,24 +65,133 @@ describe("MovementPolicy.validate", () => {
     ).toThrow(CardNotAllowedError);
   });
 
-  it("accepts an income on a credit card that pays that card's own limit, leaving the pool alone", () => {
-    const usdLimit: CardLimitContext = { limitAmount: "100", usedInitial: "0" };
-    const contribution = MovementPolicy.validate(
-      { type: "INCOME", currency: "USD", bankAccountId: "aC", cardId: "cC", amount: "70" },
-      { ...creditAccount, creditUsed: "50000" },
-      creditCard,
-      usdLimit,
-      { income: "0", expense: "80" },
-    );
-    expect(contribution).toBe("0");
-    expect(
-      MovementPolicy.contribution(
-        { type: "INCOME", amount: "70", currency: "USD" },
-        creditAccount,
+  describe("a movement in another currency on a credit card account (spec 039)", () => {
+    const usdPool = (used = "0", limitAmount = "3000") => ({ pool: { limitAmount, used } });
+    const usd = { currency: "USD", bankAccountId: "aC" };
+
+    it("refuses it when the account has no credit in that currency", () => {
+      expect(() =>
+        MovementPolicy.validate(
+          { ...usd, type: "EXPENSE", cardId: "cC", amount: "10" },
+          creditAccount,
+          creditCard,
+          null,
+          noUsage,
+          "0",
+          "0",
+          { pool: null },
+        ),
+      ).toThrow(CreditPoolCurrencyNotFoundError);
+      // Without any foreign context at all, the same refusal.
+      expect(() =>
+        MovementPolicy.validate(
+          { ...usd, type: "EXPENSE", cardId: "cC", amount: "10" },
+          creditAccount,
+          creditCard,
+          null,
+          noUsage,
+        ),
+      ).toThrow(CreditPoolCurrencyNotFoundError);
+    });
+
+    it("charges the account's credit there, never the pesos pool, whichever card made it", () => {
+      const contribution = MovementPolicy.validate(
+        { ...usd, type: "EXPENSE", cardId: "cC", amount: "1000" },
+        { ...creditAccount, creditUsed: "2999999" },
         creditCard,
-        usdLimit,
-      ),
-    ).toBe("0");
+        null,
+        noUsage,
+        "0",
+        "0",
+        usdPool("1000"),
+      );
+      expect(contribution).toBe("0");
+    });
+
+    it("refuses a charge past the account's credit there", () => {
+      expect(() =>
+        MovementPolicy.validate(
+          { ...usd, type: "EXPENSE", cardId: "cC", amount: "200" },
+          creditAccount,
+          creditCard,
+          null,
+          noUsage,
+          "0",
+          "0",
+          usdPool("2900"),
+        ),
+      ).toThrow(CardLimitExceededError);
+    });
+
+    it("caps an additional card by its sub-limit there even when the account has room", () => {
+      expect(() =>
+        MovementPolicy.validate(
+          { ...usd, type: "EXPENSE", cardId: "cC", amount: "200" },
+          creditAccount,
+          creditCard,
+          { limitAmount: "500", usedInitial: "0" },
+          { income: "0", expense: "400" },
+          "0",
+          "0",
+          usdPool("400"),
+        ),
+      ).toThrow(CardSubLimitExceededError);
+    });
+
+    it("refuses a charge that fits the sub-limit but not the account's credit", () => {
+      expect(() =>
+        MovementPolicy.validate(
+          { ...usd, type: "EXPENSE", cardId: "cC", amount: "100" },
+          creditAccount,
+          creditCard,
+          { limitAmount: "500", usedInitial: "0" },
+          noUsage,
+          "0",
+          "0",
+          usdPool("2950"),
+        ),
+      ).toThrow(CardLimitExceededError);
+    });
+
+    it("accepts an issuer charge there without a card", () => {
+      expect(
+        MovementPolicy.validate(
+          { ...usd, type: "EXPENSE", amount: "5", financeCharge: true },
+          creditAccount,
+          null,
+          null,
+          noUsage,
+          "0",
+          "0",
+          usdPool(),
+        ),
+      ).toBe("0");
+    });
+
+    it("takes a payment back with or without a card, leaving the pesos pool alone", () => {
+      for (const cardId of ["cC", undefined]) {
+        expect(
+          MovementPolicy.validate(
+            { ...usd, type: "INCOME", cardId, amount: "70" },
+            { ...creditAccount, creditUsed: "50000" },
+            cardId ? creditCard : null,
+            null,
+            noUsage,
+            "0",
+            "0",
+            usdPool("80"),
+          ),
+        ).toBe("0");
+      }
+      expect(
+        MovementPolicy.contribution(
+          { type: "INCOME", amount: "70", currency: "USD" },
+          creditAccount,
+          creditCard,
+          null,
+        ),
+      ).toBe("0");
+    });
   });
 
   it("rejects an income with a credit card that has no own limit in that currency", () => {

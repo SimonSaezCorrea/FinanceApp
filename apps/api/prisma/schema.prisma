@@ -464,6 +464,8 @@ model BankAccount {
   financialInstitution FinancialInstitution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
   transactions         Transaction[]
   cards                CardAccount[]
+  /// Credit in currencies OTHER than the account own (spec 039).
+  extraCreditLimits    AccountCreditLimit[]
   recurringExpenses    RecurringExpense[]
   walletItems          WalletItemDashboard[]
   /// Statements belonging to THIS credit account's pool.
@@ -681,10 +683,29 @@ model CardAccount {
   @@map("card-account")
 }
 
-/// A non-primary CREDIT card's own sub-limit (one per currency) — chosen instead of
-/// sharing the account's pool ("tope propio" vs "cupo de la cuenta" in the UI). The
-/// primary card never has CardLimit rows (its limit lives on BankAccount directly);
-/// a non-primary card with no CardLimit rows is explicitly sharing the account pool.
+/// The ACCOUNT's credit in a currency other than its own (spec 039): every card of the
+/// account spends from it; the primary uses 100%, an additional card may have a CardLimit
+/// (sub-limit) within it. Usage is derived from the account's movements in that currency.
+model AccountCreditLimit {
+  id          String   @id @default(uuid(7))
+  accountId   String
+  currency    String
+  limitAmount Decimal  @db.Decimal(18, 4)
+  /// Debt already owed before the first movement in the app.
+  usedInitial Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  account BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, currency])
+  @@map("account-credit-limit")
+}
+
+/// An additional CREDIT card's sub-limit (one per currency) — chosen instead of sharing the
+/// account's credit with no cap ("tope propio" vs "cupo de la cuenta" in the UI); always within
+/// the account's credit in that currency. The primary card has no sub-limits (spec 039): rows in
+/// another currency left on a primary by older data are ignored until the contraction migration.
 model CardLimit {
   id          String   @id @default(uuid(7))
   cardId      String

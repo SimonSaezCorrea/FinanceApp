@@ -52,6 +52,15 @@ export async function accountsToDtos(
   );
   const planDebt = await planDebtByCard(plansRepo, userId, creditCardIds);
   const carried = await statements.carriedOverOwed(ids);
+  const creditAccountIds = rows.filter((r) => r.extraCreditLimits.length > 0).map((r) => r.id);
+  const lineSums: LineSums = new Map();
+  for (const s of await sumsRepo.sumsByAccountCurrency(userId, creditAccountIds)) {
+    const key = `${s.accountId}:${s.currency}`;
+    const entry = lineSums.get(key) ?? { income: "0", expense: "0" };
+    if (s.type === "INCOME") entry.income = s.sum;
+    else entry.expense = s.sum;
+    lineSums.set(key, entry);
+  }
   return rows.map((row) =>
     accountToDto(
       row,
@@ -59,6 +68,7 @@ export async function accountsToDtos(
       cardSums,
       planDebt,
       carried,
+      lineSums,
     ),
   );
 }
@@ -100,6 +110,10 @@ export type WindowTx = {
 
 /** cardId:currency -> { income, expense } sums, for a card's own derived `used`/`ownUsed`. */
 export type CardSums = Map<string, { income: string; expense: string }>;
+
+/** accountId:currency -> { income, expense } still owed — the usage of the account's credit in
+ * a currency other than its own (spec 039). */
+export type LineSums = Map<string, { income: string; expense: string }>;
 
 const SERIES_DAYS = 30;
 const DAY_MS = 86_400_000;
@@ -176,21 +190,28 @@ export function cardToDto(
 }
 
 /**
- * A limit in ANOTHER currency (the USD one of a CLP card) is paid through the primary card, and a
- * short payment carries the rest into the next period of that currency as `carriedOverAmount` —
- * not a movement, so the movement-derived usage would forget it until that period is paid. It is
- * still owed: it is added back here, on the primary card (the one the settlement lands on). The
- * account's own currency needs nothing: its carry-over is already inside `creditUsed`.
+ * The account's credit in a currency other than its own (spec 039): its limit and what is used
+ * of it — the opening debt, plus the account's charges in that currency still owed minus the
+ * payments that settle them, plus a short payment's `carriedOverAmount` (a statement figure,
+ * not a movement). The same figure `creditPoolUsage` checks a charge against.
  */
-export function foreignLimitWithCarry(
-  limit: accounts.Card["limits"][number],
+export function extraCreditPool(
+  line: BankAccount["extraCreditLimits"][number],
   accountId: string,
-  accountCurrency: string,
+  lineSums?: LineSums,
   carriedOver?: ReadonlyMap<string, string>,
-): accounts.Card["limits"][number] {
-  if (limit.currency === accountCurrency) return limit;
-  const carry = carriedOver?.get(`${accountId}:${limit.currency}`);
-  return carry ? { ...limit, used: moneyToString(addMoney(limit.used, carry)) } : limit;
+): accounts.CreditPool {
+  const s = lineSums?.get(`${accountId}:${line.currency}`);
+  const used = addMoney(
+    subtractMoney(addMoney(line.usedInitial, s?.expense ?? "0"), s?.income ?? "0"),
+    carriedOver?.get(`${accountId}:${line.currency}`) ?? "0",
+  );
+  return {
+    currency: line.currency,
+    limit: moneyToString(line.limitAmount),
+    used: moneyToString(used),
+    usedInitial: moneyToString(line.usedInitial),
+  };
 }
 
 /** Maps a `BankAccount` aggregate + its read-model extras (series, card sums)
@@ -202,9 +223,13 @@ export function accountToDto(
   cardSums?: CardSums,
   planDebt?: ReadonlyMap<string, string>,
   carriedOver?: ReadonlyMap<string, string>,
+  lineSums?: LineSums,
 ): accounts.BankAccount {
   const snap = account.snapshot();
   const creditUsed = account.hasCreditPool ? account.creditUsed : "0";
+  const extraPools = account.extraCreditLimits.map((line) =>
+    extraCreditPool(line, snap.id, lineSums, carriedOver),
+  );
   const rawCardsDto = snap.cards.map((c) => cardToDto(c, snap.currency, cardSums, planDebt));
   // The PRIMARY card has no ledger of its own — its limit already just mirrors the
   // account's (`creditLimit`/`creditUsed`), never a separate `CardLimit` row. Its
@@ -222,21 +247,26 @@ export function accountToDto(
         return {
           ...c,
           ownUsed: subtractMoney(creditUsed, othersOwnUsed),
-          limits: c.limits.map((l) =>
-            foreignLimitWithCarry(l, snap.id, snap.currency, carriedOver),
-          ),
+          // Read-only mirror of the account's credit in other currencies for clients older
+          // than spec 039, which read the USD credit off the primary card.
+          limits: account.extraCreditLimits.map((line, i) => ({
+            id: line.id,
+            currency: line.currency,
+            limitAmount: extraPools[i].limit,
+            used: extraPools[i].used,
+          })),
         };
       })
     : rawCardsDto;
-  const primaryDto = cardsDto.find((c) => c.isPrimary);
   const creditPools: accounts.CreditPool[] = account.hasCreditPool
     ? [
-        { currency: snap.currency, limit: account.creditLimit, used: creditUsed },
-        ...(primaryDto?.limits ?? []).map((l) => ({
-          currency: l.currency,
-          limit: l.limitAmount,
-          used: l.used,
-        })),
+        {
+          currency: snap.currency,
+          limit: account.creditLimit,
+          used: creditUsed,
+          usedInitial: account.creditUsedInitial,
+        },
+        ...extraPools,
       ]
     : [];
   return {

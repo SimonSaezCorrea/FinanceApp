@@ -13,9 +13,9 @@ import { FormSelectField, FormSwitchField, FormTextField } from "../../../shared
 import { Input } from "@finance/ui/src/shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
 import { CurrencyField } from "../../reference/components/CurrencyField";
+import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { Switch } from "../../../shared/ui/switch";
 import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
-import { ExtraCurrencyLimits } from "./ExtraCurrencyLimits";
 
 interface Props {
   submitLabel: string;
@@ -33,6 +33,9 @@ interface Props {
   /** The account's current creditLimit — only used to prefill the mandatory field
    * when editing the account's existing primary card (whose own `limits` is always empty). */
   accountCreditLimit?: string;
+  /** The account's credit by currency (spec 039): an additional card's sub-limits may only be
+   * in these currencies, each up to its credit. */
+  creditPools?: accounts.CreditPool[];
   /** Set when the host renders the submit button itself (a surface footer),
    * pointing at it with `form="<id>"` — one form, one action bar. */
   formId?: string;
@@ -93,6 +96,7 @@ export function CardForm({
   accountType,
   hasExistingPrimary,
   accountCreditLimit,
+  creditPools = [],
   formId,
   hideSubmit = false,
   isActive: activeFromHost,
@@ -158,6 +162,15 @@ export function CardForm({
 
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
+  // The primary uses 100% of the account's credit (spec 039): it only asks for an amount when
+  // the account has no credit limit yet, and that amount becomes the account's.
+  const needsOwnAmount = willBePrimary && !(Number(accountCreditLimit ?? "0") > 0);
+  // An additional card's sub-limits: only in currencies the account has credit in.
+  const poolCurrencies = creditPools.map((p) => p.currency);
+  const notPooled = useAllowedCurrencies()
+    .map((c) => c.code)
+    .filter((code) => !poolCurrencies.includes(code));
+  const poolLimit = (currency: string) => creditPools.find((p) => p.currency === currency)?.limit;
   function addLimitRow(defaultCurrency: string) {
     setLimits((prev) => [...prev, { currency: defaultCurrency, limitAmount: "" }]);
   }
@@ -178,16 +191,13 @@ export function CardForm({
     let cardLimits: accounts.CreateCard["limits"];
     let poolFlag = true;
     setLimitError(null);
-    if (willBePrimary) {
+    if (needsOwnAmount) {
       const amount = primaryLimitAmount.trim();
       if (!amount || !(Number(amount) > 0)) {
         setLimitError(t("cards.errors.limitRequired"));
         return;
       }
-      const extra = limits
-        .filter((l) => l.currency !== accountCurrency && l.limitAmount.trim() !== "")
-        .map((l) => ({ currency: l.currency, limitAmount: l.limitAmount }));
-      cardLimits = [{ currency: accountCurrency, limitAmount: amount }, ...extra];
+      cardLimits = [{ currency: accountCurrency, limitAmount: amount }];
     } else if (isAdditionalCredit) {
       poolFlag = usesAccountPool;
       if (!usesAccountPool) {
@@ -196,6 +206,14 @@ export function CardForm({
           .map((l) => ({ currency: l.currency, limitAmount: l.limitAmount }));
         if (cleanLimits.length === 0) {
           setLimitError(t("cards.errors.limitRequired"));
+          return;
+        }
+        const over = cleanLimits.find((l) => {
+          const max = poolLimit(l.currency);
+          return max !== undefined && Number(l.limitAmount) > Number(max);
+        });
+        if (over) {
+          setLimitError(t("accounts.pools.exceeds", { amount: poolLimit(over.currency) }));
           return;
         }
         cardLimits = cleanLimits;
@@ -285,29 +303,31 @@ export function CardForm({
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("cards.primaryBadge")}
           </span>
-          <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.primaryLimitHint")}</p>
-          <Field
-            label={t("cards.form.primaryLimit", { currency: accountCurrency })}
-            error={limitError}
-          >
-            <Input
-              className={NO_FILL}
-              inputMode="numeric"
-              placeholder="0"
-              value={formatAmountDisplay(
-                primaryLimitAmount,
-                groupingLocaleFor(accountCurrency, i18n.language),
-              )}
-              onChange={(e) => setPrimaryLimitAmount(e.target.value.replace(/\D/g, ""))}
-              aria-label={t("cards.form.primaryLimit", { currency: accountCurrency })}
-            />
-          </Field>
-
-          <ExtraCurrencyLimits
-            accountCurrency={accountCurrency}
-            limits={limits}
-            onChange={setLimits}
-          />
+          {needsOwnAmount ? (
+            <>
+              <p className="-mt-1 text-xs text-muted-foreground">
+                {t("cards.form.primaryLimitHint")}
+              </p>
+              <Field
+                label={t("cards.form.primaryLimit", { currency: accountCurrency })}
+                error={limitError}
+              >
+                <Input
+                  className={NO_FILL}
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formatAmountDisplay(
+                    primaryLimitAmount,
+                    groupingLocaleFor(accountCurrency, i18n.language),
+                  )}
+                  onChange={(e) => setPrimaryLimitAmount(e.target.value.replace(/\D/g, ""))}
+                  aria-label={t("cards.form.primaryLimit", { currency: accountCurrency })}
+                />
+              </Field>
+            </>
+          ) : (
+            <p className="-mt-1 text-xs text-muted-foreground">{t("accounts.pools.usesAll")}</p>
+          )}
         </div>
       ) : null}
 
@@ -354,6 +374,7 @@ export function CardForm({
                     <CurrencyField
                       value={limit.currency}
                       onChange={(v) => updateLimitRow(i, { currency: v })}
+                      exclude={notPooled}
                       searchPlaceholder={t("common.search")}
                       noResultsLabel={t("common.noResults")}
                       aria-label={t("cards.form.currency")}

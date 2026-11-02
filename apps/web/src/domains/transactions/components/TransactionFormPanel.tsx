@@ -6,8 +6,10 @@ import type { accounts, customFields, transactions } from "@finance/contracts";
 import { currencyScale, formatMoney } from "@finance/money";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
+import { defaultCardId, selectableCards } from "../../accounts/lib/selectableCards";
 import { useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { CurrencyField } from "../../reference/components/CurrencyField";
+import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import {
   formatTypedAmount,
@@ -157,6 +159,15 @@ export function TransactionFormPanel({
         : "destructive";
   const selectedAccount = accountList.find((a) => a.id === value.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
+  // Spec 039: a credit card account only takes movements in currencies it has credit in (its
+  // own and each of `creditPools`); the API refuses the rest, so the picker doesn't offer them.
+  const allowedCodes = useAllowedCurrencies().map((c) => c.code);
+  const creditCurrencies = selectedAccount
+    ? [selectedAccount.currency, ...(selectedAccount.creditPools ?? []).map((p) => p.currency)]
+    : [];
+  const currencyExclude = isCreditLine
+    ? allowedCodes.filter((code) => !creditCurrencies.includes(code) && code !== value.currency)
+    : undefined;
   const isCardable =
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable
@@ -165,7 +176,9 @@ export function TransactionFormPanel({
     !isTransfer && !isPrepay && type === "EXPENSE" && isCreditLine && !value.financeCharge;
   const showCard =
     !isTransfer && !isPrepay && type === "EXPENSE" && isCardable && !value.financeCharge;
-  const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
+  // Deactivated cards aren't offered, except the one this movement already has.
+  const cards = selectableCards(selectedAccount, original?.cardId);
+  const noCardsAvailable = needsCard && cards.length === 0;
 
   const typeLabel = (accType: accounts.AccountType) => t(`accounts.type.${accType}`);
   const accountOptions = selectable.map((a) => ({
@@ -182,7 +195,7 @@ export function TransactionFormPanel({
   // "Cuenta propia" is dropped and the primary card is offered as the default.
   const cardOptions = [
     ...(needsCard ? [] : [{ value: "", label: t("transactions.form.ownAccount") }]),
-    ...(selectedAccount?.cards ?? []).map((c) => ({
+    ...cards.map((c) => ({
       value: c.id,
       label: c.name,
       description: selectedAccount ? cardMetaLine(selectedAccount, c, typeLabel) : undefined,
@@ -226,11 +239,9 @@ export function TransactionFormPanel({
     // A CREDIT_CARD account has no "Cuenta propia" option (see `cardOptions`
     // above) — default straight to its primary card instead of leaving the
     // required field unset.
-    const defaultCardId =
-      acc?.type === "CREDIT_CARD" ? (acc.cards.find((c) => c.isPrimary)?.id ?? "") : "";
     onChange({
       bankAccountId: id,
-      cardId: defaultCardId,
+      cardId: acc?.type === "CREDIT_CARD" ? defaultCardId(acc) : "",
       // Neither Ingreso nor Traspaso exist on a credit-line account (its
       // balance only moves through its own billing) — force back to Gasto.
       // "Prepagar" stays valid across two CREDIT_CARD accounts.
@@ -383,6 +394,7 @@ export function TransactionFormPanel({
                       amount: limitDecimals(value.amount, currencyScale(currency)),
                     })
                   }
+                  exclude={currencyExclude}
                   searchPlaceholder={t("common.search")}
                   noResultsLabel={t("common.noResults")}
                   aria-label={t("transactions.form.currency")}
@@ -459,6 +471,7 @@ export function TransactionFormPanel({
                 // Cents the new currency does not have go with the old one.
                 onChange({ currency, amount: limitDecimals(value.amount, currencyScale(currency)) })
               }
+              exclude={currencyExclude}
               searchPlaceholder={t("common.search")}
               noResultsLabel={t("common.noResults")}
               aria-label={t("transactions.form.currency")}

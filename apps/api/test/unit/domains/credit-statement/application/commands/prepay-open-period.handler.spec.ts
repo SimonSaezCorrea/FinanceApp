@@ -15,7 +15,7 @@ import {
   type CreditStatementProps,
 } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
 import {
-  CardLimitNotFoundError,
+  CreditPoolCurrencyNotFoundError,
   PaymentExceedsRemainingError,
   StatementNotOpenError,
   StatementPaymentCurrencyAmbiguousError,
@@ -41,9 +41,11 @@ const card = (overrides: Record<string, unknown> = {}) => ({
   isAdditional: false,
   cardholderName: null,
   network: null,
-  limits: [{ id: "lim_1", currency: "USD", limitAmount: "100", usedInitial: "0" }],
+  limits: [] as { id: string; currency: string; limitAmount: string; usedInitial: string }[],
   ...overrides,
 });
+// Spec 039: the USD credit is the ACCOUNT's.
+const usdLine = { id: "line_1", currency: "USD", limitAmount: "100", usedInitial: "0" };
 
 function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps {
   return {
@@ -71,6 +73,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     paymentDueDay: null,
     paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
+    extraCreditLimits: [usdLine],
     cards: [card()],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -108,13 +111,14 @@ function setup(
   opts: {
     statement?: Partial<CreditStatementProps>;
     cards?: ReturnType<typeof card>[];
+    lines?: (typeof usdLine)[];
     fromCurrency?: string;
     owed?: string;
     from?: Partial<BankAccountProps>;
   } = {},
 ) {
   const creditAccount = BankAccount.fromPersistence(
-    accountProps({ cards: opts.cards ?? [card()] }),
+    accountProps({ cards: opts.cards ?? [card()], extraCreditLimits: opts.lines ?? [usdLine] }),
   );
   const fromAccount = BankAccount.fromPersistence(
     accountProps({
@@ -211,7 +215,7 @@ describe("PrepayOpenPeriodHandler — period in another currency (spec 030)", ()
       type: "INCOME",
       amount: "20",
       currency: "USD",
-      cardId: "card_1",
+      cardId: null,
       settlesStatementId: "st_1",
     });
     expect(statement.state.name).toBe("OPEN");
@@ -255,10 +259,10 @@ describe("PrepayOpenPeriodHandler — period in another currency (spec 030)", ()
     expect(income).toMatchObject({ type: "INCOME", amount: "20", currency: "USD" });
   });
 
-  it("refuses when the primary card holds no limit in that currency, writing nothing", async () => {
-    const { prepay, transactions } = setup({ cards: [card({ limits: [] })] });
+  it("refuses when the account has no credit in that currency, writing nothing", async () => {
+    const { prepay, transactions } = setup({ lines: [] });
 
-    await expect(prepay("20", "19600")).rejects.toThrow(CardLimitNotFoundError);
+    await expect(prepay("20", "19600")).rejects.toThrow(CreditPoolCurrencyNotFoundError);
     expect(transactions.createWithTx).not.toHaveBeenCalled();
   });
 

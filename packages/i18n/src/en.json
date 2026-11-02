@@ -448,6 +448,36 @@
       "pending": "The statement is pending payment again.",
       "success": "Payment undone",
       "unknownAccount": "the source account"
+    },
+    "primary": {
+      "title": "Choose a new primary",
+      "deactivateDescription": "The primary card can’t stay deactivated. Choose which card becomes primary instead.",
+      "deleteDescription": "To delete the primary card, choose which card becomes primary instead.",
+      "chooseDescription": "This account has no active primary card. Choose one.",
+      "existing": "A card on this account",
+      "newCard": "New card",
+      "newCardHint": "For example, the card your bank sent you.",
+      "poolsUnchanged": "The account’s credit doesn’t change: the new primary uses 100% of it.",
+      "confirmDeactivate": "Deactivate and change primary",
+      "confirmDelete": "Delete and change primary",
+      "confirmChoose": "Make it primary",
+      "changed": "Primary card updated",
+      "makePrimary": "Make primary",
+      "makePrimaryTitle": "Make this card the primary?",
+      "makePrimaryDescription": "The current primary becomes an additional card. The account’s credit doesn’t change.",
+      "noticeTitle": "This account has no active primary card",
+      "noticeBody": "Without an active primary, statements can’t be generated.",
+      "noticeAction": "Choose primary",
+      "noCandidates": "There are no other active credit cards. Enter the new one."
+    },
+    "pools": {
+      "title": "Credit in other currencies",
+      "hint": "The credit your bank gave you in each currency. Every card spends from it.",
+      "usesAll": "Uses 100% of the account’s credit",
+      "subLimit": "Sub-limit",
+      "max": "Up to {{amount}}",
+      "exceeds": "Can’t exceed the account’s credit ({{amount}}).",
+      "noPool": "The account has no credit in this currency."
     }
   },
   "cards": {
@@ -2590,6 +2620,7 @@
     "INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT": "An instalment cannot be paid from a credit-card account.",
     "TRANSACTION_LINKED_TO_INSTALLMENT": "This movement backs an instalment. To change it, undo the instalment's payment from its plan.",
     "CARD_ACCOUNT_MISMATCH": "The card does not belong to that account.",
+    "CARD_INACTIVE": "That card is deactivated. Pick another one or activate it again.",
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "A card's limit can't exceed the account's own credit pool.",
@@ -2704,7 +2735,13 @@
     "MOVEMENT_TEMPLATE_NOT_FOUND": "That template doesn't exist.",
     "MOVEMENT_TEMPLATE_NAME_TAKEN": "You already have a template with that name.",
     "MOVEMENT_TEMPLATE_LIMIT_REACHED": "You've reached the maximum of 50 templates. Delete one to create another.",
-    "RECURRING_NOT_FOUND": "That fixed expense doesn't exist."
+    "RECURRING_NOT_FOUND": "That fixed expense doesn't exist.",
+    "PRIMARY_CARD_REPLACEMENT_REQUIRED": "Before deactivating or deleting the primary card, choose which card becomes primary.",
+    "PRIMARY_CARD_INVALID_REPLACEMENT": "The new primary must be another active credit card on this account.",
+    "PRIMARY_CARD_HAS_HISTORY": "This card has movements or instalment purchases. Deactivate it instead to keep its history.",
+    "CARD_NOT_PRIMARY": "That card is no longer the account’s primary card.",
+    "CREDIT_POOL_CURRENCY_NOT_FOUND": "The account has no credit in that currency.",
+    "CREDIT_POOL_IN_USE": "You can’t remove that credit line: it has used credit, unpaid statements or additional-card limits."
   },
   "exchangeRates": {
     "title": "Exchange rates",

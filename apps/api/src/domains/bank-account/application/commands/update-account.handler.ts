@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { accounts } from "@finance/contracts";
+import { toMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -17,13 +18,13 @@ import {
   type TransactionSumsRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-sums.repository.port";
 import { BankAccount } from "../../domain/bank-account.aggregate";
-import { AccountNotFoundError } from "../../domain/errors";
+import { AccountNotFoundError, CreditPoolInUseError } from "../../domain/errors";
 import type { AccountDeactivatedEvent } from "../../domain/events/account-deactivated.event";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../domain/ports/bank-account.repository.port";
-import { accountsToDtos } from "../queries/account-dto.mapper";
+import { accountsToDtos, extraCreditPool, type LineSums } from "../queries/account-dto.mapper";
 import { UpdateAccountCommand } from "./update-account.command";
 
 @Injectable()
@@ -99,6 +100,10 @@ export class UpdateAccountHandler extends BaseCommandHandler<
         ? { minimumPaymentPercent: input.minimumPaymentPercent }
         : {}),
     });
+    if (input.extraCreditLimits !== undefined) {
+      await this.assertRemovedLinesSettled(command.userId, account, input.extraCreditLimits);
+      account.setExtraCreditLimits(input.extraCreditLimits);
+    }
     const events: AccountDeactivatedEvent[] = [];
     if (input.status !== undefined) {
       const event = account.setStatus(input.status);
@@ -112,6 +117,31 @@ export class UpdateAccountHandler extends BaseCommandHandler<
       this.statements,
     );
     return { result: dto, events };
+  }
+
+  /** A credit line in another currency can only be removed once nothing is owed on it (spec
+   * 039): no opening debt, no charge still unpaid, no shortfall carried into a next period. */
+  private async assertRemovedLinesSettled(
+    userId: string,
+    account: BankAccount,
+    lines: { currency: string }[],
+  ): Promise<void> {
+    const removed = account.removedCreditCurrencies(lines);
+    if (removed.length === 0) return;
+    const lineSums: LineSums = new Map();
+    for (const s of await this.sumsRepo.sumsByAccountCurrency(userId, [account.id])) {
+      const key = `${s.accountId}:${s.currency}`;
+      const entry = lineSums.get(key) ?? { income: "0", expense: "0" };
+      if (s.type === "INCOME") entry.income = s.sum;
+      else entry.expense = s.sum;
+      lineSums.set(key, entry);
+    }
+    const carried = await this.statements.carriedOverOwed([account.id]);
+    for (const line of account.extraCreditLimits) {
+      if (!removed.includes(line.currency)) continue;
+      const pool = extraCreditPool(line, account.id, lineSums, carried);
+      if (!toMoney(pool.used).isZero()) throw new CreditPoolInUseError();
+    }
   }
 
   protected override async persist(account: BankAccount): Promise<void> {

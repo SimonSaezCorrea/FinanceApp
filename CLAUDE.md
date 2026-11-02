@@ -46,7 +46,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with three separately-deployable apps (`api`, `web`, `landing`) + shared packages. TypeScript, **Node 22** (≥ 22.12, required by Astro; CI runs 22). Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 34 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache, consent-record, account-deletion-log, category, exchange-rate, user-email, email-token, custom-field, transaction-field-value — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand` [that cron was removed; `statement-generation.cron.ts` now generates only statements whose close was scheduled]; since 2026-10-10 there are exactly three crons, all in Chile time, and since 2026-10-11 they run ONLY when `infra/config/cron.config.ts`'s `CronSwitch` says so — ON with `NODE_ENV=production`, OFF anywhere else, `CRONS_ENABLED=true|false` overrides (any other value fails at boot); every trigger returns early when off, including the exchange-rate run at boot: `ExchangeRateCron` (08/12/16/20 h + once at boot), `StatementGenerationCron` (daily 00:00 — a scheduled close is the end of its day) and `MaintenanceCron` (daily 03:00 — the idempotency, session, IP-cache and email-link sweeps (the first three used to be three crons), each step isolated so one failure never stops the others)). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 35 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, account-credit-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache, consent-record, account-deletion-log, category, exchange-rate, user-email, email-token, custom-field, transaction-field-value — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand` [that cron was removed; `statement-generation.cron.ts` now generates only statements whose close was scheduled]; since 2026-10-10 there are exactly three crons, all in Chile time, and since 2026-10-11 they run ONLY when `infra/config/cron.config.ts`'s `CronSwitch` says so — ON with `NODE_ENV=production`, OFF anywhere else, `CRONS_ENABLED=true|false` overrides (any other value fails at boot); every trigger returns early when off, including the exchange-rate run at boot: `ExchangeRateCron` (08/12/16/20 h + once at boot), `StatementGenerationCron` (daily 00:00 — a scheduled close is the end of its day) and `MaintenanceCron` (daily 03:00 — the idempotency, session, IP-cache and email-link sweeps (the first three used to be three crons), each step isolated so one failure never stops the others)). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -703,6 +703,57 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     comportamiento viejo no se migran** (data de dev; `pnpm db:seed` la regenera). Abierto y breaking:
     si `CHECKING`/`SIGHT` deberían seguir admitiendo una tarjeta `CREDIT` (una tarjeta de crédito es su
     propia cuenta, no un canal sobre el saldo de la corriente) — hoy la matriz lo permite.
+  - **Cupos por moneda en la cuenta y cambio de tarjeta principal** (specs/039, 2026-11-01 —
+    supersedes every "extra-currency limit on the primary card" rule above): the credit in a
+    currency OTHER than the account's is the **account's**, table-domain **`account-credit-limit`**
+    (`AccountCreditLimit`: `accountId`, `currency`, `limitAmount`, `usedInitial`,
+    `@@unique([accountId, currency])`, `Cascade`; an entity of the `BankAccount` aggregate,
+    `props.extraCreditLimits`, loaded/saved by its adapter through the new leaf
+    `account-credit-limit.data.module.ts`). Its usage is derived, never stored: `usedInitial` + every
+    charge of the account in that currency still owed (`STILL_OWED`, any card) − payments + the
+    statements' `carriedOverOwed` (`transaction/application/credit-pool-usage.ts`:
+    `creditPoolUsage`/`foreignCreditContext`; ports `sumsForAccountCurrency`/
+    `sumsByAccountCurrency`). The **primary** uses 100% of every line and has **no** `CardLimit`
+    rows (the aggregate drops any left by older data); an **additional** card's `CardLimit` rows are
+    sub-limits, each in a currency the account has credit in (`CREDIT_POOL_CURRENCY_NOT_FOUND`) and
+    never above it (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`, also when lowering/removing a line).
+    `MovementPolicy.validate` takes a `ForeignCreditContext` (8th arg): on a credit card account a
+    movement in another currency needs credit there, an EXPENSE (card or `financeCharge`) must fit
+    it (`CARD_LIMIT_EXCEEDED`) and the card's sub-limit (`CARD_SUBLIMIT_EXCEEDED`), an INCOME pays it
+    with or without a card, and it **never** contributes to the own-currency pool (closes a gap
+    where a USD charge on a card without a USD limit added to the CLP pool). Foreign statement
+    settlements (pay/prepay/correct/transfer) write their INCOME with **no card**
+    (`assertSettlementCredit`; `CardLimitNotFoundError`/`settlementCardId` gone). Contract:
+    `extraCreditLimits` on create/update account (update: present = replaces the set; a line that
+    still owes answers `CREDIT_POOL_IN_USE`, 409), `creditPools[].usedInitial`, and for clients
+    older than 039 a primary's foreign `limits` are written as account lines
+    (`mergeExtraCreditLimits`) and `primary.limits` mirrors them read-only (`@deprecated`). **The
+    primary card can change**: exactly one ACTIVE primary per account with credit cards (aggregate
+    `changePrimary`/`assertCardUpdateKeepsPrimary`/`assertCardRemovable` + partial unique index
+    `card-account_one_primary_per_account`); `POST /accounts/:id/cards/:cardId/make-primary`
+    (form a, absolute state) and `POST …/replace-primary` (`replacePrimaryCardSchema`:
+    `DEACTIVATE`|`DELETE` + `{cardId}` or `{newCard}`; form c, op `card.replacePrimary`; account row
+    `findByIdForUpdateWithTx`; new card created additional then promoted; DELETE refused with history,
+    `PRIMARY_CARD_HAS_HISTORY` via `TransactionSumsRepositoryPort.existsForCard` +
+    `InstallmentPlanRepositoryPort.existsForCard`). PATCH `isActive:false` / DELETE of the active
+    primary → `PRIMARY_CARD_REPLACEMENT_REQUIRED` (409); a primary already inactive stays editable so
+    it can be repaired; reactivating a former primary leaves it additional. Errors
+    `PRIMARY_CARD_INVALID_REPLACEMENT`, `CARD_NOT_PRIMARY`. The first credit card of an account that
+    already has `creditLimit > 0` needn't send a limit. Template: format unchanged — the primary's
+    extra-currency limit IS the account line (exported from `creditPools`). Migration
+    `20261101232030_account_credit_limits` (expand: line = primary's limit + Σ additional limits per
+    currency, `usedInitial` summed, ids via `pg_temp.credit_limit_uuid_v7()`; primaries' rows kept for
+    the old code during the deploy — contraction in `docs/PENDING.md`). Web: `ExtraCurrencyLimits`
+    edits the account (`AccountForm`/`AccountEditPanel`/`AccountCreateModal` send `extraCreditLimits`);
+    `CardForm` shows "Usa el 100% del cupo de la cuenta" on the primary (an amount only when the account
+    has none) and limits an additional's sub-limits to `creditPools` currencies and amounts;
+    `CardDetailPanel` shows the account lines on the primary and "Marcar como principal" on an active
+    additional; `ReplacePrimaryPanel` (existing card or new one) opens when the primary is saved
+    inactive or deleted (desktop accordion and `CardDetailSurface`); `PrimaryCardNotice` (cards
+    section) for accounts whose credit cards have no active primary (`accounts.needsPrimaryCard`);
+    `TransactionFormPanel` offers only the account's credit currencies on a credit card account.
+    i18n `accounts.primary.*`, `accounts.pools.*`, `errors.PRIMARY_CARD_*`/`CARD_NOT_PRIMARY`/
+    `CREDIT_POOL_*`. Base: `fix/inactive-cards` (deactivated cards out of the pickers, `CARD_INACTIVE`).
   - **installment-plan / installment-payment** (specs/013, 2026-08-22): un plan de cuotas es una
     compra que se paga en cuotas fijas, y **pagar una cuota registra un gasto real**. Columnas nuevas:
     `installment-plan` gana `category` (texto libre, mismo repertorio que los movimientos; de ahí sale
@@ -2507,7 +2558,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.8.2**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.9.0**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -2574,7 +2625,21 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (035 — implementado, pendiente de revisión del contenido): specs/035-chile-guides/plan.md
+Current plan (039 — implementado): specs/039-primary-card-swap/plan.md
+(Cupos por moneda en la cuenta y cambio de tarjeta principal: tabla nueva `account-credit-limit` [cupos
+de la cuenta en otra moneda, uso derivado de todos sus movimientos]; la principal usa el 100% y no tiene
+sub-topes; las adicionales tienen sub-topes `CardLimit` dentro del cupo; liquidaciones extranjeras sin
+tarjeta; `POST /accounts/:id/cards/:cardId/make-primary` (forma a) y `/replace-primary` (forma c,
+DEACTIVATE/DELETE con reemplazo existente o nuevo); invariante "exactamente una principal activa" +
+índice único parcial. Base `fix/inactive-cards`. Ver research.md R1–R16.
+**Verificado** (2026-11-01): contracts [accounts, 4 archivos], api unit [toda la suite], integración +
+e2e de bank-account/account-credit-limit/credit-statement/transaction/import/user contra Postgres
+desechable [68 archivos, 297 tests: incluye la migración, la concurrencia de replace-primary y el e2e
+de las 5 historias], web accounts/transactions/import/dashboard/i18n [54 archivos, 337 tests],
+typecheck api/web, lint, `format:check`, `check:boundaries`, `prisma migrate diff` sin diferencias.
+**No verificado**: navegador real.)
+
+Prior plan (035 — implementado, pendiente de revisión del contenido): specs/035-chile-guides/plan.md
 (Guías de finanzas personales para Chile: sección pública `/es/guias/` + `/en/guides/` en el landing,
 una colección de contenido de Astro [una carpeta por guía, un Markdown por idioma, frontmatter validado
 al construir], índice de secciones, fuentes oficiales, fechas, "Equipo fik", aviso de información

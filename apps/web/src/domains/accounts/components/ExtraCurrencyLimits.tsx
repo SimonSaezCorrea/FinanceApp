@@ -10,10 +10,10 @@ import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies
 import type { CurrencyLimitDraft } from "../lib/extraLimits";
 
 /**
- * A credit card's own limits in currencies OTHER than its account's (the USD one
- * of a CLP card): the issuer keeps them apart and this app never converts, so
- * each is its own cap. Edited from the primary card and from the credit card
- * account itself — both write the same `CardLimit` rows of the primary card.
+ * A credit card ACCOUNT's credit in currencies OTHER than its own (the USD one of a CLP card,
+ * spec 039): every card of the account spends from it — the primary uses 100%, an additional
+ * card may have a sub-limit within it. The issuer keeps each currency apart and this app never
+ * converts, so each is its own cap. Saved with the account (`extraCreditLimits`).
  *
  * When the user has no other currency enabled there is nothing to pick, and the
  * block says where to enable one instead of silently disappearing.
@@ -38,7 +38,7 @@ export function ExtraCurrencyLimits({
     <div className="flex flex-col gap-2 border-t pt-2">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("cards.form.extraLimits")}
+          {t("accounts.pools.title")}
         </span>
         {otherCodes.length > 0 ? (
           <Button
@@ -54,9 +54,7 @@ export function ExtraCurrencyLimits({
         ) : null}
       </div>
       <p className="-mt-1 text-xs text-muted-foreground">
-        {otherCodes.length > 0
-          ? t("cards.form.extraLimitsHint")
-          : t("cards.form.extraLimitsNoCurrencies")}
+        {otherCodes.length > 0 ? t("accounts.pools.hint") : t("cards.form.extraLimitsNoCurrencies")}
       </p>
 
       {limits.map((limit, i) => (

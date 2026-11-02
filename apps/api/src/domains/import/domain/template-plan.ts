@@ -49,9 +49,11 @@ export interface TemplateAccount {
 /** A card the user owns, with its account and (for CREDIT) its own sub-limit. */
 export interface TemplateCard extends ImportCard {
   accountId: string;
-  /** A CREDIT card's own limits in currencies OTHER than its account's (e.g. the
-   * USD one of a CLP card), by currency code, with what each has already used. A
-   * movement in one of these currencies goes against that limit, never the pool. */
+  /** Limits in currencies OTHER than its account's (e.g. USD on a CLP card), by currency
+   * code, with what each has already used. On the PRIMARY card these are the ACCOUNT's
+   * credit in those currencies (spec 039) and their usage is the account's; on an additional
+   * card, its sub-limits. A movement in one of these currencies goes against them, never the
+   * pool. */
   otherLimits: Record<
     string,
     { limit: CardLimitContext; usage: { income: string; expense: string } }
@@ -161,6 +163,8 @@ export interface TemplateNewAccount {
     creditLimit: string;
     creditUsedInitial: string;
     minimumPaymentPercent: string | null;
+    /** Credit in other currencies (spec 039). */
+    extraCreditLimits: { currency: string; limitAmount: string; usedInitial: string }[];
   };
   cards: { tempId: string; plan: CardPlan }[];
 }
@@ -458,7 +462,14 @@ export function planTemplateImport(
           (c) => c.accountId === m.bankAccountId && c.kind === "CREDIT" && c.isPrimary,
         ) ?? null;
     }
-    const foreignLimit = foreign ? used?.otherLimits[currency] : undefined;
+    // Spec 039: the credit in another currency is the ACCOUNT's (carried on its primary); a
+    // card without a sub-limit there spends from it.
+    const accountCredit = foreign
+      ? [...lookup.cards.values()].find(
+          (c) => c.accountId === m.bankAccountId && c.kind === "CREDIT" && c.isPrimary,
+        )?.otherLimits[currency]
+      : undefined;
+    const foreignLimit = foreign ? (used?.otherLimits[currency] ?? accountCredit) : undefined;
     if (foreign && (!foreignLimit || financeCharge)) {
       issues.add("movements", m.row, TEMPLATE_CODES.CURRENCY_MISMATCH, 400, "currency");
       continue;
@@ -1169,6 +1180,22 @@ export function planTemplateImport(
         const usage = e.card
           ? (cardUsage.get(usageKey(e)) ?? initialUsage(e))
           : { income: "0", expense: "0" };
+        // Spec 039: a movement in another currency is checked against the credit the planner
+        // tracks for it — the account's (carried on its primary) or an additional card's
+        // sub-limit there.
+        const foreignLimit =
+          e.currency !== lookup.accounts.get(e.accountId)!.currency ? e.cardLimit : null;
+        const foreign = foreignLimit
+          ? {
+              pool: {
+                limitAmount: foreignLimit.limitAmount,
+                used: subtractMoney(
+                  addMoney(foreignLimit.usedInitial, usage.expense),
+                  usage.income,
+                ),
+              },
+            }
+          : null;
         MovementPolicy.validate(
           {
             type: e.type,
@@ -1182,6 +1209,9 @@ export function planTemplateImport(
           e.card,
           e.cardLimit ?? null,
           usage,
+          "0",
+          "0",
+          foreign,
         );
       } else if (e.kind === "transferOut") {
         const to = lookup.accounts.get(e.toAccountId!)!.context;
@@ -1393,7 +1423,12 @@ function planDefinitions(
           ? (c.cardLimits.find((l) => l.currency === a.currency) ?? null)
           : null;
       const otherLimits: TemplateCard["otherLimits"] = {};
-      for (const l of c.cardLimits.filter((x) => x.currency !== a.currency)) {
+      // The primary carries the account's credit in other currencies (spec 039); an
+      // additional card, its own sub-limits there.
+      const foreignLines = c.isPrimary
+        ? plan.extraCreditLimits
+        : c.cardLimits.filter((x) => x.currency !== a.currency);
+      for (const l of foreignLines) {
         otherLimits[l.currency] = {
           limit: { limitAmount: l.limitAmount, usedInitial: l.usedInitial },
           usage: { income: "0", expense: "0" },
@@ -1445,6 +1480,7 @@ function planDefinitions(
         creditLimit: plan.creditLimit,
         creditUsedInitial: plan.creditUsedInitial,
         minimumPaymentPercent: a.minimumPaymentPercent ?? null,
+        extraCreditLimits: plan.extraCreditLimits,
       },
       cards,
     });

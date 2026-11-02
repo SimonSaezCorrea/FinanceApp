@@ -162,20 +162,50 @@ En concreto:
 > cualquier OTRO tipo de cuenta, no se ve afectado y sigue el flujo normal `CardsAside` → "Añadir
 > tarjeta".
 
-### 3.3 Múltiples monedas en la tarjeta principal ("otros topes")
+### 3.3 El cupo en otras monedas es de la cuenta (spec 039)
 
-La tarjeta principal **también** puede tener filas `CardLimit` — pero **solo para monedas
-distintas a la propia de la cuenta** (esa, como ya se dijo, vive exclusivamente en
-`BankAccount.creditLimit`, nunca duplicada como fila). Esto permite que una misma tarjeta tenga, por
-ejemplo, un cupo en CLP (el de la cuenta, obligatorio) **y** un cupo independiente en USD para
-gasto en el extranjero, al mismo tiempo. Mecánicamente es exactamente el mismo mecanismo que ya usa
-el "tope propio" de una tarjeta no principal — un cupo independiente y no cruzado por moneda extra
-— solo que ahora también está disponible para la principal.
+Una tarjeta de crédito real tiene UN cupo por moneda (CLP y USD) y es de la **cuenta**, no de un
+plástico: la tarjeta **principal** (titular) puede usar el 100%, y cada tarjeta **adicional** gasta
+del mismo pozo — sin tope propio o con un **sub-tope** parcial que fija el titular (p. ej.
+$200.000 y USD 500).
 
-El contrato de la cuenta expone esto como un arreglo derivado **`creditPools:
-{currency, limit, used}[]`**: el cupo en la moneda propia de la cuenta, más una entrada por cada
-moneda extra que tenga la principal. El tope propio de una tarjeta no principal **no** se agrega
-aquí — queda acotado solo a esa tarjeta.
+- La moneda propia de la cuenta sigue en `BankAccount.creditLimit` / `creditUsedInitial` /
+  `creditUsed` persistido.
+- Cada OTRA moneda es una fila de **`account-credit-limit`** (`AccountCreditLimit`: `currency`,
+  `limitAmount`, `usedInitial`). Su uso es derivado: deuda inicial + todo cargo de la cuenta en
+  esa moneda aún adeudado (`STILL_OWED`, lo haya hecho la tarjeta que sea) − los pagos que
+  liquidan lo abierto + el `carriedOverAmount` de un pago corto
+  (`transaction/application/credit-pool-usage.ts`).
+- Un movimiento en otra moneda en una cuenta de tarjeta de crédito necesita cupo en esa moneda
+  (`CREDIT_POOL_CURRENCY_NOT_FOUND`), debe caber en él (`CARD_LIMIT_EXCEEDED`) y, con una adicional
+  que tenga sub-tope ahí, también en el sub-tope (`CARD_SUBLIMIT_EXCEEDED`). Nunca toca el cupo en
+  la moneda propia.
+- La principal **no** tiene filas `CardLimit`. Las de una adicional son sub-topes, cada uno en una
+  moneda con cupo de la cuenta y nunca sobre él (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`).
+- Pagar o prepagar una facturación en otra moneda escribe su INCOME de liquidación en la cuenta,
+  **sin tarjeta**.
+
+El contrato expone `creditPools: {currency, limit, used, usedInitial}[]` (la moneda propia
+primero) y recibe `extraCreditLimits` al crear/editar (al editar: presente = reemplaza el
+conjunto; quitar uno que todavía debe algo responde `CREDIT_POOL_IN_USE`). Para clientes anteriores
+a la spec 039, los topes en otra moneda enviados para la principal se guardan como cupo de la cuenta,
+y los `limits` de la principal reflejan los cupos de la cuenta (solo lectura).
+
+### 3.3b Cambiar la tarjeta principal (spec 039)
+
+Una cuenta de tarjeta de crédito con tarjetas de crédito siempre tiene **exactamente una principal,
+y activa**.
+
+- `POST /accounts/:id/cards/:cardId/make-primary`: una adicional de crédito activa pasa a
+  principal; la anterior queda adicional. Estado absoluto: repetirlo no cambia nada.
+- `POST /accounts/:id/cards/:cardId/replace-primary` (`Idempotency-Key`): `DEACTIVATE` o
+  `DELETE` de la principal nombrando su reemplazo — una tarjeta de crédito activa de la cuenta, o
+  una nueva creada en la misma transacción. Eliminar se rechaza si la tarjeta tiene movimientos o
+  planes de cuotas (`PRIMARY_CARD_HAS_HISTORY`): se desactiva.
+- Un PATCH con `isActive:false` o un DELETE de la principal activa responden
+  `PRIMARY_CARD_REPLACEMENT_REQUIRED`. Reactivar una ex principal la deja como adicional.
+- No se mueve el cupo ni ninguna línea; ambas tarjetas quedan sin sub-topes. La fila de la cuenta
+  se bloquea (`FOR UPDATE`) y un índice único parcial permite una sola principal por cuenta.
 
 ### 3.4 Ejemplo trabajado
 

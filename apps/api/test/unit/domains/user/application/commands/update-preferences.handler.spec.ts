@@ -89,6 +89,8 @@ function makeHandler(repo: UserRepositoryPort, ports: { anyInUse: boolean }) {
       CurrencyUsageLookupPort,
     ]),
     fakeRecoveryCodeRepo(),
+    // The account credit lines (spec 039), queried like the other eight.
+    fakePort(ports.anyInUse),
   );
 }
 
@@ -156,6 +158,7 @@ describe("UpdatePreferencesHandler", () => {
       bankAccountPort,
       ...restPorts,
       fakeRecoveryCodeRepo(),
+      fakePort(false),
     );
 
     await expect(

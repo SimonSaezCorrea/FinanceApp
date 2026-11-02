@@ -30,6 +30,10 @@ import {
   type CardLimitRepositoryPort,
 } from "../../../card-limit/domain/ports/card-limit.repository.port";
 import {
+  ACCOUNT_CREDIT_LIMIT_REPOSITORY,
+  type AccountCreditLimitRepositoryPort,
+} from "../../../account-credit-limit/domain/ports/account-credit-limit.repository.port";
+import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
@@ -39,6 +43,7 @@ import {
 } from "../../../installment-payment/domain/ports/installment-payment-lookup.port";
 import {
   AccountNotFoundError,
+  CardInactiveError,
   TransactionLinkedToInstallmentError,
   TransactionLinkedToStatementError,
   TransactionNotFoundError,
@@ -60,6 +65,7 @@ import {
 } from "../../domain/ports/transaction-writer.repository.port";
 import { loadAccountContext } from "../account-context.loader";
 import { cardLimitUsage } from "../card-limit-usage";
+import { foreignCreditContext } from "../credit-pool-usage";
 import { reconcilePrepaymentWithTx } from "./reconcile-prepayment";
 import { UpdateTransactionCommand } from "./update-transaction.command";
 
@@ -109,6 +115,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
     @Inject(RECURRING_EXPENSE_REPOSITORY)
     private readonly recurring: RecurringExpenseRepositoryPort,
+    @Inject(ACCOUNT_CREDIT_LIMIT_REPOSITORY)
+    private readonly creditLines: AccountCreditLimitRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -216,6 +224,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       const card = effective.cardId
         ? await this.cards.findOnAccount(userId, effective.bankAccountId, effective.cardId)
         : null;
+      // Keeping the card it already had is fine; moving it onto a deactivated one isn't.
+      if (card && !card.isActive && card.id !== current.cardId) throw new CardInactiveError();
       newCard = card;
       const cardLimit =
         card?.kind === "CREDIT"
@@ -224,7 +234,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       const cardUsage =
         cardLimit && card
           ? await cardLimitUsage(
-              { movements: this.repo, statements: this.statements },
+              { movements: this.repo },
               {
                 userId,
                 accountId: effective.bankAccountId,
@@ -235,6 +245,16 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
               },
             )
           : { income: "0", expense: "0" };
+      const foreign = await foreignCreditContext(
+        { lines: this.creditLines, movements: this.repo, statements: this.statements },
+        account,
+        {
+          userId,
+          accountId: effective.bankAccountId,
+          currency: effective.currency,
+          excludeTxId: id,
+        },
+      );
       newContribution = MovementPolicy.validate(
         effective,
         account,
@@ -247,6 +267,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         // like it doesn't fit. Only matters for a prepaid account, the one type the
         // policy bounds.
         sameAccount && current.type === "EXPENSE" ? current.amount : "0",
+        foreign,
       );
     }
 

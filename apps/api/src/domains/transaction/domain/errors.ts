@@ -54,6 +54,13 @@ export class CardAccountMismatchError extends DomainError {
   }
 }
 
+/** A deactivated card can't take new movements; the ones it already has keep it. */
+export class CardInactiveError extends DomainError {
+  constructor() {
+    super("CARD_INACTIVE");
+  }
+}
+
 export class CardLimitExceededError extends DomainError {
   constructor() {
     super("CARD_LIMIT_EXCEEDED");
@@ -169,5 +176,12 @@ export class CoverSelectionInvalidError extends DomainError {
 export class CoverSelectionChangedError extends DomainError {
   constructor() {
     super("COVER_SELECTION_CHANGED", 409);
+  }
+}
+
+/** The credit card account has no credit in the movement's currency (spec 039). */
+export class CreditPoolCurrencyNotFoundError extends DomainError {
+  constructor() {
+    super("CREDIT_POOL_CURRENCY_NOT_FOUND", 400, "currency");
   }
 }

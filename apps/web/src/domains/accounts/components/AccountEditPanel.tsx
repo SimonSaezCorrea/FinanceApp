@@ -16,7 +16,6 @@ import { accounts as accountsContract } from "@finance/contracts";
 
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
 import { DeleteAccountConfirm } from "./DeleteAccountConfirm";
-import { useCardMutations } from "../hooks/useCards";
 import { AccountForm } from "./AccountForm";
 import { cleanExtraLimits } from "../lib/extraLimits";
 
@@ -66,13 +65,13 @@ export function AccountEditPanel({
       (c) => c.id === allInstitutions?.find((i) => i.id === account.institutionId)?.countryId,
     )?.alpha2 ?? "CL";
   const { update, remove } = useAccountMutations();
-  const cardMutations = useCardMutations(account.id);
-  // A credit card account's limits in other currencies live on its PRIMARY card
-  // (the account's own currency stays on the account): saved there, after it.
-  const primary = account.cards.find((c) => c.kind === "CREDIT" && c.isPrimary) ?? null;
-  const initialExtraLimits = (primary?.limits ?? [])
-    .filter((l) => l.currency !== account.currency)
-    .map((l) => ({ currency: l.currency, limitAmount: String(Number(l.limitAmount)) }));
+  // A credit card account's credit in other currencies is the ACCOUNT's (spec 039), saved
+  // with it; what was already owed on each line is kept as it was.
+  const extraPools = account.creditPools.filter((p) => p.currency !== account.currency);
+  const initialExtraLimits = extraPools.map((p) => ({
+    currency: p.currency,
+    limitAmount: String(Number(p.limit)),
+  }));
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -141,12 +140,7 @@ export function AccountEditPanel({
             <Button variant="outline" onClick={requestClose} disabled={update.isPending}>
               {t("common.cancel")}
             </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              variant="accent"
-              disabled={update.isPending || cardMutations.update.isPending}
-            >
+            <Button type="submit" form={FORM_ID} variant="accent" disabled={update.isPending}>
               {t("common.saveChanges")}
             </Button>
           </div>
@@ -159,7 +153,7 @@ export function AccountEditPanel({
           submitLabel={t("accounts.actions.save")}
           submitting={update.isPending}
           hasCreditCard={account.cards.some((c) => c.kind === "CREDIT")}
-          showExtraLimits={primary !== null}
+          showExtraLimits={account.type === "CREDIT_CARD"}
           onDirtyChange={setDirty}
           status={status}
           onStatusChange={setStatus}
@@ -214,48 +208,21 @@ export function AccountEditPanel({
                   // Empty = this account has no minimum, which is a real value
                   // (not "unchanged"), so it's sent as an explicit null.
                   minimumPaymentPercent: v.minimumPaymentPercent.trim() || null,
+                  ...(v.type === "CREDIT_CARD"
+                    ? {
+                        extraCreditLimits: cleanExtraLimits(v.extraLimits, v.currency).map((l) => ({
+                          ...l,
+                          usedInitial:
+                            extraPools.find((p) => p.currency === l.currency)?.usedInitial ?? "0",
+                        })),
+                      }
+                    : {}),
                 },
               },
               {
                 onSuccess: () => {
-                  const extra = cleanExtraLimits(v.extraLimits, v.currency);
-                  const changed =
-                    JSON.stringify(extra) !==
-                    JSON.stringify(cleanExtraLimits(initialExtraLimits, account.currency));
-                  if (!primary || !changed) {
-                    toast.success(t("accounts.updated"));
-                    leave();
-                    return;
-                  }
-                  cardMutations.update.mutate(
-                    {
-                      cardId: primary.id,
-                      body: {
-                        name: primary.name,
-                        kind: primary.kind,
-                        last4: primary.last4,
-                        expiryMonth: primary.expiryMonth,
-                        expiryYear: primary.expiryYear,
-                        isActive: primary.isActive,
-                        isVirtual: primary.isVirtual,
-                        isAdditional: primary.isAdditional,
-                        cardholderName: primary.cardholderName,
-                        network: primary.network,
-                        usesAccountPool: true,
-                        limits: [
-                          { currency: v.currency, limitAmount: v.creditLimit || "0" },
-                          ...extra,
-                        ],
-                      },
-                    },
-                    {
-                      onSuccess: () => {
-                        toast.success(t("accounts.updated"));
-                        leave();
-                      },
-                      onError: fail,
-                    },
-                  );
+                  toast.success(t("accounts.updated"));
+                  leave();
                 },
                 onError: fail,
               },

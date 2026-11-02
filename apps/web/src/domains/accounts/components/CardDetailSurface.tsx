@@ -27,6 +27,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete: (card: accounts.Card) => void;
+  /** Spec 039: saving the primary as inactive hands the deactivation to the host, which
+   * asks for the card that takes its place. */
+  onDeactivatePrimary?: (card: accounts.Card) => void;
+  /** Spec 039: "Marcar como principal" on an active additional credit card. */
+  onMakePrimary?: (card: accounts.Card) => void;
 }
 
 /**
@@ -47,6 +52,8 @@ export function CardDetailSurface({
   open,
   onOpenChange,
   onDelete,
+  onDeactivatePrimary,
+  onMakePrimary,
 }: Readonly<Props>) {
   const { t } = useTranslation();
   const { update } = useCardMutations(account.id);
@@ -85,12 +92,21 @@ export function CardDetailSurface({
   }
 
   function save(body: accounts.CreateCard) {
+    // Deactivating the primary (spec 039): the other edits are saved and the host's
+    // replacement panel takes over the deactivation.
+    const deactivatesPrimary =
+      activeCard.kind === "CREDIT" &&
+      activeCard.isPrimary &&
+      activeCard.isActive &&
+      body.isActive === false &&
+      onDeactivatePrimary !== undefined;
     update.mutate(
-      { cardId: activeCard.id, body },
+      { cardId: activeCard.id, body: deactivatesPrimary ? { ...body, isActive: true } : body },
       {
         onSuccess: () => {
-          toast.success(t("cards.updated"));
           setEditing(false);
+          if (deactivatesPrimary) onDeactivatePrimary?.(activeCard);
+          else toast.success(t("cards.updated"));
         },
         onError: (err: unknown) => {
           const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
@@ -166,6 +182,7 @@ export function CardDetailSurface({
           accountCurrency={account.currency}
           accountType={account.type}
           accountCreditLimit={account.creditLimit}
+          creditPools={account.creditPools}
           hasExistingPrimary={account.cards.some(
             (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== activeCard.id,
           )}
@@ -175,7 +192,12 @@ export function CardDetailSurface({
           onSubmit={save}
         />
       ) : (
-        <CardDetailPanel account={account} card={activeCard} holder={holder} />
+        <CardDetailPanel
+          account={account}
+          card={activeCard}
+          holder={holder}
+          onMakePrimary={onMakePrimary ? () => onMakePrimary(activeCard) : undefined}
+        />
       )}
     </div>
   );

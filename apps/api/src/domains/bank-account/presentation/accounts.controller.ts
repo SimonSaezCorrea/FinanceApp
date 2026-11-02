@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -12,16 +13,19 @@ import {
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
-import { accounts } from "@finance/contracts";
+import { accounts, idempotency } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { AddCardCommand } from "../application/commands/add-card.command";
 import { CreateAccountCommand } from "../application/commands/create-account.command";
 import { RemoveAccountCommand } from "../application/commands/remove-account.command";
+import { MakePrimaryCardCommand } from "../application/commands/make-primary-card.command";
 import { RemoveCardCommand } from "../application/commands/remove-card.command";
+import { ReplacePrimaryCardCommand } from "../application/commands/replace-primary-card.command";
 import { SetAccountStatusCommand } from "../application/commands/set-account-status.command";
 import { UpdateAccountCommand } from "../application/commands/update-account.command";
 import { UpdateCardCommand } from "../application/commands/update-card.command";
@@ -136,5 +140,31 @@ export class AccountsController {
     @Param(new ZodParamsPipe(cardParamsSchema)) params: { id: string; cardId: string },
   ): Promise<void> {
     return this.commandBus.execute(new RemoveCardCommand(user.id, params.id, params.cardId));
+  }
+
+  /** Spec 039: this active credit card becomes the account's primary. */
+  @Post(":id/cards/:cardId/make-primary")
+  @HttpCode(200)
+  makePrimaryCard(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(cardParamsSchema)) params: { id: string; cardId: string },
+  ): Promise<accounts.BankAccount> {
+    return this.commandBus.execute(new MakePrimaryCardCommand(user.id, params.id, params.cardId));
+  }
+
+  /** Spec 039: deactivate or delete the primary card, naming the one that takes its place. */
+  @Post(":id/cards/:cardId/replace-primary")
+  @HttpCode(200)
+  replacePrimaryCard(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(cardParamsSchema)) params: { id: string; cardId: string },
+    @Body(new ZodValidationPipe(accounts.replacePrimaryCardSchema))
+    body: accounts.ReplacePrimaryCard,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
+  ): Promise<accounts.BankAccount> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(
+      new ReplacePrimaryCardCommand(user.id, params.id, params.cardId, body, idempotencyKey),
+    );
   }
 }

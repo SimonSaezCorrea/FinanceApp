@@ -2,6 +2,7 @@ import { accounts as accountsContract, customFields, reference } from "@finance/
 import type { accounts, movementTemplates } from "@finance/contracts";
 
 import { amountToInput } from "../../../shared/lib/amountInput";
+import { defaultCardId, selectableCards } from "../../accounts/lib/selectableCards";
 import { defaultsFor, scopeRule, shapeOf } from "../../custom-fields/lib/fieldValues";
 import type { TransactionFormValue } from "../../transactions/components/TransactionFormPanel";
 
@@ -49,12 +50,11 @@ export function applyTemplate(
   const cardable = !!account && accountsContract.isCardableAccountType(account.type);
   const templateCard =
     mode === "EXPENSE" && cardable && !financeCharge
-      ? account?.cards.find((c) => c.id === template.cardId)
+      ? selectableCards(account).find((c) => c.id === template.cardId)
       : undefined;
-  // A credit card account's expense always goes through a card: its primary one.
-  const cardId =
-    templateCard?.id ??
-    (isCreditCard && !financeCharge ? (account?.cards.find((c) => c.isPrimary)?.id ?? "") : "");
+  // A credit card account's expense always goes through a card: its primary one
+  // (or another active one when the template's card was deactivated).
+  const cardId = templateCard?.id ?? (isCreditCard && !financeCharge ? defaultCardId(account) : "");
 
   const category = ctx.categories.find((c) => c.id === template.categoryId);
   const categoryId = category && reference.isCategorySelectable(category, mode) ? category.id : "";

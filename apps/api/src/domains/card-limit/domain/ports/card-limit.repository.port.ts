@@ -20,4 +20,6 @@ export interface CardLimitRepositoryPort {
   createForCardWithTx(tx: unknown, cardId: string, limits: CardLimitPlan[]): Promise<void>;
   /** Replaces every limit row of a card in one go (edit path). */
   replaceForCard(cardId: string, limits: CardLimitPlan[]): Promise<void>;
+  /** Same, inside the caller's transaction. */
+  replaceForCardWithTx(tx: unknown, cardId: string, limits: CardLimitPlan[]): Promise<void>;
 }

@@ -88,6 +88,38 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
     }));
   }
 
+  async sumsByAccountCurrency(
+    userId: string,
+    accountIds: string[],
+  ): Promise<{ accountId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]> {
+    if (accountIds.length === 0) return [];
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ["bankAccountId", "currency", "type"],
+      where: { userId, bankAccountId: { in: accountIds }, ...STILL_OWED },
+      _sum: { amount: true },
+    });
+    return grouped.flatMap((g) =>
+      g.bankAccountId
+        ? [
+            {
+              accountId: g.bankAccountId,
+              currency: g.currency,
+              type: g.type,
+              sum: g._sum.amount?.toString() ?? "0",
+            },
+          ]
+        : [],
+    );
+  }
+
+  async existsForCard(userId: string, cardId: string): Promise<boolean> {
+    const row = await this.prisma.transaction.findFirst({
+      where: { userId, cardId },
+      select: { id: true },
+    });
+    return row !== null;
+  }
+
   async sumsByCard(
     userId: string,
     cardIds: string[],

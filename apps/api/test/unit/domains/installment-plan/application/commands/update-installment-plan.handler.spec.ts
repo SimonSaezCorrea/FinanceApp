@@ -46,6 +46,7 @@ function fakeRepo(
     countForUser: vi.fn(async () => 0),
     deleteAllForUserWithTx: vi.fn(async () => {}),
     listIdsForAccount: vi.fn(async () => []),
+    existsForCard: vi.fn(async () => false),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),

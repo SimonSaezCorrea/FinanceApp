@@ -1,4 +1,19 @@
 <!--
+Sync Impact Report — 2026-11-01 (amendment 2.9.0)
+- Version change: 2.8.2 → 2.9.0 (MINOR: a table is added; no principle text changes meaning).
+- AMENDED Principle VI title and Principle VIII: 34 → 35 tables — `account-credit-limit`
+  (specs/039): a credit card account's credit in a currency other than its own, an entity of the
+  `BankAccount` aggregate with its own leaf data module and one adapter.
+- RECORDED (Principle VII): `POST /accounts/:id/cards/:cardId/make-primary` is form (a) (absolute
+  state); `POST /accounts/:id/cards/:cardId/replace-primary` is form (c) (`Idempotency-Key`, op
+  `card.replacePrimary`) because it can create a card; both read the account row `FOR UPDATE` and a
+  partial unique index keeps one primary per account.
+- RECORDED (Principle II): `replacement.cardId` is verified against the account aggregate loaded for
+  the caller, inside the locked transaction, before any write.
+- RECORDED (Principle VIII): the migration's backfill mints UUID v7 ids in SQL with a session-only
+  function (same generator as 20261011021405_account_emails).
+- Templates: none changed.
+
 Sync Impact Report — 2026-10-25 (amendment 2.8.2)
 - Version change: 2.8.1 → 2.8.2 (PATCH: no principle text changed).
 - ADDED operational rule: the API is never indexed — it serves `robots.txt` with `Disallow: /` and
@@ -1970,7 +1985,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 34 tables)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 35 tables)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -1981,7 +1996,8 @@ it owns no data either (`import`, `health`). A filter over one table by data tha
 ids resolved through the second table's port — never as a relation filter or a join.
 
 This does NOT dissolve aggregates. A table whose rows exist only inside another aggregate
-(`card-account`, `card-limit`, `billing-settings`, `installment-payment`, `savings-entry`) owns its
+(`card-account`, `card-limit`, `account-credit-limit`, `billing-settings`, `installment-payment`,
+`savings-entry`) owns its
 table and its row shape, never the rules over it — writes still travel through the aggregate root
 that validates them, and such a domain has only `domain/` + `infrastructure/` layers. Cross-table
 atomicity stays a single `prisma.$transaction(...)` opened by the handler, with each owner exposing a
@@ -2049,7 +2065,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 34 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 35 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -2352,4 +2368,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.8.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-25
+**Version**: 2.9.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-01
