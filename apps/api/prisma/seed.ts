@@ -3076,15 +3076,16 @@ async function seedFullUser(passwordHash: string) {
     });
   }
 
-  // --- Spec 030: a USD limit on the BCI credit card, to pay and prepay in dollars ---------
-  // The card holds a US$100 limit besides the account's pesos pool. One generated USD period
+  // --- Spec 030: USD credit on the BCI credit card account, to pay and prepay in dollars ---
+  // The ACCOUNT holds US$100 of credit besides its pesos pool (spec 039: credit in another
+  // currency is the account's, every card spends from it). One generated USD period
   // (payable, due next week) and the OPEN one beside it, each with a charge on the card —
   // what "Pagar" and "Prepagar" in the USD tab of Facturación act on. The exchange rates
   // themselves are never seeded: the recorder fills them from mindicador.cl at start-up, and a
   // fabricated history would sit in the table looking like real values forever.
-  await prisma.cardLimit.create({
+  await prisma.accountCreditLimit.create({
     data: {
-      cardId: creditCardBci.id,
+      accountId: bciCredit.id,
       currency: "USD",
       limitAmount: dec("100"),
       usedInitial: dec("0"),

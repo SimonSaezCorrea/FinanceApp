@@ -28,6 +28,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     summary: vi.fn(),
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
+    sumsForAccountCurrency: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
     saveNewWithTx: vi.fn(),
     saveUpdate: vi.fn(),

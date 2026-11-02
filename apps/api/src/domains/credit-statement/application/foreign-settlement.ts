@@ -1,29 +1,28 @@
 import type { BankAccount } from "../../bank-account/domain/bank-account.aggregate";
 import type { TransactionPlan } from "../../transaction/domain/ports/transaction-writer.repository.port";
-import { CardLimitNotFoundError, StatementPaymentCurrencyAmbiguousError } from "../domain/errors";
+import {
+  CreditPoolCurrencyNotFoundError,
+  StatementPaymentCurrencyAmbiguousError,
+} from "../domain/errors";
 
 /**
  * Settling a statement that is in ANOTHER currency than its account's (spec 030, absorbing
  * spec 028 US2) is the one place where a payment is two movements instead of one:
  *
  * - an EXPENSE on the source account, in the source's own currency — what actually left it;
- * - an INCOME on the credit account, in the statement's currency, on the card that owns the
- *   limit in that currency — what lowers that limit's usage. It never links to a period and
- *   never counts towards one (`settlesStatementId`).
+ * - an INCOME on the credit account, in the statement's currency, with no card — what lowers
+ *   the account's credit in that currency (spec 039: the credit is the account's, every card
+ *   spends from it). It never links to a period and never counts towards one
+ *   (`settlesStatementId`).
  *
  * Both are built here, by the ONE function pay and prepay share, so they cannot drift. The
  * credit account's pool in its own currency is not this statement's and never moves.
  */
 
-/** The card the settlement lands on: the account's PRIMARY card, which must hold a limit in
- * `currency`. Never a choice between additional cards — a rule that depended on which plastic
- * happened to be listed first would settle the same payment differently on different days. */
-export function settlementCardId(account: BankAccount, currency: string): string {
-  const primary = account.primaryCard;
-  if (!primary || !primary.limits.some((l) => l.currency === currency)) {
-    throw new CardLimitNotFoundError();
-  }
-  return primary.id;
+/** A settlement in another currency lowers the account's credit there, so the account must
+ * have credit in that currency (spec 039). */
+export function assertSettlementCredit(account: BankAccount, currency: string): void {
+  if (account.creditLineIn(currency) === null) throw new CreditPoolCurrencyNotFoundError();
 }
 
 export interface ForeignSettlementInput {
@@ -64,7 +63,7 @@ export function planForeignSettlement(input: ForeignSettlementInput): ForeignSet
     if (input.chargedAmount === undefined) throw new StatementPaymentCurrencyAmbiguousError();
     charged = input.chargedAmount;
   }
-  const cardId = settlementCardId(input.account, input.currency);
+  assertSettlementCredit(input.account, input.currency);
 
   return {
     charged,
@@ -97,7 +96,7 @@ export function planForeignSettlement(input: ForeignSettlementInput): ForeignSet
       categoryId: input.categoryId,
       description: input.fromAccount.name,
       observation: input.reference,
-      cardId,
+      cardId: null,
       creditStatementId: null,
       settlesStatementId: input.statementId,
       settlementPairId: input.markExpenseAsSettlement ? input.expenseId : null,

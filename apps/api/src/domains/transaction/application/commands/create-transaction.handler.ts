@@ -46,11 +46,20 @@ import {
   type CardLimitRepositoryPort,
 } from "../../../card-limit/domain/ports/card-limit.repository.port";
 import {
+  ACCOUNT_CREDIT_LIMIT_REPOSITORY,
+  type AccountCreditLimitRepositoryPort,
+} from "../../../account-credit-limit/domain/ports/account-credit-limit.repository.port";
+import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
 import { AccountNotFoundError, CardInactiveError } from "../../domain/errors";
-import type { AccountContext, CardContext, CardLimitContext } from "../../domain/movement-policy";
+import type {
+  AccountContext,
+  CardContext,
+  CardLimitContext,
+  ForeignCreditContext,
+} from "../../domain/movement-policy";
 import { MovementPolicy } from "../../domain/movement-policy";
 import { Transaction } from "../../domain/transaction.aggregate";
 import {
@@ -59,6 +68,7 @@ import {
 } from "../../domain/ports/transaction.repository.port";
 import { loadAccountContext } from "../account-context.loader";
 import { cardLimitUsage } from "../card-limit-usage";
+import { foreignCreditContext } from "../credit-pool-usage";
 import { CreateTransactionCommand } from "./create-transaction.command";
 
 interface Context {
@@ -106,6 +116,8 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     @Inject(CUSTOM_FIELD_REPOSITORY) private readonly customFieldsRepo: CustomFieldRepositoryPort,
     @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
     private readonly fieldValuesRepo: TransactionFieldValueRepositoryPort,
+    @Inject(ACCOUNT_CREDIT_LIMIT_REPOSITORY)
+    private readonly creditLines: AccountCreditLimitRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -139,7 +151,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     const cardUsage =
       cardLimit && card
         ? await cardLimitUsage(
-            { movements: this.repo, statements: this.statements },
+            { movements: this.repo },
             {
               userId: command.userId,
               accountId: input.bankAccountId,
@@ -149,6 +161,11 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
             },
           )
         : { income: "0", expense: "0" };
+    const foreign = await foreignCreditContext(
+      { lines: this.creditLines, movements: this.repo, statements: this.statements },
+      account,
+      { userId: command.userId, accountId: input.bankAccountId, currency: input.currency },
+    );
 
     const contribution = MovementPolicy.validate(
       {
@@ -163,15 +180,18 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       card,
       cardLimit,
       cardUsage,
+      "0",
+      "0",
+      foreign,
     );
     // Contributing movements link live to whichever billing period is
     // currently OPEN for the account — creates one if this is the first
     // contribution since the last close (see `CreditStatement`).
     //
-    // Spec 028: a movement in ANOTHER currency on a credit card account goes
-    // through its card's own limit (so it contributes "0" to the pool) and belongs
+    // Spec 028/039: a movement in ANOTHER currency on a credit card account uses the
+    // account's credit in that currency (so it contributes "0" to the pool) and belongs
     // to the OPEN period of THAT currency — its own statement, never the pool's.
-    const statementCurrency = billingCurrencyOf(input.currency, account, cardLimit, contribution);
+    const statementCurrency = billingCurrencyOf(input.currency, account, foreign, contribution);
     const creditStatementId = statementCurrency
       ? (
           await this.statements.findOrCreateOpenForAccount(
@@ -254,16 +274,18 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
  * Which billing period a new movement belongs to, by currency — or null when it
  * belongs to none. The account-currency period when it draws on the pool; the
  * period of its own currency when it is a foreign-currency movement on a credit
- * card account that goes through a card's own limit in that currency (spec 028).
+ * card account with credit in that currency (spec 028, 039).
  */
 export function billingCurrencyOf(
   currency: string,
   account: Pick<AccountContext, "type" | "currency">,
-  cardLimit: CardLimitContext | null,
+  foreign: ForeignCreditContext | null,
   contribution: string,
 ): string | null {
   const accountCurrency = account.currency ?? currency;
   if (contribution !== "0") return accountCurrency;
-  if (account.type === "CREDIT_CARD" && currency !== accountCurrency && cardLimit) return currency;
+  if (account.type === "CREDIT_CARD" && currency !== accountCurrency && foreign?.pool) {
+    return currency;
+  }
   return null;
 }

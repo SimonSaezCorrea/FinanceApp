@@ -163,8 +163,29 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
     await this.limits.replaceForCard(cardId, plan.limits);
   }
 
+  async updateRoleWithTx(
+    tx: unknown,
+    cardId: string,
+    role: { isPrimary: boolean; isActive: boolean; limits: CardPlan["limits"] },
+  ): Promise<void> {
+    await (tx as PrismaService).cardAccount.update({
+      where: { id: cardId },
+      data: { isPrimary: role.isPrimary, isActive: role.isActive },
+    });
+    await this.limits.replaceForCardWithTx(tx, cardId, role.limits);
+  }
+
   async remove(userId: string, accountId: string, cardId: string): Promise<boolean> {
-    const result = await this.prisma.cardAccount.deleteMany({
+    return this.removeWithTx(this.prisma, userId, accountId, cardId);
+  }
+
+  async removeWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    cardId: string,
+  ): Promise<boolean> {
+    const result = await (tx as PrismaService).cardAccount.deleteMany({
       where: { id: cardId, accountId, userId },
     });
     return result.count > 0;

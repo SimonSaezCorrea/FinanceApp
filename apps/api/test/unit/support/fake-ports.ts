@@ -15,6 +15,7 @@ import type {
   RateCurrency,
 } from "../../../src/domains/exchange-rate/domain/exchange-rate.entity";
 import type { ExchangeRateRepositoryPort } from "../../../src/domains/exchange-rate/domain/ports/exchange-rate.repository.port";
+import type { AccountCreditLimitRepositoryPort } from "../../../src/domains/account-credit-limit/domain/ports/account-credit-limit.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
@@ -55,6 +56,10 @@ export function fakeBankAccountRepo(
     incrementCreditUsedWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
     adjustOpeningWithTx: vi.fn(),
+    findByIdForUpdateWithTx: vi.fn(),
+    saveCardRolesWithTx: vi.fn(async () => {}),
+    addCardWithTx: vi.fn(async () => "new-card"),
+    removeCardWithTx: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -66,6 +71,8 @@ export function fakeTransactionSumsRepo(
     sumByTypeForAccount: vi.fn(async () => ({ income: "0", expense: "0" })),
     windowForAccounts: vi.fn(async () => []),
     sumsByCard: vi.fn(async () => []),
+    sumsByAccountCurrency: vi.fn(async () => []),
+    existsForCard: vi.fn(async () => false),
     netForStatement: vi.fn(async () => "0"),
     netForPeriod: vi.fn(async () => "0"),
     ...overrides,
@@ -176,7 +183,9 @@ export function fakeCardAccountRepo(
     kindsForUser: vi.fn(async () => new Map()),
     create: vi.fn(),
     update: vi.fn(),
+    updateRoleWithTx: vi.fn(async () => {}),
     remove: vi.fn(),
+    removeWithTx: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -193,6 +202,19 @@ export function fakeInstallmentPaymentLookup(
   };
 }
 
+/** The account's credit lines in other currencies (spec 039). Defaults to none. */
+export function fakeAccountCreditLimitRepo(
+  overrides: Partial<AccountCreditLimitRepositoryPort> = {},
+): AccountCreditLimitRepositoryPort {
+  return {
+    listByAccounts: vi.fn(async () => []),
+    findForAccountCurrency: vi.fn(async () => null),
+    createForAccountWithTx: vi.fn(async () => {}),
+    replaceForAccountWithTx: vi.fn(async () => {}),
+    ...overrides,
+  };
+}
+
 export function fakeCardLimitRepo(
   overrides: Partial<CardLimitRepositoryPort> = {},
 ): CardLimitRepositoryPort {
@@ -202,6 +224,7 @@ export function fakeCardLimitRepo(
     findForCardCurrency: vi.fn(async () => null),
     createForCard: vi.fn(),
     replaceForCard: vi.fn(),
+    replaceForCardWithTx: vi.fn(async () => {}),
     ...overrides,
   };
 }

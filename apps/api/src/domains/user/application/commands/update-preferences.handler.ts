@@ -4,6 +4,7 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { auth } from "@finance/contracts";
 
 import { BANK_ACCOUNT_CURRENCY_USAGE } from "../../../bank-account/domain/ports/currency-usage-lookup.port";
+import { ACCOUNT_CREDIT_LIMIT_CURRENCY_USAGE } from "../../../account-credit-limit/domain/ports/currency-usage-lookup.port";
 import { CARD_LIMIT_CURRENCY_USAGE } from "../../../card-limit/domain/ports/currency-usage-lookup.port";
 import { DEBT_CURRENCY_USAGE } from "../../../debt/domain/ports/currency-usage-lookup.port";
 import { INSTALLMENT_PLAN_CURRENCY_USAGE } from "../../../installment-plan/domain/ports/currency-usage-lookup.port";
@@ -44,6 +45,7 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<
     @Inject(CARD_LIMIT_CURRENCY_USAGE) cardLimitUsage: CurrencyUsageLookupPort,
     @Inject(MFA_RECOVERY_CODE_REPOSITORY)
     private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
+    @Inject(ACCOUNT_CREDIT_LIMIT_CURRENCY_USAGE) creditLineUsage: CurrencyUsageLookupPort,
   ) {
     super(eventBus);
     // Order is irrelevant — every port is queried for every removed currency.
@@ -56,6 +58,7 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<
       savingsEntryUsage,
       recurringExpenseUsage,
       cardLimitUsage,
+      creditLineUsage,
     ];
   }
 

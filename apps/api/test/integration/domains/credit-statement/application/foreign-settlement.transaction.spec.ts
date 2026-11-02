@@ -16,7 +16,7 @@ import { StatementPaymentCurrencyAmbiguousError } from "../../../../../src/domai
 import { PrismaTransactionSumsRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction-sums.repository";
 import { RemoveTransactionCommand } from "../../../../../src/domains/transaction/application/commands/remove-transaction.command";
 import { RemoveTransactionHandler } from "../../../../../src/domains/transaction/application/commands/remove-transaction.handler";
-import { cardLimitUsage } from "../../../../../src/domains/transaction/application/card-limit-usage";
+import { creditPoolUsage } from "../../../../../src/domains/transaction/application/credit-pool-usage";
 import { PrismaTransactionRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import {
@@ -169,9 +169,11 @@ describe("Settling a statement in another currency (integration)", () => {
           isAdditional: false,
           cardholderName: null,
           network: "VISA",
-          limits: [{ currency: "USD", limitAmount: "100", usedInitial: "0" }],
+          limits: [],
         },
       ],
+      // Spec 039: the USD credit is the ACCOUNT's.
+      extraCreditLimits: [{ currency: "USD", limitAmount: "100", usedInitial: "0" }],
     });
     creditAccountId = credit.id;
     cardId = credit.cards.find((c) => c.isPrimary)!.id;
@@ -223,7 +225,8 @@ describe("Settling a statement in another currency (integration)", () => {
     const expense = moved.find((t) => t.type === "EXPENSE")!;
     expect(income).toMatchObject({
       bankAccountId: creditAccountId,
-      cardId,
+      // Spec 039: the settlement lowers the ACCOUNT's USD credit, on no card.
+      cardId: null,
       currency: "USD",
       settlesStatementId: statementId,
       creditStatementId: null,
@@ -321,15 +324,19 @@ describe("Settling a statement in another currency (integration)", () => {
   });
 
   /** What the card's USD limit counts as used: purchases minus settlements still owed. */
+  // What is still owed on the account's USD credit (spec 039: every card, and settlements on
+  // no card).
   async function usdUsage(): Promise<string> {
     const sums = new PrismaTransactionSumsRepository(prisma);
-    const rows = (await sums.sumsByCard(userId, [cardId])).filter((r) => r.currency === "USD");
+    const rows = (await sums.sumsByAccountCurrency(userId, [creditAccountId])).filter(
+      (r) => r.currency === "USD",
+    );
     const sum = (type: "INCOME" | "EXPENSE") =>
       Number(rows.find((r) => r.type === type)?.sum ?? "0");
     return (sum("EXPENSE") - sum("INCOME")).toFixed(2);
   }
 
-  it("the USD limit's usage drops by what was prepaid, then to zero once the period is paid (no double count)", async () => {
+  it("the USD credit's usage drops by what was prepaid, then to zero once the period is paid (no double count)", async () => {
     await reset();
     const statementId = await usdPeriod(false);
     expect(await usdUsage()).toBe("50.00");
@@ -361,19 +368,15 @@ describe("Settling a statement in another currency (integration)", () => {
       prisma,
       new PrismaTransactionFieldValueRepository(prisma),
     );
-  const limitUsage = async () => {
-    const u = await cardLimitUsage(
-      { movements: movements(), statements: statementRepo },
-      {
+  // What is used of the account's USD credit (spec 039).
+  const limitUsage = async () =>
+    Number(
+      await creditPoolUsage({ movements: movements(), statements: statementRepo }, "0", {
         userId,
         accountId: creditAccountId,
-        accountCurrency: "CLP",
-        card: { id: cardId, isPrimary: true },
         currency: "USD",
-      },
+      }),
     );
-    return Number(u.expense) - Number(u.income);
-  };
 
   it("deleting either leg of a USD prepayment undoes both: pesos back, prepaidAmount down, rows gone", async () => {
     await reset();

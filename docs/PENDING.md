@@ -368,6 +368,30 @@ vía `AccountForm` (o el botón dedicado de activar/desactivar en `AccountDetail
 placeholder — es una decisión de UX para simplificar el alta; no requiere ninguna implementación
 adicional.
 
+## Cupos por moneda y tarjeta principal (specs/039, 2026-11-01)
+
+### 1. Migración de contracción pendiente
+
+La migración `account_credit_limits` solo agrega: copia los topes en otra moneda a
+`account-credit-limit` (principal + adicionales sumados) pero **no borra** las filas `card-limit`
+en otra moneda de las tarjetas principales, porque el código anterior las lee durante el minuto de
+despliegue. El código nuevo las ignora. En una entrega posterior: migración que las borre, y quitar
+el espejo de solo lectura `primary.limits` del DTO (marcado `@deprecated` en el contrato) una vez que
+ningún cliente lo lea.
+
+### 2. La plantilla no cruza el sub-tope de una adicional con el cupo de la cuenta
+
+Al reproducir el historial de la plantilla, un cargo en otra moneda con una adicional que tiene
+sub-tope se valida contra ese sub-tope, no también contra el cupo de la cuenta en esa moneda (el
+planificador sigue el uso por tarjeta). Los saldos que quedan escritos son correctos —el uso se deriva
+de los movimientos—; solo la validación de ese caso es más laxa que la de un movimiento a mano.
+
+### 3. Un plan en cuotas en otra moneda queda contando entero
+
+Igual que antes de la spec 039: la compra de un plan con tarjeta de crédito en USD no queda en ninguna
+facturación, así que sigue contando en el uso del cupo USD aunque sus cuotas se paguen. Raro en la
+práctica; se resuelve cuando las cuotas en otra moneda se modelen.
+
 ## Movimientos (Transacciones)
 
 ### 1. Plantillas de movimientos — resuelto (specs/037, 2026-10-25)

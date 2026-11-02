@@ -28,6 +28,8 @@ export type CreateAccountPlan = {
   paymentMethod: accounts.BillingPaymentMethod;
   paymentDueDay?: number | null;
   paymentDueCycleType?: accounts.BillingCycleType;
+  /** Credit in other currencies (spec 039). */
+  extraCreditLimits?: { currency: string; limitAmount: string; usedInitial: string }[];
   cards: CreateCardPlan[];
 };
 
@@ -48,6 +50,10 @@ export type CreateAccountPlan = {
  */
 export interface BankAccountRepositoryPort {
   findById(userId: string, id: string): Promise<BankAccount | null>;
+  /** Locks the account's row (`SELECT … FOR UPDATE`) inside the caller's transaction, then
+   * loads the aggregate — what serialises two changes of its cards' roles (spec 039): the
+   * second waits for the first to commit and sees its result. */
+  findByIdForUpdateWithTx(tx: unknown, userId: string, id: string): Promise<BankAccount | null>;
   listByUser(userId: string, where: { status?: accounts.AccountStatus }): Promise<BankAccount[]>;
   /** How many accounts of a type the user holds — the cash one is guaranteed to
    * exist, so removing the last of them is refused. */
@@ -104,6 +110,24 @@ export interface BankAccountRepositoryPort {
     plan: CreateCardPlan,
   ): Promise<BankAccount | null>;
   removeCard(userId: string, accountId: string, cardId: string): Promise<boolean>;
+  /** Writes every card's role, activity and sub-limits as the aggregate holds them, inside the
+   * caller's transaction — the cards that stop being primary first, so the one-primary index
+   * never sees two (spec 039). */
+  saveCardRolesWithTx(tx: unknown, aggregate: BankAccount): Promise<void>;
+  /** A new card inside the caller's transaction (spec 039's replacement card). Returns its id. */
+  addCardWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    plan: CreateCardPlan,
+  ): Promise<string>;
+  /** Deletes a card inside the caller's transaction. */
+  removeCardWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    cardId: string,
+  ): Promise<boolean>;
   /** How many rows of this table the user has: what replacing everything from a
    * template (specs/027, REPLACE) would delete, shown before confirming. */
   countForUser(userId: string): Promise<number>;

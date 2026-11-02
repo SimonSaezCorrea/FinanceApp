@@ -90,6 +90,8 @@ describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
       expiryYear: 2029,
       limits: [{ currency: "CLP", limitAmount: "3000000" }],
     });
+    // Spec 039: credit in other currencies goes to the ACCOUNT, never onto the primary card.
+    expect(payload.extraCreditLimits).toEqual([]);
   });
 
   it("blocks submission with an inline error when últimos 4 dígitos is missing for a CREDIT_CARD account", async () => {

@@ -147,9 +147,9 @@ export const cardSchema = z.object({
   expiryMonth: z.number().int().min(1).max(12),
   expiryYear: z.number().int().min(2000).max(2100),
   isActive: z.boolean(),
-  /** The account's first CREDIT card (set automatically). Its limit mirrors the
-   * account's own creditLimit/creditUsedInitial — `limits` never has an entry for
-   * the account's own currency, only for any EXTRA currency it also carries. */
+  /** The account's titular card (spec 039): exactly one per credit account, always active.
+   * It uses 100% of the account's credit in every currency and has no sub-limits of its
+   * own. Assigned to the first CREDIT card, changed with `make-primary`/`replace-primary`. */
   isPrimary: z.boolean(),
   /** No plastic: one of several virtual cards an issuer hands out on the same
    * account, often disposable. */
@@ -168,6 +168,10 @@ export const cardSchema = z.object({
    * reflected here even though it is in the account's own `creditUsed`. "0"
    * for non-CREDIT cards. */
   ownUsed: moneyString,
+  /** An additional card's sub-limits, one per currency, each within the account's credit
+   * in that currency. On the PRIMARY card: a read-only mirror of the account's credit in
+   * OTHER currencies (`creditPools`), kept for clients older than spec 039.
+   * @deprecated on the primary card — read `BankAccount.creditPools`. */
   limits: z.array(cardLimitSchema),
 });
 export type Card = z.infer<typeof cardSchema>;
@@ -176,15 +180,16 @@ export type Card = z.infer<typeof cardSchema>;
  * Card creation — ONLY last4 is accepted; the full PAN must never be sent.
  * For a CREDIT card, exactly one of these applies (enforced server-side, since
  * "is this the account's primary card" depends on what else already exists):
- *  - it becomes the account's PRIMARY (its first CREDIT card): `limits` must have
- *    one entry in the account's own currency — written to the account's
- *    creditLimit/creditUsedInitial, not stored as a CardLimit row. Any OTHER
- *    entries (different currencies) DO become real CardLimit rows on it —
- *    independent per-currency pools, same as an additional card's own sub-limit.
- *  - it's an additional card sharing the account pool: `usesAccountPool: true`
+ *  - it becomes the account's PRIMARY (its first CREDIT card): an entry in the
+ *    account's own currency is written to the account's creditLimit/creditUsedInitial
+ *    (optional when the account already has a credit limit); entries in OTHER
+ *    currencies become the ACCOUNT's credit in those currencies (spec 039) — never a
+ *    CardLimit on the card.
+ *  - it's an additional card sharing the account's credit: `usesAccountPool: true`
  *    (the default), `limits` ignored.
- *  - it's an additional card with its own sub-limit ("tope propio"):
- *    `usesAccountPool: false` + `limits` (one entry per currency).
+ *  - it's an additional card with sub-limits ("tope propio"): `usesAccountPool:
+ *    false` + `limits` (one entry per currency, each within the account's credit in
+ *    that currency).
  */
 export const createCardSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -206,19 +211,77 @@ export const createCardSchema = z.object({
 export type CreateCard = z.infer<typeof createCardSchema>;
 
 /**
- * One of the account's shared credit pools, by currency: the account's own
- * currency (same numbers as `creditLimit`/`creditUsed` below) plus, if the
- * primary card carries an extra-currency `CardLimit`, one entry per such
- * currency — e.g. a CLP account whose primary card also has a USD sub-limit
- * shows both here. A non-primary card's own sub-limit is NOT included (that
- * stays scoped to that card alone, not rolled up to the account).
+ * One of the account's credit lines, by currency (spec 039): the account's own
+ * currency (same numbers as `creditLimit`/`creditUsed` below) plus one entry per
+ * OTHER currency the account has credit in (USD on a CLP card). Every card of the
+ * account spends from these; an additional card's sub-limits are NOT included
+ * (they stay on that card, within these).
  */
 export const creditPoolSchema = z.object({
   currency: z.string(),
   limit: moneyString,
   used: moneyString,
+  /** What was already owed before the first movement in the app. */
+  usedInitial: moneyString.optional(),
 });
 export type CreditPool = z.infer<typeof creditPoolSchema>;
+
+/** The account's credit in a currency OTHER than its own (input of create/update). */
+export const extraCreditLimitSchema = z.object({
+  currency: z.string().trim().length(3),
+  limitAmount: moneyString,
+  usedInitial: moneyString.optional(),
+});
+export type ExtraCreditLimit = z.infer<typeof extraCreditLimitSchema>;
+
+/** Is every extra credit line valid against the account's currency: another currency,
+ * each once, a positive limit? (The domain enforces the same; this lets the forms say it.) */
+export function areValidExtraCreditLimits(
+  currency: string | undefined,
+  limits: readonly ExtraCreditLimit[] | undefined,
+): boolean {
+  if (!limits) return true;
+  const seen = new Set<string>();
+  for (const l of limits) {
+    if (l.currency === currency || seen.has(l.currency)) return false;
+    if (!(Number(l.limitAmount) > 0)) return false;
+    seen.add(l.currency);
+  }
+  return true;
+}
+
+/** The card that takes the primary's place when it's deactivated or deleted:
+ * always a CREDIT card, using 100% of the account's credit (no limits). */
+export const newPrimaryCardSchema = createCardSchema.pick({
+  name: true,
+  last4: true,
+  expiryMonth: true,
+  expiryYear: true,
+  isVirtual: true,
+  isAdditional: true,
+  cardholderName: true,
+  network: true,
+});
+export type NewPrimaryCard = z.infer<typeof newPrimaryCardSchema>;
+
+/** `POST /accounts/:id/cards/:cardId/replace-primary` (spec 039). */
+export const replacePrimaryCardSchema = z.object({
+  action: z.enum(["DEACTIVATE", "DELETE"]),
+  replacement: z.union([
+    z.object({ cardId: rowId }).strict(),
+    z.object({ newCard: newPrimaryCardSchema }).strict(),
+  ]),
+});
+export type ReplacePrimaryCard = z.infer<typeof replacePrimaryCardSchema>;
+
+/** A credit account whose CREDIT cards have no ACTIVE primary (data from before spec
+ * 039, when deactivating the primary was allowed) must pick one. */
+export function needsPrimaryCard(account: {
+  cards: readonly Pick<Card, "kind" | "isPrimary" | "isActive">[];
+}): boolean {
+  const credit = account.cards.filter((c) => c.kind === "CREDIT");
+  return credit.length > 0 && !credit.some((c) => c.isPrimary && c.isActive);
+}
 
 /** Account types that can hold an overdraft line: the ones holding cash you can
  * overdraw. A savings account is not overdrawn, and prepaid never goes negative. */
@@ -340,6 +403,9 @@ const bankAccountFieldsSchema = z.object({
   paymentDueCycleType: billingCycleType.default("BUSINESS_DAY"),
   /** Minimum-payment percentage (0-100); null clears it. */
   minimumPaymentPercent: z.string().nullable().optional(),
+  /** CREDIT_CARD accounts: credit in currencies OTHER than the account's (spec 039).
+   * On an update, present = replaces the whole set, absent = unchanged. */
+  extraCreditLimits: z.array(extraCreditLimitSchema).optional(),
   cards: z.array(createCardSchema).optional(),
 });
 
@@ -381,6 +447,16 @@ export const createBankAccountSchema = bankAccountFieldsSchema
   .refine((v) => (v.cards ?? []).every((c) => isCardKindAllowed(v.type, c.kind)), {
     message: "this card kind is not allowed on this account type",
     path: ["cards"],
+  })
+  // Credit in other currencies belongs to a credit card account, in currencies other
+  // than its own, each once, with a positive limit.
+  .refine((v) => !v.extraCreditLimits?.length || v.type === "CREDIT_CARD", {
+    message: "only a credit card account has credit in other currencies",
+    path: ["extraCreditLimits"],
+  })
+  .refine((v) => areValidExtraCreditLimits(v.currency, v.extraCreditLimits), {
+    message: "each extra credit line must be another currency, once, with a positive limit",
+    path: ["extraCreditLimits"],
   });
 
 function hasCreditSettings(v: {

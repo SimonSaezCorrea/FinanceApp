@@ -4,6 +4,10 @@ import type { accounts } from "@finance/contracts";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import {
+  ACCOUNT_CREDIT_LIMIT_REPOSITORY,
+  type AccountCreditLimitRepositoryPort,
+} from "../../account-credit-limit/domain/ports/account-credit-limit.repository.port";
+import {
   BILLING_SETTINGS_REPOSITORY,
   type BillingSettingsRepositoryPort,
 } from "../../billing-settings/domain/ports/billing-settings.repository.port";
@@ -59,16 +63,19 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     @Inject(BILLING_SETTINGS_REPOSITORY) private readonly billing: BillingSettingsRepositoryPort,
     @Inject(FINANCIAL_INSTITUTION_LOOKUP)
     private readonly institutions: FinancialInstitutionLookupPort,
+    @Inject(ACCOUNT_CREDIT_LIMIT_REPOSITORY)
+    private readonly creditLines: AccountCreditLimitRepositoryPort,
   ) {}
 
   /** Composes the child tables' own adapters into whole aggregates. */
   private async hydrate(rows: Row[]): Promise<BankAccount[]> {
     if (rows.length === 0) return [];
     const ids = rows.map((r) => r.id);
-    const [cards, settings, institutionNames] = await Promise.all([
+    const [cards, settings, institutionNames, lines] = await Promise.all([
       this.cards.listByAccounts(ids),
       this.billing.listByAccounts(ids),
       this.institutions.namesByIds(rows.flatMap((r) => (r.institutionId ? [r.institutionId] : []))),
+      this.creditLines.listByAccounts(ids),
     ]);
     return rows.map((row) => {
       const accountCards: CardProps[] = cards
@@ -102,6 +109,9 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         paymentDueDay: accountSettings?.paymentDueDay ?? null,
         paymentDueCycleType: accountSettings?.paymentDueCycleType ?? "BUSINESS_DAY",
         minimumPaymentPercent: accountSettings?.minimumPaymentPercent ?? null,
+        extraCreditLimits: lines
+          .filter((l) => l.accountId === row.id)
+          .map(({ accountId: _accountId, ...line }) => line),
         cards: accountCards,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
@@ -114,6 +124,19 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     if (!row) return null;
     const [aggregate] = await this.hydrate([row]);
     return aggregate ?? null;
+  }
+
+  async findByIdForUpdateWithTx(
+    tx: unknown,
+    userId: string,
+    id: string,
+  ): Promise<BankAccount | null> {
+    const client = tx as PrismaService;
+    const locked = await client.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "bank-account" WHERE "id" = ${id} AND "userId" = ${userId} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+    return this.findById(userId, id);
   }
 
   async listByUser(
@@ -170,6 +193,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         creditUsed: plan.creditUsedInitial,
       },
     });
+    await this.creditLines.createForAccountWithTx(tx, row.id, plan.extraCreditLimits ?? []);
     const cardIds: string[] = [];
     for (const card of plan.cards) {
       cardIds.push(await this.cards.createWithTx(tx, userId, row.id, card));
@@ -222,6 +246,15 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         creditUsed: snap.creditUsed,
       },
     });
+    await this.creditLines.replaceForAccountWithTx(
+      client,
+      snap.id,
+      (snap.extraCreditLimits ?? []).map((l) => ({
+        currency: l.currency,
+        limitAmount: l.limitAmount,
+        usedInitial: l.usedInitial,
+      })),
+    );
     await this.billing.upsertWithTx(client, snap.id, {
       billingCycleDay: snap.billingCycleDay,
       cycleType: snap.billingCycleType,
@@ -296,6 +329,41 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
 
   removeCard(userId: string, accountId: string, cardId: string): Promise<boolean> {
     return this.cards.remove(userId, accountId, cardId);
+  }
+
+  async saveCardRolesWithTx(tx: unknown, aggregate: BankAccount): Promise<void> {
+    // Cards that stop being primary are written first: the one-primary-per-account index
+    // must never see two at once.
+    const cards = [...aggregate.cards].sort((a, b) => Number(a.isPrimary) - Number(b.isPrimary));
+    for (const card of cards) {
+      await this.cards.updateRoleWithTx(tx, card.id, {
+        isPrimary: card.isPrimary,
+        isActive: card.isActive,
+        limits: card.limits.map((l) => ({
+          currency: l.currency,
+          limitAmount: l.limitAmount,
+          usedInitial: l.usedInitial,
+        })),
+      });
+    }
+  }
+
+  addCardWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    plan: CreateCardPlan,
+  ): Promise<string> {
+    return this.cards.createWithTx(tx, userId, accountId, plan);
+  }
+
+  removeCardWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    cardId: string,
+  ): Promise<boolean> {
+    return this.cards.removeWithTx(tx, userId, accountId, cardId);
   }
 
   async countForUser(userId: string): Promise<number> {

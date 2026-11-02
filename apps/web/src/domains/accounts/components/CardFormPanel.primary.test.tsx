@@ -87,8 +87,8 @@ const primary: accounts.Card = {
   ownUsed: "0",
 };
 
-describe("CardFormPanel · primary card extra limits", () => {
-  it("offers the extra-currency section when editing the primary", async () => {
+describe("CardFormPanel · primary card (spec 039)", () => {
+  it("editing the primary says it uses 100% of the account's credit and offers no limits", async () => {
     render(
       <I18nextProvider i18n={i18n}>
         <AuthProvider>
@@ -103,7 +103,7 @@ describe("CardFormPanel · primary card extra limits", () => {
         </AuthProvider>
       </I18nextProvider>,
     );
-    await waitFor(() => expect(screen.getByText(i18n.t("cards.form.extraLimits"))).toBeDefined());
-    expect(screen.getByRole("button", { name: i18n.t("cards.form.addLimit") })).toBeDefined();
+    await waitFor(() => expect(screen.getByText(i18n.t("accounts.pools.usesAll"))).toBeDefined());
+    expect(screen.queryByRole("button", { name: i18n.t("cards.form.addLimit") })).toBeNull();
   });
 });

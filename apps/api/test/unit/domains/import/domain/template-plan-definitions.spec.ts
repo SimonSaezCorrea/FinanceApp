@@ -139,8 +139,9 @@ describe("planTemplateImport — accounts and cards defined in the file", () => 
     expect(credit.plan.creditUsedInitial).toBe("50000");
     const [primary, additional] = credit.cards;
     expect(primary!.plan.isPrimary).toBe(true);
-    // The primary's limit IS the account's line; only its USD limit is its own.
-    expect(primary!.plan.limits.map((l) => l.currency)).toEqual(["USD"]);
+    // Spec 039: the primary has no sub-limits — its USD limit is the ACCOUNT's credit there.
+    expect(primary!.plan.limits).toEqual([]);
+    expect(credit.plan.extraCreditLimits.map((l) => l.currency)).toEqual(["USD"]);
     expect(additional!.plan.isPrimary).toBe(false);
     expect(additional!.plan.limits).toEqual([
       { currency: "CLP", limitAmount: "500000", usedInitial: "0" },

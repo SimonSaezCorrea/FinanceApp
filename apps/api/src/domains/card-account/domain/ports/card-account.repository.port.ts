@@ -30,7 +30,15 @@ export interface CardAccountRepositoryPort {
   /** Same, inside the caller's transaction (its limits too). */
   createWithTx(tx: unknown, userId: string, accountId: string, plan: CardPlan): Promise<string>;
   update(cardId: string, plan: CardPlan): Promise<void>;
+  /** A card's role, activity and sub-limits, inside the caller's transaction (spec 039). */
+  updateRoleWithTx(
+    tx: unknown,
+    cardId: string,
+    role: { isPrimary: boolean; isActive: boolean; limits: CardPlan["limits"] },
+  ): Promise<void>;
   remove(userId: string, accountId: string, cardId: string): Promise<boolean>;
+  /** Same, inside the caller's transaction. */
+  removeWithTx(tx: unknown, userId: string, accountId: string, cardId: string): Promise<boolean>;
   /** How many rows of this table the user has: what replacing everything from a
    * template (specs/027, REPLACE) would delete, shown before confirming. */
   countForUser(userId: string): Promise<number>;

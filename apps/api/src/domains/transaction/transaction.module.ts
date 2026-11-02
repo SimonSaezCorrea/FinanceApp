@@ -9,6 +9,7 @@ import { TransactionFieldValueDataModule } from "../transaction-field-value/tran
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
+import { AccountCreditLimitDataModule } from "../account-credit-limit/account-credit-limit.data.module";
 import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
 import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
@@ -65,6 +66,8 @@ const queryHandlers = [
     BankAccountDataModule,
     CardAccountDataModule,
     CardLimitDataModule,
+    // A movement in another currency is checked against the account's credit there (spec 039).
+    AccountCreditLimitDataModule,
     CreditStatementDataModule,
     // A movement backing an instalment is read-only here: it is corrected by undoing
     // and re-paying the instalment, never edited in place (FR-028a).

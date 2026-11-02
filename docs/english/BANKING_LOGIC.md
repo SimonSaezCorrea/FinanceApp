@@ -149,18 +149,50 @@ Concretely:
 > or growing an add-on card on any OTHER account type, is unaffected and still goes through the
 > normal `CardsAside` → "Añadir tarjeta" flow.
 
-### 3.3 Multiple currencies on the primary card ("otros topes")
+### 3.3 Credit in other currencies belongs to the account (spec 039)
 
-The primary card can **also** carry `CardLimit` rows — but **only for currencies other than the
-account's own** (that one, as above, stays exclusively on `BankAccount.creditLimit`, never
-duplicated as a row). This lets a single card have, say, a CLP pool (the account's own, mandatory)
-**and** an independent USD pool for foreign spend, at the same time. Mechanically it's the exact
-same mechanism a non-primary card's "tope propio" already uses — an independent, non-cross-checked
-pool per extra currency — just also available to the primary.
+A real credit card has ONE credit line per currency (CLP and USD), and it belongs to the
+**account**, not to a plastic: the **primary** (titular) card can use 100% of it, and every
+**additional** card spends from the same pool — with no cap of its own, or with a partial
+**sub-limit** the holder sets (e.g. $200.000 and USD 500).
 
-The account contract exposes this as a derived **`creditPools: {currency, limit, used}[]`** array:
-the account's own-currency pool, plus one entry per extra currency the primary carries. A
-non-primary card's own sub-limit is **not** rolled up here — it stays scoped to that card alone.
+- The account's own currency stays on `BankAccount.creditLimit` / `creditUsedInitial` /
+  persisted `creditUsed`.
+- Every OTHER currency is a row of **`account-credit-limit`** (`AccountCreditLimit`: `currency`,
+  `limitAmount`, `usedInitial`). Its usage is derived: the opening debt + every charge of the
+  account in that currency still owed (`STILL_OWED`, whichever card made it) − the payments that
+  settle what is still open + a short payment's `carriedOverAmount`
+  (`transaction/application/credit-pool-usage.ts`).
+- A movement in another currency on a credit card account needs credit there
+  (`CREDIT_POOL_CURRENCY_NOT_FOUND`), must fit it (`CARD_LIMIT_EXCEEDED`) and, with an additional
+  card that has a sub-limit there, the sub-limit too (`CARD_SUBLIMIT_EXCEEDED`). It never touches
+  the pool in the account's own currency.
+- The primary card has **no** `CardLimit` rows. An additional card's `CardLimit` rows are
+  sub-limits, each in a currency the account has credit in and never above it
+  (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`).
+- Paying or prepaying a statement in another currency writes its settlement INCOME on the
+  account with **no card**.
+
+The contract exposes `creditPools: {currency, limit, used, usedInitial}[]` (own currency first)
+and takes `extraCreditLimits` on create/update (update: present = replaces the set; removing a
+line that still owes something answers `CREDIT_POOL_IN_USE`). For clients older than spec 039,
+limits sent for the primary in another currency are written as the account's credit, and the
+primary's `limits` mirror the account's lines read-only.
+
+### 3.3b Changing the primary card (spec 039)
+
+A credit card account with credit cards always has **exactly one primary, and it is active**.
+
+- `POST /accounts/:id/cards/:cardId/make-primary`: an active additional credit card becomes the
+  primary; the previous one becomes additional. Absolute state, so a replay changes nothing.
+- `POST /accounts/:id/cards/:cardId/replace-primary` (`Idempotency-Key`): `DEACTIVATE` or
+  `DELETE` the primary, naming its replacement — an active credit card of the account, or a new
+  card created in the same transaction. Deleting is refused while the card has movements or
+  instalment plans (`PRIMARY_CARD_HAS_HISTORY`): deactivate it instead.
+- A plain PATCH with `isActive:false` or DELETE of the active primary answers
+  `PRIMARY_CARD_REPLACEMENT_REQUIRED`. Reactivating a former primary brings it back as additional.
+- Neither the account's credit nor any line moves; both cards end without sub-limits. The account
+  row is locked (`FOR UPDATE`) and a partial unique index allows one primary per account.
 
 ### 3.4 Worked example
 

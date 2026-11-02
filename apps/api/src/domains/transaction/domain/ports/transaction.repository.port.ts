@@ -90,6 +90,16 @@ export interface TransactionRepositoryPort {
     openOnly?: boolean,
   ): Promise<{ income: string; expense: string }>;
 
+  /** Σ income/expense of EVERY movement of an account in one currency that is still owed
+   * (`STILL_OWED`), excluding one tx (for edits) — the usage of the account's credit in a
+   * currency other than its own (spec 039), whichever card made each charge. */
+  sumsForAccountCurrency(
+    userId: string,
+    accountId: string,
+    currency: string,
+    excludeTxId?: string,
+  ): Promise<{ income: string; expense: string }>;
+
   /** Cross-aggregate persistence (FR-020): saves the transaction row + the
    * `creditUsed` delta (if any) + the affected accounts' cash-balance deltas in
    * one atomic unit. `creditUsedDelta` is `null` when this action doesn't touch

@@ -40,6 +40,8 @@ import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
 import { CardDetailPanel } from "../components/CardDetailPanel";
 import { CardDetailSurface } from "../components/CardDetailSurface";
+import { PrimaryCardNotice } from "../components/PrimaryCardNotice";
+import { ReplacePrimaryPanel, type ReplacePrimaryMode } from "../components/ReplacePrimaryPanel";
 import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
 import { hasCardsAside } from "../lib/detailLayout";
@@ -333,9 +335,9 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
   const hasRealBalance = account.type !== "CREDIT_CARD";
   const hasCreditPool =
     account.type === "CREDIT_CARD" || account.cards.some((c) => c.kind === "CREDIT");
-  // One Crédito card per currency: the account's own pool first, then each limit
-  // its primary card holds in another currency (its USD one) — never converted,
-  // so each gets its own used / limit figure, side by side.
+  // One Crédito card per currency: the account's own pool first, then its credit in each
+  // other currency (spec 039: the account's, not a card's) — never converted, so each gets
+  // its own used / limit figure, side by side.
   const pools = hasCreditPool
     ? [
         { currency: account.currency, used: account.creditUsed, limit: account.creditLimit },
@@ -398,7 +400,7 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
 
 /** One credit pool as a progress bar — the account's own-currency pool (the
  * combined total across every card sharing it, never a single card's own usage,
- * see AccountVisualCard) or a limit the primary card holds in another currency. */
+ * see AccountVisualCard) or the account's credit in another currency (spec 039). */
 function CreditKpi({
   currency,
   used: usedValue,
@@ -684,8 +686,18 @@ function CardsAside({
   inlineExpand?: boolean;
 }) {
   const { t } = useTranslation();
-  const { remove, update } = useCardMutations(account.id);
+  const { remove, update, makePrimary } = useCardMutations(account.id);
   const [modalOpen, setModalOpen] = useState(false);
+  // Spec 039: deactivating or deleting the primary names the card that takes its place.
+  const [replace, setReplace] = useState<{
+    card: accounts.Card;
+    mode: ReplacePrimaryMode;
+  } | null>(null);
+  const [promote, setPromote] = useState<accounts.Card | null>(null);
+  const isActivePrimary = (c: accounts.Card) => c.kind === "CREDIT" && c.isPrimary && c.isActive;
+  // The primary is never deleted alone: the replacement panel takes over.
+  const askDelete = (c: accounts.Card) =>
+    c.kind === "CREDIT" && c.isPrimary ? setReplace({ card: c, mode: "DELETE" }) : setDeleteCard(c);
   const [editCard, setEditCard] = useState<accounts.Card | undefined>(undefined);
   const [deleteCard, setDeleteCard] = useState<accounts.Card | null>(null);
   const [viewCard, setViewCard] = useState<accounts.Card | null>(null);
@@ -734,6 +746,7 @@ function CardsAside({
           noise, not an empty state. */}
       {cardable ? (
         <>
+          <PrimaryCardNotice account={account} />
           <div className={cn("flex items-center justify-between", columnScroll && "shrink-0")}>
             {hideTitle ? null : <span className="text-sm font-semibold">{t("cards.title")}</span>}
             {hasInactive ? (
@@ -823,21 +836,33 @@ function CardsAside({
                               accountCurrency={account.currency}
                               accountType={account.type}
                               accountCreditLimit={account.creditLimit}
+                              creditPools={account.creditPools}
                               hasExistingPrimary={account.cards.some(
                                 (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== card.id,
                               )}
-                              onSubmit={(body) =>
+                              onSubmit={(body) => {
+                                // Deactivating the primary: the other edits are saved and
+                                // the replacement panel takes over the deactivation.
+                                const deactivatesPrimary =
+                                  isActivePrimary(card) && body.isActive === false;
                                 update.mutate(
-                                  { cardId: card.id, body },
+                                  {
+                                    cardId: card.id,
+                                    body: deactivatesPrimary ? { ...body, isActive: true } : body,
+                                  },
                                   {
                                     onSuccess: () => {
-                                      toast.success(t("cards.updated"));
                                       setInlineEditing(false);
+                                      if (deactivatesPrimary) {
+                                        setReplace({ card, mode: "DEACTIVATE" });
+                                      } else {
+                                        toast.success(t("cards.updated"));
+                                      }
                                     },
                                     onError: () => toast.error(t("errors.INTERNAL_ERROR")),
                                   },
-                                )
-                              }
+                                );
+                              }}
                             />
                             <Button
                               variant="outline"
@@ -866,13 +891,14 @@ function CardsAside({
                                 </span>
                               }
                               movementsHint={t("cards.detail.filteringTableHint")}
+                              onMakePrimary={() => setPromote(card)}
                             />
                             <div className="mt-4 flex items-center justify-between gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => setDeleteCard(card)}
+                                onClick={() => askDelete(card)}
                               >
                                 {t("common.delete")}
                               </Button>
@@ -908,9 +934,51 @@ function CardsAside({
           // The panel STAYS open behind the confirmation: "Eliminar" only asks a
           // question, and closing the thing you're being asked about leaves you
           // confirming a deletion you can no longer see. It closes on success.
-          onDelete={(card) => setDeleteCard(card)}
+          onDelete={askDelete}
+          onDeactivatePrimary={(card) => setReplace({ card, mode: "DEACTIVATE" })}
+          onMakePrimary={(card) => setPromote(card)}
         />
       )}
+
+      {replace ? (
+        <ReplacePrimaryPanel
+          key={replace.card.id + replace.mode}
+          account={account}
+          card={replace.card}
+          mode={replace.mode}
+          open
+          onOpenChange={(v) => !v && setReplace(null)}
+          onDone={() => {
+            setViewCard(null);
+            setExpandedId(null);
+          }}
+        />
+      ) : null}
+
+      <ConfirmModal
+        open={promote !== null}
+        onOpenChange={(v) => !v && setPromote(null)}
+        title={t("accounts.primary.makePrimaryTitle")}
+        description={t("accounts.primary.makePrimaryDescription")}
+        confirmLabel={t("accounts.primary.makePrimary")}
+        destructive={false}
+        loading={makePrimary.isPending}
+        onConfirm={() => {
+          if (!promote) return;
+          makePrimary.mutate(promote.id, {
+            onSuccess: () => {
+              toast.success(t("accounts.primary.changed"));
+              setPromote(null);
+            },
+            onError: (err: unknown) =>
+              toast.error(
+                t(`errors.${err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR"}`, {
+                  defaultValue: t("errors.INTERNAL_ERROR"),
+                }),
+              ),
+          });
+        }}
+      />
 
       <CardCreateModal
         open={modalOpen}

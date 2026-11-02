@@ -236,6 +236,28 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     return row ? Transaction.fromPersistence(rowToProps(row)) : null;
   }
 
+  async sumsForAccountCurrency(
+    userId: string,
+    accountId: string,
+    currency: string,
+    excludeTxId?: string,
+  ): Promise<{ income: string; expense: string }> {
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ["type"],
+      where: {
+        userId,
+        bankAccountId: accountId,
+        currency,
+        ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
+        ...STILL_OWED,
+      },
+      _sum: { amount: true },
+    });
+    const find = (t: TransactionType) =>
+      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
+    return { income: find(TransactionType.INCOME), expense: find(TransactionType.EXPENSE) };
+  }
+
   async sumsForCard(
     userId: string,
     cardId: string,

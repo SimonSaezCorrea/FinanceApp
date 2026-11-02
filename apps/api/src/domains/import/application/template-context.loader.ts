@@ -1,4 +1,5 @@
 import type { imports } from "@finance/contracts";
+import { addMoney } from "@finance/money";
 
 import type { BankAccountRepositoryPort } from "../../bank-account/domain/ports/bank-account.repository.port";
 import { assertSelectableCategory } from "../../category/domain/category-policy";
@@ -80,10 +81,18 @@ export async function loadTemplateContext(
       const usage = own
         ? await deps.movements.sumsForCard(userId, card.id, snap.currency, undefined, true)
         : { income: "0", expense: "0" };
-      // Its limits in other currencies (a CLP card's USD one): a movement in that
-      // currency goes against them, never the account's pool.
+      // Limits in other currencies (USD on a CLP card): a movement in that currency goes
+      // against them, never the account's pool. The PRIMARY carries the ACCOUNT's credit there
+      // (spec 039), with the account's usage; an additional card, its own sub-limits.
       const otherLimits: TemplateCard["otherLimits"] = {};
-      if (card.kind === "CREDIT") {
+      if (card.kind === "CREDIT" && card.isPrimary) {
+        for (const line of account.extraCreditLimits) {
+          otherLimits[line.currency] = {
+            limit: { limitAmount: line.limitAmount, usedInitial: line.usedInitial },
+            usage: await accountCreditUsage(deps, userId, snap.id, line.currency),
+          };
+        }
+      } else if (card.kind === "CREDIT") {
         for (const l of card.limits.filter((x) => x.currency !== snap.currency)) {
           otherLimits[l.currency] = {
             limit: { limitAmount: l.limitAmount, usedInitial: l.usedInitial },
@@ -128,4 +137,23 @@ export async function loadTemplateContext(
   }
 
   return { lookup, createdAt };
+}
+
+/** What the account already owes on its credit in another currency (spec 039), as the
+ * income/expense pair the planner keeps running: every charge of the account in that currency
+ * still owed, its payments, and a short payment's carried-over shortfall as one more charge —
+ * the same figure `creditPoolUsage` checks a single movement against. */
+async function accountCreditUsage(
+  deps: {
+    movements: Pick<TransactionRepositoryPort, "sumsForAccountCurrency">;
+    statements: Pick<CreditStatementRepositoryPort, "carriedOverOwed">;
+  },
+  userId: string,
+  accountId: string,
+  currency: string,
+): Promise<{ income: string; expense: string }> {
+  const sums = await deps.movements.sumsForAccountCurrency(userId, accountId, currency);
+  const carried =
+    (await deps.statements.carriedOverOwed([accountId])).get(`${accountId}:${currency}`) ?? "0";
+  return { income: sums.income, expense: addMoney(sums.expense, carried) };
 }

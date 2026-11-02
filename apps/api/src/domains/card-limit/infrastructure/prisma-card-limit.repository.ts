@@ -51,7 +51,11 @@ export class PrismaCardLimitRepository implements CardLimitRepositoryPort {
   }
 
   async replaceForCard(cardId: string, limits: CardLimitPlan[]): Promise<void> {
-    await this.prisma.cardLimit.deleteMany({ where: { cardId } });
-    await this.createForCard(cardId, limits);
+    await this.replaceForCardWithTx(this.prisma, cardId, limits);
+  }
+
+  async replaceForCardWithTx(tx: unknown, cardId: string, limits: CardLimitPlan[]): Promise<void> {
+    await (tx as PrismaService).cardLimit.deleteMany({ where: { cardId } });
+    await this.createForCardWithTx(tx, cardId, limits);
   }
 }

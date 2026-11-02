@@ -194,6 +194,7 @@ export function CardFormPanel({
           accountCurrency={account.currency}
           accountType={account.type}
           accountCreditLimit={account.creditLimit}
+          creditPools={account.creditPools}
           hasExistingPrimary={hasExistingPrimary}
           onDraftChange={onDraftChange}
           isActive={isActive}

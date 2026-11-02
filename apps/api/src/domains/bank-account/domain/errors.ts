@@ -123,3 +123,49 @@ export class CardLimitHasDebtError extends DomainError {
     super("CARD_LIMIT_HAS_DEBT", 409, "limits");
   }
 }
+
+/** The account has no credit in that currency (spec 039): a card's sub-limit, a charge or a
+ * settlement in a currency the account was never given credit in. */
+export class CreditPoolCurrencyNotFoundError extends DomainError {
+  constructor() {
+    super("CREDIT_POOL_CURRENCY_NOT_FOUND", 400, "currency");
+  }
+}
+
+/** A credit line still owes something — used credit, an unsettled statement in its currency
+ * or an additional card's sub-limit — so it can't be removed. */
+export class CreditPoolInUseError extends DomainError {
+  constructor() {
+    super("CREDIT_POOL_IN_USE", 409, "extraCreditLimits");
+  }
+}
+
+/** The account must always keep an ACTIVE primary card: deactivating or deleting it goes
+ * through `replace-primary`, which names the card that takes its place. */
+export class PrimaryCardReplacementRequiredError extends DomainError {
+  constructor() {
+    super("PRIMARY_CARD_REPLACEMENT_REQUIRED", 409);
+  }
+}
+
+/** The replacement must be another ACTIVE CREDIT card of the same account. */
+export class PrimaryCardInvalidReplacementError extends DomainError {
+  constructor() {
+    super("PRIMARY_CARD_INVALID_REPLACEMENT", 400, "replacement");
+  }
+}
+
+/** `replace-primary` named a card that isn't (any longer) the account's primary. */
+export class CardNotPrimaryError extends DomainError {
+  constructor() {
+    super("CARD_NOT_PRIMARY", 409);
+  }
+}
+
+/** A primary card with movements or instalment plans is deactivated, never deleted: deleting it
+ * would unlink its movements from the plastic that made them. */
+export class PrimaryCardHasHistoryError extends DomainError {
+  constructor() {
+    super("PRIMARY_CARD_HAS_HISTORY", 409);
+  }
+}

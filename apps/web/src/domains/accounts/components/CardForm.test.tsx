@@ -38,6 +38,8 @@ async function renderForm(
     accountType: accounts.AccountType;
     currencies: { id: string; code: string; numeric: string; name: string }[];
     extraCurrencies: string[];
+    accountCreditLimit: string;
+    creditPools: accounts.CreditPool[];
   }> = {},
 ) {
   me.mockResolvedValue(
@@ -59,6 +61,8 @@ async function renderForm(
             accountCurrency={props.accountCurrency ?? "CLP"}
             accountType={props.accountType ?? "CHECKING"}
             hasExistingPrimary={props.hasExistingPrimary ?? false}
+            accountCreditLimit={props.accountCreditLimit}
+            creditPools={props.creditPools}
             onSubmit={onSubmit}
           />
         </AuthProvider>
@@ -168,70 +172,51 @@ describe("CardForm", () => {
       expect(payload.limits).toEqual([{ currency: "CLP", limitAmount: "1500000" }]);
     });
 
-    it("offers an optional extra-currency limit, excluding the account's own currency", async () => {
+    it("uses 100% of the account's credit when it already has one, asking for no limit (spec 039)", async () => {
       const onSubmit = await renderForm(vi.fn(), {
         accountType: "CREDIT_CARD",
         accountCurrency: "CLP",
-        extraCurrencies: ["EUR", "USD"],
-        currencies: [
-          { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
-          { id: "2", code: "EUR", numeric: "978", name: "Euro" },
-          { id: "3", code: "USD", numeric: "840", name: "US Dollar" },
-        ],
+        accountCreditLimit: "2000000",
       });
+      expect(screen.getByText(i18n.t("accounts.pools.usesAll"))).toBeDefined();
+      expect(
+        screen.queryByLabelText(i18n.t("cards.form.primaryLimit", { currency: "CLP" })),
+      ).toBeNull();
+      expect(screen.queryByText(i18n.t("cards.form.addLimit"))).toBeNull();
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
         target: { value: "1234" },
       });
       fillExpiry();
-      fireEvent.change(
-        screen.getByLabelText(i18n.t("cards.form.primaryLimit", { currency: "CLP" })),
-        { target: { value: "1500000" } },
-      );
-      fireEvent.click(screen.getByText(i18n.t("cards.form.addLimit")));
-
-      // Opens the custom currency dropdown: CLP (already covered by the
-      // mandatory field above) must not be offered as an extra currency.
-      fireEvent.click(screen.getByLabelText(i18n.t("cards.form.currency")));
-      expect(screen.queryByText(/Peso chileno/)).toBeNull();
-      fireEvent.click(screen.getByText(/US Dollar/));
-
-      fireEvent.change(screen.getByLabelText(i18n.t("cards.form.limit")), {
-        target: { value: "500" },
-      });
       fireEvent.submit(screen.getByText("add").closest("form")!);
 
       expect(onSubmit).toHaveBeenCalledTimes(1);
-      const payload = onSubmit.mock.calls[0]![0];
-      expect(payload.limits).toEqual([
-        { currency: "CLP", limitAmount: "1500000" },
-        { currency: "USD", limitAmount: "500" },
-      ]);
+      expect(onSubmit.mock.calls[0]![0].limits).toBeUndefined();
     });
+  });
 
-    it("submits successfully with the extra-currency row left empty (fully optional)", async () => {
+  describe("CREDIT — additional card's sub-limits (spec 039)", () => {
+    it("refuses a sub-limit above the account's credit in that currency", async () => {
       const onSubmit = await renderForm(vi.fn(), {
         accountType: "CREDIT_CARD",
         accountCurrency: "CLP",
-        extraCurrencies: ["USD"],
-        currencies: [
-          { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
-          { id: "2", code: "USD", numeric: "840", name: "US Dollar" },
-        ],
+        hasExistingPrimary: true,
+        creditPools: [{ currency: "CLP", limit: "1000000", used: "0" }],
       });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
         target: { value: "1234" },
       });
       fillExpiry();
-      fireEvent.change(
-        screen.getByLabelText(i18n.t("cards.form.primaryLimit", { currency: "CLP" })),
-        { target: { value: "1500000" } },
-      );
+      fireEvent.click(screen.getByText(i18n.t("cards.form.ownLimit")));
       fireEvent.click(screen.getByText(i18n.t("cards.form.addLimit")));
+      fireEvent.change(screen.getByLabelText(i18n.t("cards.form.limit")), {
+        target: { value: "1500000" },
+      });
       fireEvent.submit(screen.getByText("add").closest("form")!);
 
-      expect(onSubmit).toHaveBeenCalledTimes(1);
-      const payload = onSubmit.mock.calls[0]![0];
-      expect(payload.limits).toEqual([{ currency: "CLP", limitAmount: "1500000" }]);
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(i18n.t("accounts.pools.exceeds", { amount: "1000000" })),
+      ).toBeDefined();
     });
   });
 

@@ -60,6 +60,8 @@ function fakeCards(overrides: Partial<CardAccountRepositoryPort> = {}): CardAcco
     createWithTx: vi.fn(async () => "card"),
     countForUser: vi.fn(async () => 0),
     kindsForUser: vi.fn(async () => new Map()),
+    updateRoleWithTx: vi.fn(async () => {}),
+    removeWithTx: vi.fn(async () => true),
     listByAccounts: vi.fn(),
     findOnAccount: vi.fn(),
     existsForUser: vi.fn().mockResolvedValue(true),

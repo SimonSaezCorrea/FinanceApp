@@ -9,6 +9,7 @@ import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
 import { defaultCardId, selectableCards } from "../../accounts/lib/selectableCards";
 import { useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { CurrencyField } from "../../reference/components/CurrencyField";
+import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import {
   formatTypedAmount,
@@ -158,6 +159,15 @@ export function TransactionFormPanel({
         : "destructive";
   const selectedAccount = accountList.find((a) => a.id === value.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
+  // Spec 039: a credit card account only takes movements in currencies it has credit in (its
+  // own and each of `creditPools`); the API refuses the rest, so the picker doesn't offer them.
+  const allowedCodes = useAllowedCurrencies().map((c) => c.code);
+  const creditCurrencies = selectedAccount
+    ? [selectedAccount.currency, ...(selectedAccount.creditPools ?? []).map((p) => p.currency)]
+    : [];
+  const currencyExclude = isCreditLine
+    ? allowedCodes.filter((code) => !creditCurrencies.includes(code) && code !== value.currency)
+    : undefined;
   const isCardable =
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable
@@ -384,6 +394,7 @@ export function TransactionFormPanel({
                       amount: limitDecimals(value.amount, currencyScale(currency)),
                     })
                   }
+                  exclude={currencyExclude}
                   searchPlaceholder={t("common.search")}
                   noResultsLabel={t("common.noResults")}
                   aria-label={t("transactions.form.currency")}
@@ -460,6 +471,7 @@ export function TransactionFormPanel({
                 // Cents the new currency does not have go with the old one.
                 onChange({ currency, amount: limitDecimals(value.amount, currencyScale(currency)) })
               }
+              exclude={currencyExclude}
               searchPlaceholder={t("common.search")}
               noResultsLabel={t("common.noResults")}
               aria-label={t("transactions.form.currency")}

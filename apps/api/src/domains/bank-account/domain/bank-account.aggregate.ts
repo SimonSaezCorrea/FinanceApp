@@ -10,7 +10,11 @@ import {
   CardLimitRequiredError,
   CardNotFoundError,
   CardSubLimitExceedsAccountError,
+  CreditPoolCurrencyNotFoundError,
+  CreditPoolInUseError,
   CreditSettingsNotAllowedError,
+  PrimaryCardInvalidReplacementError,
+  PrimaryCardReplacementRequiredError,
   InvalidAccountAliasError,
   InvalidAccountNumberError,
   OverdraftNotAllowedError,
@@ -23,6 +27,17 @@ export interface CardLimitProps {
   limitAmount: string;
   usedInitial: string;
 }
+
+/** The account's credit in a currency OTHER than its own (spec 039, table
+ * `account-credit-limit`). Its usage is derived from movements, never stored. */
+export interface ExtraCreditLimitProps {
+  id: string;
+  currency: string;
+  limitAmount: string;
+  usedInitial: string;
+}
+
+type ExtraCreditLimitInput = { currency: string; limitAmount: string; usedInitial?: string };
 
 export interface CardProps {
   id: string;
@@ -74,6 +89,8 @@ export interface BankAccountProps {
   paymentDueCycleType: accounts.BillingCycleType;
   /** Minimum-payment percentage of this account's statements ("5" = 5%), or null. */
   minimumPaymentPercent: string | null;
+  /** Credit in other currencies (spec 039). Every card spends from it; the primary uses 100%. */
+  extraCreditLimits?: ExtraCreditLimitProps[];
   cards: CardProps[];
   createdAt: Date;
   updatedAt: Date;
@@ -103,6 +120,9 @@ export interface ResolvedCardPlacement {
    * creditLimit/creditUsedInitial mirror it 1:1. */
   accountCreditLimit?: string;
   accountCreditUsedInitial?: string;
+  /** Primary only: limits sent in OTHER currencies, which are the ACCOUNT's credit in
+   * those currencies (spec 039) — merged into it, never stored on the card. */
+  accountExtraCreditLimits?: ExtraCreditLimitInput[];
 }
 
 /**
@@ -125,7 +145,10 @@ export class BankAccount {
   static fromPersistence(props: BankAccountProps): BankAccount {
     return new BankAccount({
       ...props,
-      cards: props.cards.map((c) => ({ ...c, limits: [...c.limits] })),
+      extraCreditLimits: [...(props.extraCreditLimits ?? [])],
+      // The primary has no sub-limits (spec 039). Rows in another currency left on it by data
+      // older than the migration are the account's credit now, read from `extraCreditLimits`.
+      cards: props.cards.map((c) => ({ ...c, limits: c.isPrimary ? [] : [...c.limits] })),
     });
   }
 
@@ -144,10 +167,12 @@ export class BankAccount {
     overdraftLimit?: string;
     creditLimit?: string;
     creditUsedInitial?: string;
+    extraCreditLimits?: ExtraCreditLimitInput[];
     cards?: CardInput[];
   }): {
     creditLimit: string;
     creditUsedInitial: string;
+    extraCreditLimits: Omit<ExtraCreditLimitProps, "id">[];
     cards: (ResolvedCardPlacement & CardInput)[];
   } {
     BankAccount.assertInitialBalance(input.type, input.initialBalance);
@@ -156,53 +181,85 @@ export class BankAccount {
     }
     let creditLimit = input.creditLimit ?? "0";
     let creditUsedInitial = input.creditUsedInitial ?? "0";
+    const extras = new Map<string, Omit<ExtraCreditLimitProps, "id">>();
+    for (const l of input.extraCreditLimits ?? []) {
+      extras.set(l.currency, BankAccount.extraLine(input.currency, l));
+    }
     let primaryAssigned = false;
-    const cards = (input.cards ?? []).map((c) => {
-      if (c.kind !== "CREDIT") {
-        return { ...c, isPrimary: false, cardLimits: [] };
-      }
-      if (!primaryAssigned) {
-        const own = (c.limits ?? []).find((l) => l.currency === input.currency);
-        if (!own || !toMoney(own.limitAmount).greaterThan(0)) {
-          throw new CardLimitRequiredError();
-        }
+    // The primary first: an additional card's sub-limits are checked against the credit it sets.
+    const resolved = (input.cards ?? []).map((c): (ResolvedCardPlacement & CardInput) | null => {
+      if (c.kind !== "CREDIT") return { ...c, isPrimary: false, cardLimits: [] };
+      if (primaryAssigned) return null;
+      primaryAssigned = true;
+      const own = (c.limits ?? []).find((l) => l.currency === input.currency);
+      if (own && toMoney(own.limitAmount).greaterThan(0)) {
         creditLimit = own.limitAmount;
         creditUsedInitial = own.usedInitial ?? "0";
-        primaryAssigned = true;
-        const extra = (c.limits ?? []).filter((l) => l.currency !== input.currency);
-        const cardLimits = extra.map((l) => ({
-          id: "",
-          currency: l.currency,
-          limitAmount: l.limitAmount,
-          usedInitial: l.usedInitial ?? "0",
-        }));
-        return { ...c, isPrimary: true, cardLimits };
+      } else if (!toMoney(creditLimit).greaterThan(0)) {
+        throw new CardLimitRequiredError();
       }
+      // A limit sent for the primary in another currency is the account's credit there
+      // (spec 039, and what clients older than it send); an explicit account line wins.
+      for (const l of c.limits ?? []) {
+        if (l.currency !== input.currency && !extras.has(l.currency)) {
+          extras.set(l.currency, BankAccount.extraLine(input.currency, l));
+        }
+      }
+      return { ...c, isPrimary: true, cardLimits: [] };
+    });
+    const lineIn = (currency: string): string | null =>
+      currency === input.currency ? creditLimit : (extras.get(currency)?.limitAmount ?? null);
+    const cards = (input.cards ?? []).map((c, i) => {
+      const done = resolved[i];
+      if (done) return done;
       if (c.usesAccountPool === false) {
         if (!c.limits || c.limits.length === 0) throw new CardLimitRequiredError();
-        const cardLimits = c.limits.map((l) => {
-          if (
-            l.currency === input.currency &&
-            toMoney(l.limitAmount).greaterThan(toMoney(creditLimit))
-          ) {
-            throw new CardSubLimitExceedsAccountError();
-          }
-          return {
-            id: "",
-            currency: l.currency,
-            limitAmount: l.limitAmount,
-            usedInitial: l.usedInitial ?? "0",
-          };
-        });
-        return { ...c, isPrimary: false, cardLimits };
+        return { ...c, isPrimary: false, cardLimits: BankAccount.subLimits(c.limits, lineIn) };
       }
       return { ...c, isPrimary: false, cardLimits: [] };
     });
-    return { creditLimit, creditUsedInitial, cards };
+    return { creditLimit, creditUsedInitial, extraCreditLimits: [...extras.values()], cards };
   }
 
   toPersistenceState(): BankAccountProps {
-    return { ...this.props, cards: this.props.cards.map((c) => ({ ...c, limits: [...c.limits] })) };
+    return {
+      ...this.props,
+      extraCreditLimits: [...this.lines],
+      cards: this.props.cards.map((c) => ({ ...c, limits: [...c.limits] })),
+    };
+  }
+
+  /** A credit line in another currency: never the account's own, always a positive limit. */
+  private static extraLine(
+    accountCurrency: string,
+    l: ExtraCreditLimitInput,
+  ): Omit<ExtraCreditLimitProps, "id"> {
+    if (l.currency === accountCurrency || !toMoney(l.limitAmount).greaterThan(0)) {
+      throw new CreditPoolCurrencyNotFoundError();
+    }
+    return { currency: l.currency, limitAmount: l.limitAmount, usedInitial: l.usedInitial ?? "0" };
+  }
+
+  /** An additional card's sub-limits (spec 039): each one in a currency the account has credit
+   * in, positive, and never above that credit. */
+  private static subLimits(
+    limits: ExtraCreditLimitInput[],
+    lineIn: (currency: string) => string | null,
+  ): CardLimitProps[] {
+    return limits.map((l) => {
+      const line = lineIn(l.currency);
+      if (line === null) throw new CreditPoolCurrencyNotFoundError();
+      if (!toMoney(l.limitAmount).greaterThan(0)) throw new CardLimitRequiredError();
+      if (toMoney(l.limitAmount).greaterThan(toMoney(line))) {
+        throw new CardSubLimitExceedsAccountError();
+      }
+      return {
+        id: "", // assigned by the repository adapter on insert
+        currency: l.currency,
+        limitAmount: l.limitAmount,
+        usedInitial: l.usedInitial ?? "0",
+      };
+    });
   }
 
   get id(): string {
@@ -256,6 +313,20 @@ export class BankAccount {
   }
   get cards(): readonly CardProps[] {
     return this.props.cards;
+  }
+  get extraCreditLimits(): readonly ExtraCreditLimitProps[] {
+    return this.lines;
+  }
+
+  private get lines(): ExtraCreditLimitProps[] {
+    return this.props.extraCreditLimits ?? [];
+  }
+
+  /** The account's credit limit in a currency — its own (`creditLimit`) or a line in another
+   * one — or null when it has no credit there. */
+  creditLineIn(currency: string): string | null {
+    if (currency === this.props.currency) return this.props.creditLimit;
+    return this.lines.find((l) => l.currency === currency)?.limitAmount ?? null;
   }
   get currentBalance(): string {
     return moneyToString(this.props.currentBalance);
@@ -422,6 +493,9 @@ export class BankAccount {
     BankAccount.assertOverdraft(effectiveType, patch.overdraftLimit);
     BankAccount.assertCreditSettings(effectiveType, patch);
     this.assertAccountNumber(effectiveType, effectiveAccountNumber);
+    if (patch.creditLimit !== undefined) {
+      this.assertLineCoversSubLimits(this.props.currency, patch.creditLimit);
+    }
     if (patch.name !== undefined) this.props.name = patch.name;
     if (patch.type !== undefined) this.props.type = patch.type;
     if (patch.status !== undefined) this.setStatus(patch.status);
@@ -463,25 +537,129 @@ export class BankAccount {
     this.props.creditUsed = toMoney(next).isNegative() ? "0" : moneyToString(next);
   }
 
-  /** A card's own sub-limit currency can't promise more than the account's
-   * shared pool, in the account's own currency (CARD_SUBLIMIT_EXCEEDS_ACCOUNT). */
-  private normalizeLimits(
-    limits: { currency: string; limitAmount: string; usedInitial?: string }[],
-  ): CardLimitProps[] {
-    return limits.map((l) => {
-      if (
-        l.currency === this.props.currency &&
-        toMoney(l.limitAmount).greaterThan(toMoney(this.props.creditLimit))
-      ) {
-        throw new CardSubLimitExceedsAccountError();
+  /** An additional card's sub-limits can't promise more than the account's credit in their
+   * currency, nor exist where the account has none (spec 039). */
+  private normalizeLimits(limits: ExtraCreditLimitInput[]): CardLimitProps[] {
+    return BankAccount.subLimits(limits, (currency) => this.creditLineIn(currency));
+  }
+
+  /** Lowering the account's credit in a currency below an additional card's sub-limit there
+   * would leave that sub-limit promising credit the account doesn't have. */
+  private assertLineCoversSubLimits(currency: string, limitAmount: string): void {
+    const exceeded = this.props.cards.some(
+      (c) =>
+        !c.isPrimary &&
+        c.limits.some(
+          (l) =>
+            l.currency === currency && toMoney(l.limitAmount).greaterThan(toMoney(limitAmount)),
+        ),
+    );
+    if (exceeded) throw new CardSubLimitExceedsAccountError();
+  }
+
+  /**
+   * Replaces the account's credit in other currencies (spec 039, `PATCH /accounts/:id` with
+   * `extraCreditLimits`). Only a credit card account has any; each line is another currency,
+   * once, positive, and covers every additional card's sub-limit there. Removing a line that
+   * still has sub-limits is refused here; the handler refuses one that still owes something
+   * (usage and unsettled statements live in other tables).
+   */
+  setExtraCreditLimits(lines: ExtraCreditLimitInput[]): void {
+    if (lines.length > 0 && this.props.type !== "CREDIT_CARD") {
+      throw new CreditSettingsNotAllowedError();
+    }
+    const next: ExtraCreditLimitProps[] = [];
+    for (const l of lines) {
+      if (next.some((n) => n.currency === l.currency)) throw new CreditPoolCurrencyNotFoundError();
+      const line = BankAccount.extraLine(this.props.currency, l);
+      this.assertLineCoversSubLimits(l.currency, line.limitAmount);
+      const existing = this.lines.find((e) => e.currency === l.currency);
+      next.push({ id: existing?.id ?? "", ...line });
+    }
+    const removedWithSubLimits = this.removedCreditCurrencies(lines).some((currency) =>
+      this.props.cards.some((c) => !c.isPrimary && c.limits.some((l) => l.currency === currency)),
+    );
+    if (removedWithSubLimits) throw new CreditPoolInUseError();
+    this.props.extraCreditLimits = next;
+  }
+
+  /** Lines a client sent through the primary card (spec 039 compatibility): each one sets the
+   * account's credit in that currency; nothing is removed this way. */
+  mergeExtraCreditLimits(lines: ExtraCreditLimitInput[]): void {
+    if (lines.length === 0) return;
+    const merged = new Map(this.lines.map((e) => [e.currency, { ...e }]));
+    for (const l of lines) {
+      const line = BankAccount.extraLine(this.props.currency, l);
+      this.assertLineCoversSubLimits(l.currency, line.limitAmount);
+      merged.set(l.currency, { id: merged.get(l.currency)?.id ?? "", ...line });
+    }
+    this.props.extraCreditLimits = [...merged.values()];
+  }
+
+  /** Currencies whose line `setExtraCreditLimits(lines)` would remove — what the handler
+   * checks for usage and unsettled statements before applying it. */
+  removedCreditCurrencies(lines: { currency: string }[]): string[] {
+    return this.lines
+      .filter((e) => !lines.some((l) => l.currency === e.currency))
+      .map((e) => e.currency);
+  }
+
+  /**
+   * Makes `newPrimaryId` the account's primary card (spec 039): an ACTIVE CREDIT card of this
+   * account. Neither the account's credit nor any line moves — the primary just uses 100% of
+   * it; both cards end without sub-limits (the new primary can't have any, and the previous one
+   * becomes an additional card sharing the credit). A no-op when it already is the primary.
+   */
+  changePrimary(newPrimaryId: string): void {
+    const target = this.props.cards.find((c) => c.id === newPrimaryId);
+    if (!target || target.kind !== "CREDIT" || !target.isActive) {
+      throw new PrimaryCardInvalidReplacementError();
+    }
+    if (target.isPrimary) return;
+    for (const c of this.props.cards) {
+      if (c.isPrimary) {
+        c.isPrimary = false;
+        c.limits = [];
       }
-      return {
-        id: "", // assigned by the repository adapter on insert
-        currency: l.currency,
-        limitAmount: l.limitAmount,
-        usedInitial: l.usedInitial ?? "0",
-      };
-    });
+    }
+    target.isPrimary = true;
+    target.limits = [];
+  }
+
+  /** A card created inside the same transaction as the swap (`replace-primary` with a new
+   * card), so `changePrimary` can name it. */
+  attachCard(card: CardProps): void {
+    this.props.cards.push({ ...card, limits: [...card.limits] });
+  }
+
+  /** Marks a card inactive (the source of `replace-primary DEACTIVATE`, once it is no longer
+   * the primary). */
+  deactivateCard(cardId: string): void {
+    const card = this.findCardOrThrow(cardId);
+    if (card.isPrimary) throw new PrimaryCardReplacementRequiredError();
+    card.isActive = false;
+  }
+
+  /** Drops a card (the source of `replace-primary DELETE`, once it is no longer the primary). */
+  detachCard(cardId: string): void {
+    const card = this.findCardOrThrow(cardId);
+    if (card.isPrimary) throw new PrimaryCardReplacementRequiredError();
+    this.props.cards = this.props.cards.filter((c) => c.id !== cardId);
+  }
+
+  /** Deactivating the ACTIVE primary through a plain edit is refused: it goes through
+   * `replace-primary`, which names the card that takes its place. A primary already inactive
+   * (data from before spec 039) may still be edited, so it can be repaired. */
+  assertCardUpdateKeepsPrimary(cardId: string, isActive: boolean | undefined): void {
+    const card = this.findCardOrThrow(cardId);
+    if (card.isPrimary && card.isActive && isActive === false) {
+      throw new PrimaryCardReplacementRequiredError();
+    }
+  }
+
+  /** Deleting the primary through a plain delete is refused (see `replace-primary`). */
+  assertCardRemovable(cardId: string): void {
+    if (this.findCardOrThrow(cardId).isPrimary) throw new PrimaryCardReplacementRequiredError();
   }
 
   /**
@@ -511,15 +689,22 @@ export class BankAccount {
 
     if (!existingPrimary) {
       const own = (input.limits ?? []).find((l) => l.currency === this.props.currency);
-      if (!own || !toMoney(own.limitAmount).greaterThan(0)) {
+      const hasOwn = !!own && toMoney(own.limitAmount).greaterThan(0);
+      // The primary uses the account's credit: a first credit card on an account that already
+      // has a credit limit needn't repeat it (spec 039).
+      if (!hasOwn && !toMoney(this.props.creditLimit).greaterThan(0)) {
         throw new CardLimitRequiredError();
       }
-      const extra = (input.limits ?? []).filter((l) => l.currency !== this.props.currency);
       return {
         isPrimary: true,
-        cardLimits: this.normalizeLimits(extra),
-        accountCreditLimit: own.limitAmount,
-        accountCreditUsedInitial: own.usedInitial ?? fallbackUsedInitial,
+        cardLimits: [],
+        accountCreditLimit: hasOwn ? own.limitAmount : this.props.creditLimit,
+        accountCreditUsedInitial: hasOwn
+          ? (own.usedInitial ?? fallbackUsedInitial)
+          : this.props.creditUsedInitial,
+        accountExtraCreditLimits: (input.limits ?? []).filter(
+          (l) => l.currency !== this.props.currency,
+        ),
       };
     }
 

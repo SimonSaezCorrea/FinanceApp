@@ -1,3 +1,4 @@
+import { PrismaAccountCreditLimitRepository } from "../../../src/domains/account-credit-limit/infrastructure/prisma-account-credit-limit.repository";
 import { PrismaBankAccountRepository } from "../../../src/domains/bank-account/infrastructure/prisma-bank-account.repository";
 import { PrismaBillingSettingsRepository } from "../../../src/domains/billing-settings/infrastructure/prisma-billing-settings.repository";
 import { PrismaCategoryRepository } from "../../../src/domains/category/infrastructure/prisma-category.repository";
@@ -51,6 +52,7 @@ export function buildBankAccountRepo(prisma: PrismaService): PrismaBankAccountRe
     cards,
     new PrismaBillingSettingsRepository(prisma),
     new PrismaFinancialInstitutionLookupRepository(prisma),
+    new PrismaAccountCreditLimitRepository(prisma),
   );
 }
 

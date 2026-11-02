@@ -62,6 +62,9 @@ export class AddCardHandler extends BaseCommandHandler<AddCardCommand, accounts.
         creditLimit: placement.accountCreditLimit,
         creditUsedInitial: placement.accountCreditUsedInitial,
       });
+      // Limits sent for the primary in other currencies are the account's credit there
+      // (spec 039; what clients older than it send) — never a sub-limit on the card.
+      account.mergeExtraCreditLimits(placement.accountExtraCreditLimits ?? []);
     }
     return { account, plan };
   }

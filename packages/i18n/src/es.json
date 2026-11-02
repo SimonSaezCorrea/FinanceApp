@@ -448,6 +448,36 @@
       "pending": "La facturación vuelve a quedar pendiente de pago.",
       "success": "Pago deshecho",
       "unknownAccount": "la cuenta de origen"
+    },
+    "primary": {
+      "title": "Elegir nueva principal",
+      "deactivateDescription": "La tarjeta principal no puede quedar desactivada. Elige cuál queda como principal en su lugar.",
+      "deleteDescription": "Para eliminar la tarjeta principal, elige cuál queda como principal en su lugar.",
+      "chooseDescription": "Esta cuenta no tiene una tarjeta principal activa. Elige una.",
+      "existing": "Una tarjeta de la cuenta",
+      "newCard": "Tarjeta nueva",
+      "newCardHint": "Por ejemplo, el plástico que te envió el banco.",
+      "poolsUnchanged": "Los cupos de la cuenta no cambian: la nueva principal usa el 100%.",
+      "confirmDeactivate": "Desactivar y cambiar principal",
+      "confirmDelete": "Eliminar y cambiar principal",
+      "confirmChoose": "Hacerla principal",
+      "changed": "Tarjeta principal actualizada",
+      "makePrimary": "Marcar como principal",
+      "makePrimaryTitle": "¿Marcar esta tarjeta como principal?",
+      "makePrimaryDescription": "La principal actual pasa a ser adicional. Los cupos de la cuenta no cambian.",
+      "noticeTitle": "Esta cuenta no tiene tarjeta principal activa",
+      "noticeBody": "Sin una principal activa no se puede generar la facturación.",
+      "noticeAction": "Elegir principal",
+      "noCandidates": "No hay otras tarjetas de crédito activas. Ingresa la nueva."
+    },
+    "pools": {
+      "title": "Cupos en otras monedas",
+      "hint": "El cupo que te dio el banco en cada moneda. Todas las tarjetas gastan de aquí.",
+      "usesAll": "Usa el 100% del cupo de la cuenta",
+      "subLimit": "Sub-tope",
+      "max": "Máximo {{amount}}",
+      "exceeds": "No puede superar el cupo de la cuenta ({{amount}}).",
+      "noPool": "La cuenta no tiene cupo en esta moneda."
     }
   },
   "cards": {
@@ -2705,7 +2735,13 @@
     "MOVEMENT_TEMPLATE_NOT_FOUND": "Esa plantilla no existe.",
     "MOVEMENT_TEMPLATE_NAME_TAKEN": "Ya tienes una plantilla con ese nombre.",
     "MOVEMENT_TEMPLATE_LIMIT_REACHED": "Llegaste al máximo de 50 plantillas. Elimina una para crear otra.",
-    "RECURRING_NOT_FOUND": "Ese gasto fijo no existe."
+    "RECURRING_NOT_FOUND": "Ese gasto fijo no existe.",
+    "PRIMARY_CARD_REPLACEMENT_REQUIRED": "Antes de desactivar o eliminar la tarjeta principal, elige cuál queda como principal.",
+    "PRIMARY_CARD_INVALID_REPLACEMENT": "La nueva principal debe ser otra tarjeta de crédito activa de esta cuenta.",
+    "PRIMARY_CARD_HAS_HISTORY": "Esta tarjeta tiene movimientos o compras en cuotas. Desactívala en su lugar: así conservas su historia.",
+    "CARD_NOT_PRIMARY": "Esa tarjeta ya no es la principal de la cuenta.",
+    "CREDIT_POOL_CURRENCY_NOT_FOUND": "La cuenta no tiene cupo en esa moneda.",
+    "CREDIT_POOL_IN_USE": "No puedes quitar ese cupo: tiene saldo usado, facturaciones sin pagar o topes de tarjetas adicionales."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

@@ -28,6 +28,17 @@ export interface TransactionSumsRepositoryPort {
     userId: string,
     cardIds: string[],
   ): Promise<{ cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]>;
+  /** Σ amount by (account, currency, type) of what each account still owes in currencies
+   * OTHER than its own (`STILL_OWED`) — the usage of its credit there (spec 039), batched
+   * for the account list. Rows in the account's own currency are returned too; the caller
+   * ignores them (that pool is the persisted `creditUsed`). */
+  sumsByAccountCurrency(
+    userId: string,
+    accountIds: string[],
+  ): Promise<{ accountId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]>;
+  /** Whether any movement was made with this card — a primary card with history is
+   * deactivated, never deleted (spec 039). */
+  existsForCard(userId: string, cardId: string): Promise<boolean>;
   /** Σexpense − Σincome of the movements linked to one credit statement. */
   netForStatement(statementId: string, tx?: unknown): Promise<string>;
   /**

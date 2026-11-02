@@ -18,6 +18,7 @@ import {
   CardLimitExceededError,
   CardRequiredError,
   CardInactiveError,
+  CreditPoolCurrencyNotFoundError,
 } from "../../../../../../src/domains/transaction/domain/errors";
 import type { TransactionRepositoryPort } from "../../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
@@ -28,6 +29,7 @@ import {
   fakeBankAccountRepo,
   fakeCardAccountRepo,
   fakeCardLimitRepo,
+  fakeAccountCreditLimitRepo,
   fakeCreditStatementRepo,
   fakeIdempotencyRecordRepo,
   fakePrismaTransaction,
@@ -48,6 +50,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     summary: vi.fn(),
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
+    sumsForAccountCurrency: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
     saveNewWithTx: vi.fn(),
     saveUpdate: vi.fn(),
@@ -128,6 +131,8 @@ function makeHandler(
     cardLimit?: { limitAmount: string; usedInitial: string } | null;
     customFields?: ReturnType<typeof fakeCustomFieldRepo>;
     fieldValues?: ReturnType<typeof fakeFieldValueRepo>;
+    /** The account's credit line in the movement's (other) currency — spec 039. */
+    creditLine?: { limitAmount: string; usedInitial: string } | null;
   } = {},
 ) {
   const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => opts.account ?? null) });
@@ -150,6 +155,11 @@ function makeHandler(
     { findOne: vi.fn(async () => null) } as never,
     opts.customFields ?? fakeCustomFieldRepo(),
     opts.fieldValues ?? fakeFieldValueRepo(),
+    fakeAccountCreditLimitRepo({
+      findForAccountCurrency: vi.fn(async () =>
+        opts.creditLine ? { id: "line1", currency: "USD", ...opts.creditLine } : null,
+      ),
+    }),
   );
 }
 
@@ -354,8 +364,9 @@ describe("CreateTransactionHandler", () => {
     );
   });
 
-  describe("foreign-currency movements on a credit card account (spec 028)", () => {
-    const usdLimit = { limitAmount: "100", usedInitial: "0" };
+  describe("foreign-currency movements on a credit card account (spec 028, 039)", () => {
+    // Spec 039: the USD credit is the ACCOUNT's, not the card's.
+    const usdLine = { limitAmount: "100", usedInitial: "0" };
     const saving = () =>
       vi.fn().mockImplementation(async (_tx, userId, plan) =>
         Transaction.fromPersistence({
@@ -376,7 +387,7 @@ describe("CreateTransactionHandler", () => {
         account: creditAccount(),
         card: creditCard,
         statements,
-        cardLimit: usdLimit,
+        creditLine: usdLine,
       });
       await handler.execute(
         cmd({
@@ -403,6 +414,27 @@ describe("CreateTransactionHandler", () => {
       );
     });
 
+    it("refuses a USD charge when the account has no USD credit", async () => {
+      const saveNewWithTx = saving();
+      const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
+        account: creditAccount(),
+        card: creditCard,
+      });
+      await expect(
+        handler.execute(
+          cmd({
+            ...base,
+            currency: "USD",
+            type: "EXPENSE",
+            amount: "9.06",
+            bankAccountId: "aC",
+            cardId: "cC",
+          }),
+        ),
+      ).rejects.toBeInstanceOf(CreditPoolCurrencyNotFoundError);
+      expect(saveNewWithTx).not.toHaveBeenCalled();
+    });
+
     it("a manual USD income with the card (a refund) also belongs to the USD period", async () => {
       const saveNewWithTx = saving();
       const statements = fakeCreditStatementRepo({
@@ -412,7 +444,7 @@ describe("CreateTransactionHandler", () => {
         account: creditAccount(),
         card: creditCard,
         statements,
-        cardLimit: usdLimit,
+        creditLine: usdLine,
       });
       await handler.execute(
         cmd({

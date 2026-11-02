@@ -7,6 +7,7 @@ import { CardAccountDataModule } from "../card-account/card-account.data.module"
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
 import { CustomFieldDataModule } from "../custom-field/custom-field.data.module";
 import { DebtDataModule } from "../debt/debt.data.module";
+import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
 import { SavingsEntryDataModule } from "../savings-entry/savings-entry.data.module";
@@ -16,7 +17,9 @@ import { BankAccountDataModule } from "./bank-account.data.module";
 import { AddCardHandler } from "./application/commands/add-card.handler";
 import { CreateAccountHandler } from "./application/commands/create-account.handler";
 import { RemoveAccountHandler } from "./application/commands/remove-account.handler";
+import { MakePrimaryCardHandler } from "./application/commands/make-primary-card.handler";
 import { RemoveCardHandler } from "./application/commands/remove-card.handler";
+import { ReplacePrimaryCardHandler } from "./application/commands/replace-primary-card.handler";
 import { SetAccountStatusHandler } from "./application/commands/set-account-status.handler";
 import { UpdateAccountHandler } from "./application/commands/update-account.handler";
 import { UpdateCardHandler } from "./application/commands/update-card.handler";
@@ -34,6 +37,8 @@ const commandHandlers = [
   AddCardHandler,
   UpdateCardHandler,
   RemoveCardHandler,
+  MakePrimaryCardHandler,
+  ReplacePrimaryCardHandler,
 ];
 
 const queryHandlers = [
@@ -59,6 +64,7 @@ const queryHandlers = [
     RecurringExpenseDataModule,
     SavingsEntryDataModule,
     DebtDataModule,
+    IdempotencyRecordDataModule,
     // Deleting an account leaves every custom field scope that named it, and gives
     // back the previous value of movements its deleted transfers covered (specs/036).
     CustomFieldDataModule,

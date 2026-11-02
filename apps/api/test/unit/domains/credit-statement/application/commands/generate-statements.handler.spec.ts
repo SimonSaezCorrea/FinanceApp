@@ -100,6 +100,10 @@ function fakeAccountRepo(
   return {
     createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
     setStatusWithTx: vi.fn(async () => {}),
+    findByIdForUpdateWithTx: vi.fn(),
+    saveCardRolesWithTx: vi.fn(async () => {}),
+    addCardWithTx: vi.fn(async () => "new-card"),
+    removeCardWithTx: vi.fn(async () => true),
     countForUser: vi.fn(async () => 0),
     deleteAllForUserWithTx: vi.fn(async () => {}),
     removeWithTx: vi.fn(async () => true),
@@ -163,6 +167,7 @@ function fakePlanRepo(
     countForUser: vi.fn(async () => 0),
     deleteAllForUserWithTx: vi.fn(async () => {}),
     listIdsForAccount: vi.fn(async () => []),
+    existsForCard: vi.fn(async () => false),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),

@@ -5,6 +5,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { AccountDeletionLogDataModule } from "../account-deletion-log/account-deletion-log.data.module";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
+import { AccountCreditLimitDataModule } from "../account-credit-limit/account-credit-limit.data.module";
 import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { ConsentRecordDataModule } from "../consent-record/consent-record.data.module";
 import { CountryDataModule } from "../country/country.data.module";
@@ -131,6 +132,7 @@ const queryHandlers = [
     SavingsEntryDataModule,
     RecurringExpenseDataModule,
     CardLimitDataModule,
+    AccountCreditLimitDataModule,
     MfaRecoveryCodeDataModule,
     PasskeyDataModule,
     SessionDataModule,

@@ -16,7 +16,7 @@ import {
   type CreditStatementProps,
 } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
 import {
-  CardLimitNotFoundError,
+  CreditPoolCurrencyNotFoundError,
   InvalidPaymentSourceError,
   NothingToPayError,
   PaymentExceedsRemainingError,
@@ -96,6 +96,10 @@ function fakeAccountRepo(
   return {
     createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
     setStatusWithTx: vi.fn(async () => {}),
+    findByIdForUpdateWithTx: vi.fn(),
+    saveCardRolesWithTx: vi.fn(async () => {}),
+    addCardWithTx: vi.fn(async () => "new-card"),
+    removeCardWithTx: vi.fn(async () => true),
     countForUser: vi.fn(async () => 0),
     deleteAllForUserWithTx: vi.fn(async () => {}),
     removeWithTx: vi.fn(async () => true),
@@ -510,20 +514,26 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
     isAdditional: false,
     cardholderName: null,
     network: null,
-    limits: [{ id: "lim_1", currency: "USD", limitAmount: "100", usedInitial: "0" }],
+    limits: [] as { id: string; currency: string; limitAmount: string; usedInitial: string }[],
     ...overrides,
   });
+  // Spec 039: the USD credit is the ACCOUNT's.
+  const usdLine = { id: "line_1", currency: "USD", limitAmount: "100", usedInitial: "0" };
 
   function setup(
     opts: {
       cards?: ReturnType<typeof usdCard>[];
+      lines?: (typeof usdLine)[];
       fromCurrency?: string;
       statement?: Partial<CreditStatementProps>;
       owed?: string;
     } = {},
   ) {
     const creditAccount = BankAccount.fromPersistence(
-      accountProps({ cards: opts.cards ?? [usdCard()] }),
+      accountProps({
+        cards: opts.cards ?? [usdCard()],
+        extraCreditLimits: opts.lines ?? [usdLine],
+      }),
     );
     const fromAccount = BankAccount.fromPersistence(
       accountProps({
@@ -591,7 +601,7 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
     expect(transactions.createWithTx).not.toHaveBeenCalled();
   });
 
-  it("records the pesos that left the source and a USD settlement on the card that owns the limit", async () => {
+  it("records the pesos that left the source and a USD settlement on the account, with no card", async () => {
     const { pay, transactions, statement, accountRepo, creditAccount } = setup();
 
     const result = await pay(undefined, "49394");
@@ -609,7 +619,7 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
       type: "INCOME",
       amount: "50.4100",
       currency: "USD",
-      cardId: "card_1",
+      cardId: null,
       settlesStatementId: "st_1",
       creditStatementId: null,
     });
@@ -661,20 +671,25 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
     expect(transactions.createWithTx).not.toHaveBeenCalled();
   });
 
-  it("refuses when the primary card holds no limit in that currency, writing nothing", async () => {
-    const { pay, transactions } = setup({ cards: [usdCard({ limits: [] })] });
+  it("refuses when the account has no credit in that currency, writing nothing", async () => {
+    const { pay, transactions } = setup({ lines: [] });
 
-    await expect(pay(undefined, "49394")).rejects.toThrow(CardLimitNotFoundError);
+    await expect(pay(undefined, "49394")).rejects.toThrow(CreditPoolCurrencyNotFoundError);
     expect(transactions.createWithTx).not.toHaveBeenCalled();
   });
 
-  it("always settles on the PRIMARY card, never on an additional one holding a limit too", async () => {
-    const extra = usdCard({ id: "card_2", isPrimary: false, isAdditional: true });
+  it("never settles on a card, whichever cards the account has", async () => {
+    const extra = usdCard({
+      id: "card_2",
+      isPrimary: false,
+      isAdditional: true,
+      limits: [{ id: "lim_2", currency: "USD", limitAmount: "50", usedInitial: "0" }],
+    });
     const { pay, transactions } = setup({ cards: [extra, usdCard()] });
 
     await pay(undefined, "49394");
 
-    expect(created(transactions)[1]).toMatchObject({ cardId: "card_1" });
+    expect(created(transactions)[1]).toMatchObject({ cardId: null });
   });
 
   it("re-reads the statement under a row lock inside the transaction (concurrent payments)", async () => {

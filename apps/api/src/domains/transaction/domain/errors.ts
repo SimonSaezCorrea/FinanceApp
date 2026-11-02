@@ -178,3 +178,10 @@ export class CoverSelectionChangedError extends DomainError {
     super("COVER_SELECTION_CHANGED", 409);
   }
 }
+
+/** The credit card account has no credit in the movement's currency (spec 039). */
+export class CreditPoolCurrencyNotFoundError extends DomainError {
+  constructor() {
+    super("CREDIT_POOL_CURRENCY_NOT_FOUND", 400, "currency");
+  }
+}

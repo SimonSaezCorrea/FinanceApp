@@ -24,6 +24,9 @@ export type CreateInstallmentPlanPlan = {
  * operations only, not a generic CRUD surface. */
 export interface InstallmentPlanRepositoryPort {
   list(userId: string): Promise<InstallmentPlan[]>;
+  /** Whether any plan was bought with this card — a primary card with history is deactivated,
+   * never deleted (spec 039). */
+  existsForCard(userId: string, cardId: string): Promise<boolean>;
   findOne(userId: string, id: string): Promise<InstallmentPlan | null>;
   create(userId: string, plan: CreateInstallmentPlanPlan): Promise<InstallmentPlan>;
   /**
