@@ -535,7 +535,8 @@ describe("custom field columns (specs/036)", () => {
       { [FIELD]: false },
       undefined,
     ]);
-  });
+    // Writes and reads a real .xlsx, like the round trips above: past 5 s on a slow CI runner.
+  }, 30_000);
 
   it("the pre-filled template writes each movement's value", () => {
     const data = {
