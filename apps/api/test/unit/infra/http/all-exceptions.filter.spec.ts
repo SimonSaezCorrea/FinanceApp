@@ -112,6 +112,8 @@ describe("AllExceptionsFilter", () => {
     } as never);
 
     const message = String(error.mock.calls[0]?.[0]);
+    const stack = String(error.mock.calls[0]?.[1] ?? "");
+    expect(stack).not.toContain("ana@mail.cl");
     expect(message).toContain("GET /api/v1/transactions →");
     expect(message).toContain("Invalid `prisma.user.findUnique()` invocation:");
     expect(message).not.toContain("ana@mail.cl");

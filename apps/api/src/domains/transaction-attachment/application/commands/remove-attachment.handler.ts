@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { reportableError } from "../../../../infra/http/describe-error";
 import type { Attachment } from "../../domain/attachment.aggregate";
 import { AttachmentNotFoundError } from "../../domain/errors";
 import {
@@ -57,7 +58,7 @@ export class RemoveAttachmentHandler extends BaseCommandHandler<
     } catch (error) {
       this.logger.error(
         `orphaned object left in the bucket: ${attachment.storageKey}`,
-        error instanceof Error ? error.stack : undefined,
+        error instanceof Error ? reportableError(error).stack : undefined,
       );
     }
 

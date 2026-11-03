@@ -49,6 +49,21 @@ transforms:
       } else {
         .message = line
       }
+      # Second guard (the API already bounds what it logs): a library's error message can print
+      # what it was given below its first line (a Prisma validation error lists the query's
+      # arguments). Keep ONE line of at most 300 characters of the message, and of a stack only
+      # that first line plus its "at ..." frames.
+      if is_string(.message) {
+        first = string(split(string!(.message), "\n")[0]) ?? ""
+        .message = truncate(first, 300)
+      }
+      if exists(.stack) {
+        raw = if is_array(.stack) { join(array!(.stack), "\n") ?? "" } else { to_string(.stack) ?? "" }
+        lines = split(raw, "\n")
+        head = truncate(string(lines[0]) ?? "", 300)
+        frames = filter(lines) -> |_index, value| { starts_with(strip_whitespace(value), "at ") }
+        .stack = join(flatten([[head], frames]), "\n") ?? head
+      }
 
 sinks:
   better_stack:

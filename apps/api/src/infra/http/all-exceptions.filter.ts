@@ -65,7 +65,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const description = describeError(exception);
       this.logger.error(
         `${where} → ${status} ${code} | ${description}`,
-        needsStack(exception) && exception instanceof Error ? exception.stack : undefined,
+        // The bounded line + the original frames: a raw stack starts with the WHOLE message, which
+        // for a Prisma validation error lists the query's arguments (emails, amounts).
+        needsStack(exception) && exception instanceof Error
+          ? reportableError(exception).stack
+          : undefined,
       );
       reportError(reportableError(exception));
     }
