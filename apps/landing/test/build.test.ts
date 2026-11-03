@@ -187,23 +187,27 @@ describe("public site build", () => {
     });
   });
 
-  // Spec 038: Novedades, one record per deploy, from packages/release-notes.
+  // Spec 038: Novedades by version, from packages/release-notes and the deploy's git tags (here
+  // test/fixtures/release-versions.json: v1.2 newest, v1.1 older).
   describe("release notes (spec 038)", () => {
     const SLUG = { es: "novedades", en: "whats-new" } as const;
-    const FIRST = "2026-10-26-guias-chile";
+    const RECORD = "plantillas";
     for (const lang of LANGS) {
       const other = lang === "es" ? "en" : "es";
-      it(`/${lang}/${SLUG[lang]}/ lists the deploys with their own anchor, paired with the other language`, () => {
+      it(`/${lang}/${SLUG[lang]}/ shows the newest version alone, with the index of versions`, () => {
         const html = htmlOf(lang, SLUG[lang]);
         expect(html).toMatch(/<h1[^>]*id="release-notes-title"/);
         expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${SLUG[lang]}/"`);
         expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${SLUG[other]}/"`);
-        expect(html).toMatch(new RegExp(`<article[^>]*id="${FIRST}"`));
-        expect(html).toContain(`href="#${FIRST}"`);
-        expect(html).toContain('<time datetime="2026-10-26"');
+        expect(html).toContain("data-release-versions");
+        expect(html).toMatch(/data-release-summary[\s\S]*href="#plantillas"/);
+        expect(html.match(/<article[^>]*data-release-version=/g)).toHaveLength(1);
+        expect(html).toMatch(/<h2[^>]*id="release-version-title"[^>]*>\s*v\d+\.\d+/);
+        expect(html).toMatch(new RegExp(`<section[^>]*id="${RECORD}"`));
+        expect(html).toMatch(/<time datetime="\d{4}-\d{2}-\d{2}"/);
+        expect(html).toContain('aria-current="page"');
         expect(html).toContain('data-release-kind="new"');
         expect(html).toContain('data-release-kind="fixed"');
-        expect(html).toContain('"@type":"CollectionPage"');
         expect(html).not.toMatch(/astro-island/);
       });
 

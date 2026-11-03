@@ -3093,8 +3093,8 @@
   },
   "releaseNotes": {
     "title": "What's new",
-    "lead": "What changed in fik with each update, newest first.",
-    "since": "We have recorded every change since October 26, 2026.",
+    "lead": "What changed in fik in each version, newest first.",
+    "since": "fik opened on October 10, 2026 (v1.0). We have recorded every change since v1.1.",
     "empty": "No updates recorded yet.",
     "loadError": "We couldn't load the updates.",
     "kinds": {
@@ -3103,6 +3103,14 @@
       "fixed": "Fixes",
       "changed": "Changes",
       "security": "Security"
-    }
+    },
+    "versions": "Versions",
+    "current": "Current",
+    "unseen": "New",
+    "published": "Released on {{date}}",
+    "changes_one": "{{count}} change",
+    "changes_other": "{{count}} changes",
+    "version": "Version {{version}}",
+    "inThisVersion": "In this version"
   }
 }

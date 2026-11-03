@@ -31,14 +31,13 @@ title: Something new
 - One thing.
 `;
 
-const at = (lang: string, id = "2026-10-26-algo") => `/x/releases/${id}/${lang}.md`;
+const at = (lang: string, id = "algo") => `/x/releases/${id}/${lang}.md`;
 
 describe("parseRelease", () => {
   it("reads the frontmatter, groups in kind order and joins wrapped lines", () => {
     const r = parseRelease(at("es"), ES);
     expect(r).toMatchObject({
-      id: "2026-10-26-algo",
-      date: "2026-10-26",
+      id: "algo",
       lang: "es",
       title: "Algo nuevo",
       summary: "Una línea.",
@@ -58,8 +57,8 @@ describe("parseRelease", () => {
   });
 
   const broken: [string, string, string, RegExp][] = [
-    ["bad folder", at("es", "algo"), ES, /folder/],
-    ["impossible date", at("es", "2026-02-30-x"), ES, /folder/],
+    ["bad folder", at("es", "2026_algo"), ES, /folder/],
+    ["upper case folder", at("es", "Algo"), ES, /folder/],
     ["unknown language", at("pt"), ES, /es or en/],
     ["no frontmatter", at("en"), "## New\n\n- x\n", /frontmatter/],
     ["unknown key", at("en"), EN.replace("title:", "titulo:"), /unknown frontmatter key/],
@@ -110,27 +109,28 @@ describe("tokenizeInline", () => {
 });
 
 describe("isReleaseId", () => {
-  it("needs a real date and words", () => {
-    expect(isReleaseId("2026-10-26-a-b")).toBe(true);
-    expect(isReleaseId("2026-13-01-a")).toBe(false);
-    expect(isReleaseId("2026-10-26")).toBe(false);
-    expect(isReleaseId("2026-10-26-A")).toBe(false);
+  it("needs lower-case words joined by hyphens", () => {
+    expect(isReleaseId("guias-chile")).toBe(true);
+    expect(isReleaseId("plantillas")).toBe(true);
+    expect(isReleaseId("Guias")).toBe(false);
+    expect(isReleaseId("a--b")).toBe(false);
+    expect(isReleaseId("a".repeat(61))).toBe(false);
   });
 });
 
 describe("buildCatalog", () => {
-  it("pairs the languages, newest first", () => {
+  it("pairs the languages, by id", () => {
     const records = buildCatalog([
-      { path: at("es", "2026-10-26-a"), raw: ES },
-      { path: at("en", "2026-10-26-a"), raw: EN },
-      { path: at("es", "2026-11-02-b"), raw: ES },
-      { path: at("en", "2026-11-02-b"), raw: EN },
+      { path: at("es", "b"), raw: ES },
+      { path: at("en", "b"), raw: EN },
+      { path: at("es", "a"), raw: ES },
+      { path: at("en", "a"), raw: EN },
     ]);
-    expect(records.map((r) => r.id)).toEqual(["2026-11-02-b", "2026-10-26-a"]);
+    expect(records.map((r) => r.id)).toEqual(["a", "b"]);
     expect(records[0]!.commits).toEqual(["abcdef12", "1234567"]);
     expect(records[0]!.byLanguage.en.title).toBe("Something new");
   });
   it("refuses a record in one language only", () => {
-    expect(() => buildCatalog([{ path: at("es"), raw: ES }])).toThrow(/2026-10-26-algo\/en\.md/);
+    expect(() => buildCatalog([{ path: at("es"), raw: ES }])).toThrow(/algo\/en\.md/);
   });
 });

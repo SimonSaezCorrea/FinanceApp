@@ -232,6 +232,8 @@ jobs:
           # The indicator pages (spec 033) build with a fixed set of rates instead of calling an
           # API, and test:build checks that exact value of the day is in the HTML.
           EXCHANGE_RATES_SNAPSHOT: test/fixtures/rates-snapshot.json
+          # Novedades (spec 038) with two versions, so test:build sees an older version's page.
+          RELEASE_VERSIONS_SNAPSHOT: test/fixtures/release-versions.json
         run: |
           pnpm --filter @finance/landing build
           pnpm --filter @finance/landing test:build

@@ -1,11 +1,12 @@
 /**
- * Spec 038 — one production deploy's record ("Novedades"), as plain data. A record is a folder
- * `releases/<YYYY-MM-DD>-<slug>/` with `es.md` and `en.md`:
+ * Spec 038 — one record of "Novedades" (a feature or fix people can notice), as plain data. A record
+ * is a folder `releases/<slug>/` with `es.md` and `en.md`. It carries no date and no version: the
+ * version is the deploy that first published it, read from git tags (scripts/versions.mjs).
  *
  *   ---
  *   title: Short title
  *   summary: Optional line.
- *   commits:          (es.md only: the feat/fix commits this deploy brought)
+ *   commits:          (es.md only: the feat/fix commits it covers)
  *     - 5b300ed0
  *   ---
  *
@@ -21,7 +22,7 @@ export const RELEASE_LANGUAGES = ["es", "en"] as const;
 export type ReleaseLanguage = (typeof RELEASE_LANGUAGES)[number];
 
 /** The kinds of change, in the order they are shown. */
-export const RELEASE_KINDS = ["new", "improved", "fixed", "changed", "security"] as const;
+export const RELEASE_KINDS = ["new", "improved", "changed", "fixed", "security"] as const;
 export type ReleaseKind = (typeof RELEASE_KINDS)[number];
 
 /** The heading that opens each kind's group, per language. */
@@ -42,8 +43,8 @@ export const KIND_HEADINGS: Record<ReleaseLanguage, Record<ReleaseKind, string>>
   },
 };
 
-/** `2026-10-26-guias-chile`: the deploy's day, then a few words. Sorting ids sorts by date. */
-export const RELEASE_ID_PATTERN = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** `guias-chile`: a few lower-case words joined by hyphens (the folder's name). */
+export const RELEASE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const COMMIT_PATTERN = /^[0-9a-f]{7,40}$/;
 
 export type InlineToken =
@@ -60,8 +61,6 @@ export interface ReleaseGroup {
 
 export interface Release {
   id: string;
-  /** `YYYY-MM-DD`, from the id. */
-  date: string;
   lang: ReleaseLanguage;
   title: string;
   summary: string | null;
@@ -82,11 +81,7 @@ function isLanguage(value: string): value is ReleaseLanguage {
 }
 
 export function isReleaseId(value: string): boolean {
-  const match = RELEASE_ID_PATTERN.exec(value);
-  if (!match) return false;
-  const [, y, m, d] = match.map(Number);
-  const date = new Date(Date.UTC(y!, m! - 1, d!));
-  return date.getUTCFullYear() === y && date.getUTCMonth() === m! - 1 && date.getUTCDate() === d;
+  return value.length <= 60 && RELEASE_ID_PATTERN.test(value);
 }
 
 /** `…/releases/<id>/<lang>.md` → id and language (any path prefix, either slash). */
@@ -230,7 +225,10 @@ function parseBody(file: string, lang: ReleaseLanguage, body: string): ReleaseGr
 export function parseRelease(path: string, raw: string): Release {
   const { id, lang, file } = locate(path);
   if (!isReleaseId(id)) {
-    throw new ReleaseNoteError(file, "the folder must be named <YYYY-MM-DD>-<words-with-hyphens>");
+    throw new ReleaseNoteError(
+      file,
+      "the folder must be named <words-with-hyphens> (lower case, at most 60 characters)",
+    );
   }
   if (!isLanguage(lang)) {
     throw new ReleaseNoteError(file, `the file must be ${RELEASE_LANGUAGES.join(" or ")}.md`);
@@ -264,7 +262,6 @@ export function parseRelease(path: string, raw: string): Release {
 
   return {
     id,
-    date: id.slice(0, 10),
     lang,
     title,
     summary,

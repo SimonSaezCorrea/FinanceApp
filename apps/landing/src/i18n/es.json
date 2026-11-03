@@ -381,7 +381,9 @@
       },
       "releaseNotes": {
         "title": "Novedades de fik · fik",
-        "description": "Qué cambió en fik en cada actualización: funciones nuevas, mejoras, correcciones y cambios, con su fecha."
+        "description": "Qué cambió en fik en cada versión: funciones nuevas, mejoras, correcciones y cambios, con la fecha en que se publicaron.",
+        "versionTitle": "Novedades de fik v{{version}} · fik",
+        "versionDescription": "Qué trajo fik v{{version}}, publicada el {{date}}: {{titles}}."
       }
     },
     "access": {
@@ -539,8 +541,7 @@
     },
     "releaseNotes": {
       "title": "Novedades",
-      "lead": "Lo que cambió en fik en cada actualización, escrito para personas. Lo más reciente primero.",
-      "since": "Registramos cada cambio desde el 26 de octubre de 2026.",
+      "lead": "Lo que cambió en fik en cada versión, escrito para personas.",
       "empty": "Todavía no hay novedades registradas."
     }
   }

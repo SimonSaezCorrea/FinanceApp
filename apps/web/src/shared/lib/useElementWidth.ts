@@ -82,3 +82,9 @@ export const CUSTOM_FIELDS_PANES_MIN_WIDTH = 820;
  * rows). Below it the list opens each template as its own screen.
  */
 export const TEMPLATES_PANES_MIN_WIDTH = 820;
+
+/**
+ * Width "Novedades" needs to show its versions beside the chosen one: 256px of list + 24px gap +
+ * ~440px of text. Below it the versions become a row of chips above the text.
+ */
+export const RELEASE_NOTES_PANES_MIN_WIDTH = 720;

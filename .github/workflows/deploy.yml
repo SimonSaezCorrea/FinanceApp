@@ -57,11 +57,17 @@ jobs:
       api: ${{ steps.pick.outputs.api }}
       web: ${{ steps.pick.outputs.web }}
       landing: ${{ steps.pick.outputs.landing }}
+      # Novedades (spec 038): the deploy's day in Chile, the same for every build of this run and
+      # for the version tag at the end.
+      release_date: ${{ steps.day.outputs.value }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
+
+      - id: day
+        run: echo "value=$(TZ=America/Santiago date +%F)" >> "$GITHUB_OUTPUT"
 
       - id: pick
         env:
@@ -173,9 +179,11 @@ jobs:
     environment: production
     timeout-minutes: 20
     steps:
+      # Full history with tags: Novedades reads which version brought each record from them.
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.SHA }}
+          fetch-depth: 0
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@v7
         with:
@@ -191,6 +199,7 @@ jobs:
           # them readable, uploaded to Sentry and deleted from dist/ before Pages sees it.
           VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_WEB }}
           VITE_RELEASE: ${{ env.SHA }}
+          RELEASE_DATE: ${{ needs.changes.outputs.release_date }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -213,9 +222,11 @@ jobs:
     environment: production
     timeout-minutes: 20
     steps:
+      # Full history with tags: Novedades reads which version brought each record from them.
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.SHA }}
+          fetch-depth: 0
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@v7
         with:
@@ -230,6 +241,7 @@ jobs:
           PUBLIC_SITE_URL: https://mifik.cl
           # Visit statistics on the public pages only (empty = none); see PageLayout.astro.
           PUBLIC_CF_WEB_ANALYTICS_TOKEN: ${{ vars.CF_WEB_ANALYTICS_TOKEN }}
+          RELEASE_DATE: ${{ needs.changes.outputs.release_date }}
       - name: Upload to Cloudflare Pages (fik-landing)
         # From apps/landing: wrangler compiles the Pages Functions of the CURRENT directory's
         # `functions/` (the root's language redirect) and uploads them with `dist`.
@@ -238,3 +250,43 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+  # Novedades (spec 038): when this deploy published release records no tag has yet, tag the
+  # commit `v1.N` with the day in its subject ("fik v1.2 · 2026-11-02"). That tag IS the version:
+  # every later build reads it (packages/release-notes/scripts/versions.mjs), nobody writes a
+  # version or a date by hand. Only after everything deployed well, and never for a manual run of
+  # one part (the app or the site could lack the records).
+  release-tag:
+    needs: [changes, api, web, landing]
+    if: >-
+      always() &&
+      needs.changes.result == 'success' &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled') &&
+      contains(fromJSON('["changed","all"]'), inputs.targets || 'changed')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the tag
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Tag the version
+        env:
+          RELEASE_DATE: ${{ needs.changes.outputs.release_date }}
+        run: |
+          set -euo pipefail
+          version="$(node packages/release-notes/scripts/versions.mjs --next-tag)"
+          if [ -z "$version" ]; then
+            echo "No new release record in this deploy: no version tag."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${version}" -m "fik v${version} · ${RELEASE_DATE}" "$SHA"
+          git push origin "v${version}"
+          echo "Tagged v${version} (${RELEASE_DATE}) at ${SHA}"

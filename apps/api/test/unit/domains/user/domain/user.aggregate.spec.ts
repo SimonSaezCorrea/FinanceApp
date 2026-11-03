@@ -164,16 +164,22 @@ describe("User.closeOnboarding (2026-10-11)", () => {
 });
 
 describe("User.markReleaseNotesSeen (spec 038)", () => {
-  it("starts with nothing seen and only moves forward", () => {
+  it("starts with nothing seen and only moves forward, comparing numbers", () => {
     const user = User.fromPersistence(baseProps());
-    expect(user.toContract().releaseNotesSeenId).toBeNull();
+    expect(user.toContract().releaseNotesSeenVersion).toBeNull();
 
-    expect(user.markReleaseNotesSeen("2026-10-26-guias-chile")).toBe(true);
-    expect(user.markReleaseNotesSeen("2026-10-26-guias-chile")).toBe(false);
-    expect(user.markReleaseNotesSeen("2026-10-01-older")).toBe(false);
-    expect(user.releaseNotesSeenId).toBe("2026-10-26-guias-chile");
+    expect(user.markReleaseNotesSeen("1.9")).toBe(true);
+    expect(user.markReleaseNotesSeen("1.9")).toBe(false);
+    expect(user.markReleaseNotesSeen("1.2")).toBe(false);
+    expect(user.releaseNotesSeenVersion).toBe("1.9");
 
-    expect(user.markReleaseNotesSeen("2026-11-02-next")).toBe(true);
-    expect(user.toContract().releaseNotesSeenId).toBe("2026-11-02-next");
+    expect(user.markReleaseNotesSeen("1.10")).toBe(true);
+    expect(user.toContract().releaseNotesSeenVersion).toBe("1.10");
+  });
+
+  it("replaces a stored value that isn't a version (a record id from before versions)", () => {
+    const user = User.fromPersistence({ ...baseProps(), releaseNotesSeenVersion: "2026-11-01-x" });
+    expect(user.markReleaseNotesSeen("1.1")).toBe(true);
+    expect(user.releaseNotesSeenVersion).toBe("1.1");
   });
 });

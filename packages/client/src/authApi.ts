@@ -74,10 +74,10 @@ export const authApi = {
 
   /** The first-steps guide was finished or closed: it never shows again, on any device. */
   closeOnboarding: () => apiFetch<void>("/auth/me/onboarding/close", { method: "POST" }),
-  /** Novedades (spec 038): the newest record the person saw. */
-  markReleaseNotesSeen: (releaseId: string) =>
+  /** Novedades (spec 038): the newest version the person saw (`1.2`). */
+  markReleaseNotesSeen: (version: string) =>
     apiFetch<void>("/auth/me/release-notes/seen", {
       method: "POST",
-      body: JSON.stringify({ releaseId }),
+      body: JSON.stringify({ version }),
     }),
 };

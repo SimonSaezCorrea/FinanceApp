@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import type { InlineToken, Release } from "@finance/release-notes/src/parse";
+import type { InlineToken, Release, ReleaseKind } from "@finance/release-notes/src/parse";
 import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 function Change({ tokens }: Readonly<{ tokens: readonly InlineToken[] }>) {
@@ -36,47 +36,50 @@ function Change({ tokens }: Readonly<{ tokens: readonly InlineToken[] }>) {
   );
 }
 
-/** One deploy's record: date, title, summary and its changes grouped by kind. */
-export function ReleaseItem({ release }: Readonly<{ release: Release }>) {
-  const { t, i18n } = useTranslation();
-  const date = new Intl.DateTimeFormat(i18n.language === "en" ? "en-US" : "es-CL", {
-    timeZone: "UTC",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${release.date}T00:00:00Z`));
+/** One color per kind, so the eye finds "Correcciones" without reading every label. */
+const KIND_DOT: Record<ReleaseKind, string> = {
+  new: "bg-primary",
+  improved: "bg-success",
+  changed: "bg-accent",
+  fixed: "bg-muted-foreground",
+  security: "bg-destructive",
+};
 
+/** One record of a version: title, summary and its changes, each kind in a label column beside
+ * its list. The date belongs to the version (the deploy), not to the record. */
+export function ReleaseItem({ release }: Readonly<{ release: Release }>) {
+  const { t } = useTranslation();
   return (
-    <article
+    <section
       id={release.id}
       aria-labelledby={`${release.id}-title`}
-      className="flex flex-col gap-4 rounded-2xl border bg-card p-5"
+      className="flex scroll-mt-6 flex-col gap-4 border-t pt-6"
     >
-      <header className="flex flex-col gap-1">
-        <time dateTime={release.date} className="text-sm text-muted-foreground">
-          {date}
-        </time>
-        <h2 id={`${release.id}-title`} className="text-lg font-semibold tracking-tight">
+      <div className="flex flex-col gap-1">
+        <h3 id={`${release.id}-title`} className="text-lg font-semibold tracking-tight">
           {withBrand(release.title)}
-        </h2>
+        </h3>
         {release.summary ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
             {withBrand(release.summary)}
           </p>
         ) : null}
-      </header>
+      </div>
       {release.groups.map((group) => (
-        <section key={group.kind} className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">{t(`releaseNotes.kinds.${group.kind}`)}</h3>
-          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed">
+        <div key={group.kind} className="grid gap-2 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-5">
+          <h4 className="flex items-center gap-2 self-start text-sm font-semibold sm:pt-0.5">
+            <span aria-hidden className={`size-2 shrink-0 rounded-full ${KIND_DOT[group.kind]}`} />
+            {t(`releaseNotes.kinds.${group.kind}`)}
+          </h4>
+          <ul className="flex list-disc flex-col gap-2 pl-5 text-sm leading-relaxed sm:pl-4">
             {group.items.map((item, i) => (
               <li key={i}>
                 <Change tokens={item} />
               </li>
             ))}
           </ul>
-        </section>
+        </div>
       ))}
-    </article>
+    </section>
   );
 }

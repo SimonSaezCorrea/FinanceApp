@@ -4,6 +4,10 @@ import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 
+import { versionSlug } from "@finance/release-notes/scripts/version-rules.mjs";
+import { resolveVersions } from "@finance/release-notes/scripts/versions.mjs";
+import { releaseVersions } from "@finance/release-notes/vite-plugin.mjs";
+
 import { guideSitemapPairs } from "./src/domains/guides/lib/sitemapPairs.mjs";
 
 // The public site (specs/031): plain static files, publishable on any static host.
@@ -25,6 +29,13 @@ const LOCALIZED_PAIRS = [
   { es: "/es/novedades/", en: "/en/whats-new/" },
   // Every guide written in both languages (spec 035), read from its frontmatter slug.
   ...guideSitemapPairs(fileURLToPath(new URL("./src/content/guides", import.meta.url))),
+  // Every older Novedades version (spec 038; the newest is /novedades/ itself), from git tags.
+  ...resolveVersions({ warn: () => {} })
+    .slice(1)
+    .map(({ version }) => ({
+      es: `/es/novedades/${versionSlug(version)}/`,
+      en: `/en/whats-new/${versionSlug(version)}/`,
+    })),
 ];
 
 // Pages an email link opens (specs/032): never indexed, never in the sitemap.
@@ -59,6 +70,8 @@ export default defineConfig({
     }),
   ],
   vite: {
+    // Novedades (spec 038): the versions of the release records, read from git tags.
+    plugins: [releaseVersions()],
     // One React for the whole page (pnpm can surface a second copy through workspace packages).
     resolve: { dedupe: ["react", "react-dom"] },
     // The access panel is a dynamic import (scripts/access.ts), so Vite's startup scan never sees

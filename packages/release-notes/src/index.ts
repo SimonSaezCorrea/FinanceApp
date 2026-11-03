@@ -3,3 +3,4 @@
 export * from "./parse";
 export * from "./catalog";
 export { idsOf } from "./ids";
+export { compareVersions, versionSlug } from "../scripts/version-rules.mjs";

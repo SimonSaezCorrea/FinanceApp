@@ -6,6 +6,6 @@ export class MarkReleaseNotesSeenCommand implements UserScopedCommand {
 
   constructor(
     public readonly userId: string,
-    public readonly releaseId: string,
+    public readonly version: string,
   ) {}
 }

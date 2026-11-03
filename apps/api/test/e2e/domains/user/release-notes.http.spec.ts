@@ -11,7 +11,7 @@ import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.f
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
 
-/** E2E (spec 038): the newest Novedades record seen is kept on the account — another login
+/** E2E (spec 038): the newest Novedades version seen is kept on the account — another login
  * already sees it — and it only moves forward. */
 describe("Release notes seen HTTP (e2e)", () => {
   let app: INestApplication;
@@ -45,24 +45,24 @@ describe("Release notes seen HTTP (e2e)", () => {
     await app.close();
   });
 
-  const mark = (releaseId: unknown) =>
+  const mark = (version: unknown) =>
     request(app.getHttpServer())
       .post("/api/v1/auth/me/release-notes/seen")
       .set("Cookie", cookies)
-      .send({ releaseId });
+      .send({ version });
   const seen = async () =>
-    (await prisma.user.findFirst({ where: { email } }))?.releaseNotesSeenId ?? null;
+    (await prisma.user.findFirst({ where: { email } }))?.releaseNotesSeenVersion ?? null;
 
   it("starts with nothing seen, marks, never goes back, and another login sees it", async () => {
     const before = await request(app.getHttpServer()).get("/api/v1/auth/me").set("Cookie", cookies);
-    expect(before.body.releaseNotesSeenId).toBeNull();
+    expect(before.body.releaseNotesSeenVersion).toBeNull();
 
-    expect((await mark("2026-10-26-guias-chile")).status).toBe(204);
-    expect(await seen()).toBe("2026-10-26-guias-chile");
+    expect((await mark("1.10")).status).toBe(204);
+    expect(await seen()).toBe("1.10");
 
-    expect((await mark("2026-10-26-guias-chile")).status).toBe(204);
-    expect((await mark("2026-01-01-older")).status).toBe(204);
-    expect(await seen()).toBe("2026-10-26-guias-chile");
+    expect((await mark("1.10")).status).toBe(204);
+    expect((await mark("1.9")).status).toBe(204);
+    expect(await seen()).toBe("1.10");
 
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
@@ -70,21 +70,21 @@ describe("Release notes seen HTTP (e2e)", () => {
     const other = await request(app.getHttpServer())
       .get("/api/v1/auth/me")
       .set("Cookie", login.get("Set-Cookie") ?? []);
-    expect(other.body.releaseNotesSeenId).toBe("2026-10-26-guias-chile");
+    expect(other.body.releaseNotesSeenVersion).toBe("1.10");
   });
 
-  it("refuses a malformed id", async () => {
-    for (const bad of ["guias", "2026-10-26", "2026-10-26-UPPER", 42, "x".repeat(81)]) {
+  it("refuses something that isn't a version", async () => {
+    for (const bad of ["v1.2", "1", "1.2.3", "2026-10-26-guias-chile", 42]) {
       const res = await mark(bad);
       expect(res.status).toBe(400);
-      expect(res.body.error.field).toBe("releaseId");
+      expect(res.body.error.field).toBe("version");
     }
   });
 
   it("needs a session", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/release-notes/seen")
-      .send({ releaseId: "2026-10-26-guias-chile" });
+      .send({ version: "1.1" });
     expect(res.status).toBe(401);
   });
 });

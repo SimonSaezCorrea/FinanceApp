@@ -1,3 +1,6 @@
+/// <reference path="./virtual.d.ts" />
+import VERSIONS from "virtual:fik-release-versions";
+
 import {
   parseRelease,
   type Release,
@@ -11,15 +14,25 @@ export interface ReleaseFile {
   raw: string;
 }
 
-/** One deploy in both languages. */
+/** One record in both languages. */
 export interface ReleaseRecord {
   id: string;
-  date: string;
   commits: string[];
   byLanguage: Record<ReleaseLanguage, Release>;
 }
 
-/** Every record, checked as a set (both languages present), newest first. Throws naming the file. */
+/** One version: a deploy that published records, and those records (newest first). */
+export interface ReleaseVersion {
+  /** `1.2` */
+  version: string;
+  /** `YYYY-MM-DD`, the deploy's day in Chile. */
+  date: string;
+  /** Not tagged yet: the version this build publishes. */
+  pending: boolean;
+  records: ReleaseRecord[];
+}
+
+/** Every record, checked as a set (both languages present), by id. Throws naming the file. */
 export function buildCatalog(files: readonly ReleaseFile[]): ReleaseRecord[] {
   const byId = new Map<string, Partial<Record<ReleaseLanguage, Release>>>();
   for (const { path, raw } of files) {
@@ -38,14 +51,36 @@ export function buildCatalog(files: readonly ReleaseFile[]): ReleaseRecord[] {
         );
     }
     const byLanguage = entry as Record<ReleaseLanguage, Release>;
-    records.push({ id, date: byLanguage.es.date, commits: byLanguage.es.commits, byLanguage });
+    records.push({ id, commits: byLanguage.es.commits, byLanguage });
   }
-  return records.sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+  return records.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** One language's records, newest first. */
-export function releasesIn(records: readonly ReleaseRecord[], lang: ReleaseLanguage): Release[] {
-  return records.map((r) => r.byLanguage[lang]);
+/** The records grouped by version, newest version first. `versions` comes from git
+ * (scripts/versions.mjs); a record it doesn't name joins the newest version. */
+export function groupByVersion(
+  records: readonly ReleaseRecord[],
+  versions: typeof VERSIONS,
+): ReleaseVersion[] {
+  const byId = new Map(records.map((r) => [r.id, r]));
+  const placed = new Set<string>();
+  const grouped = versions.map((v) => {
+    const own = v.records.flatMap((id) => {
+      const record = byId.get(id);
+      if (!record) return [];
+      placed.add(id);
+      return [record];
+    });
+    return { version: v.version, date: v.date, pending: v.pending, records: own };
+  });
+  const loose = records.filter((r) => !placed.has(r.id));
+  if (loose.length > 0 && grouped[0]) grouped[0].records.push(...loose);
+  return grouped.filter((v) => v.records.length > 0);
+}
+
+/** One language's records of a version. */
+export function releasesIn(version: ReleaseVersion, lang: ReleaseLanguage): Release[] {
+  return version.records.map((r) => r.byLanguage[lang]);
 }
 
 const FILES = import.meta.glob<string>("../releases/*/*.md", {
@@ -54,10 +89,13 @@ const FILES = import.meta.glob<string>("../releases/*/*.md", {
   eager: true,
 });
 
-let cached: ReleaseRecord[] | null = null;
+let cached: ReleaseVersion[] | null = null;
 
-/** The repository's records (eager: for the public site, at build time). */
-export function releaseCatalog(): ReleaseRecord[] {
-  cached ??= buildCatalog(Object.entries(FILES).map(([path, raw]) => ({ path, raw })));
+/** The repository's records by version (eager: for the public site, at build time). */
+export function versionCatalog(): ReleaseVersion[] {
+  cached ??= groupByVersion(
+    buildCatalog(Object.entries(FILES).map(([path, raw]) => ({ path, raw }))),
+    VERSIONS,
+  );
   return cached;
 }

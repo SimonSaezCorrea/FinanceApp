@@ -5,13 +5,13 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authApi } from "@finance/client";
-import { latestReleaseId } from "@finance/release-notes/src/lazy";
+import { latestVersion } from "@finance/release-notes/src/lazy";
 
 import i18n from "../../../i18n";
 import { ReleaseNotesRoute } from "./ReleaseNotesRoute";
 
 const auth = vi.hoisted(() => ({
-  user: { releaseNotesSeenId: null as string | null },
+  user: { releaseNotesSeenVersion: null as string | null },
   refreshUser: vi.fn(),
 }));
 
@@ -39,26 +39,32 @@ describe("ReleaseNotesRoute (spec 038)", () => {
   beforeEach(() => {
     mark.mockReset();
     auth.refreshUser.mockReset();
-    auth.user = { releaseNotesSeenId: null };
+    auth.user = { releaseNotesSeenVersion: null };
   });
 
-  it("lists the records grouped by kind and marks the newest as seen once", async () => {
+  it("shows the newest version with its records and marks it as seen once", async () => {
     mark.mockResolvedValue(undefined);
     renderRoute();
     expect(
       await screen.findByRole("heading", { name: "Guías de finanzas personales para Chile" }),
     ).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Correcciones" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: `v${latestVersion()}` })).toBeTruthy();
+    expect(screen.getAllByRole("heading", { name: "Correcciones" }).length).toBeGreaterThan(0);
+    const button = screen.getByRole("button", { name: `Versión ${latestVersion()}` });
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    // Newer than what was seen on arrival: it keeps its "new" mark while the page is open.
+    expect(button.textContent).toContain("Nueva");
     await waitFor(() => expect(auth.refreshUser).toHaveBeenCalled());
     expect(mark).toHaveBeenCalledTimes(1);
-    expect(mark).toHaveBeenCalledWith(latestReleaseId());
+    expect(mark).toHaveBeenCalledWith(latestVersion());
   });
 
-  it("asks nothing when the newest was already seen", async () => {
-    auth.user = { releaseNotesSeenId: latestReleaseId() };
+  it("asks nothing when the newest was already seen, and marks nothing as new", async () => {
+    auth.user = { releaseNotesSeenVersion: latestVersion() };
     renderRoute();
     await screen.findByRole("heading", { name: "Guías de finanzas personales para Chile" });
     expect(mark).not.toHaveBeenCalled();
+    expect(screen.queryByText("Nueva")).toBeNull();
   });
 
   it("still reads when saving 'seen' fails", async () => {

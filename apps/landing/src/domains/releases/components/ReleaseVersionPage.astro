@@ -1,0 +1,206 @@
+---
+import { type ReleaseKind, releasesIn, type ReleaseVersion } from "@finance/release-notes";
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
+
+import { HERO_TITLE } from "../../landing/components/bits";
+import { formatDay } from "../../rates/lib/chileDay";
+import { t } from "../../../i18n";
+import PageLayout from "../../../layouts/PageLayout.astro";
+import { type Language, LANGUAGES, pagePath } from "../../../lib/language";
+import { changeHtml } from "../lib/render";
+import { versionPath } from "../lib/versions";
+
+/**
+ * Novedades (spec 038): ONE version at a time — the one in the address — beside the index of
+ * every version. It opens with "En esta versión" (each record and its summary, linking to it),
+ * then one card per record with its kinds in a label column, so it reads top-down. No script.
+ */
+interface Props {
+  lang: Language;
+  version: ReleaseVersion;
+  versions: ReleaseVersion[];
+}
+const { lang, version, versions } = Astro.props;
+const latest = versions[0]!.version === version.version;
+const releases = releasesIn(version, lang);
+/** How many changes a version lists, across its records. */
+const changeCount = (v: ReleaseVersion) =>
+  releasesIn(v, lang).reduce(
+    (sum, r) => sum + r.groups.reduce((n, g) => n + g.items.length, 0),
+    0,
+  );
+const changes = changeCount(version);
+/** One color per kind, so the eye finds "Correcciones" without reading every label. */
+const KIND_DOT: Record<ReleaseKind, string> = {
+  new: "bg-primary",
+  improved: "bg-success",
+  changed: "bg-accent",
+  fixed: "bg-muted-foreground",
+  security: "bg-destructive",
+};
+const date = formatDay(version.date, lang);
+const paths = Object.fromEntries(
+  LANGUAGES.map((l) => [l, versionPath(l, version.version, versions)]),
+) as Record<Language, string>;
+
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const url = `${site}${paths[lang]}`;
+const title = latest
+  ? undefined
+  : t(lang, "landing.meta.releaseNotes.versionTitle", { version: version.version });
+const description = latest
+  ? undefined
+  : t(lang, "landing.meta.releaseNotes.versionDescription", {
+      version: version.version,
+      date,
+      titles: releases.map((r) => r.title).join(", "),
+    });
+const structuredData = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${t(lang, "landing.releaseNotes.title")} · v${version.version}`,
+    url,
+    datePublished: version.date,
+    inLanguage: lang === "es" ? "es-CL" : "en-US",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "fik", item: `${site}${pagePath(lang, "home")}` },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: t(lang, "landing.releaseNotes.title"),
+        item: `${site}${pagePath(lang, "releaseNotes")}`,
+      },
+      ...(latest ? [] : [{ "@type": "ListItem", position: 3, name: `v${version.version}`, item: url }]),
+    ],
+  },
+]).replace(/</g, "\\u003c");
+---
+
+<PageLayout
+  lang={lang}
+  page="releaseNotes"
+  paths={paths}
+  title={title}
+  description={description}
+>
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+
+  <div class="flex flex-col gap-8 py-10 lg:flex-row lg:gap-16 lg:py-16">
+    <nav
+      aria-label={t(lang, "releaseNotes.versions")}
+      class="flex flex-col gap-3 lg:w-52 lg:shrink-0"
+      data-release-versions
+    >
+      <p class="text-sm font-semibold text-muted-foreground">{t(lang, "releaseNotes.versions")}</p>
+      <ol class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0">
+        {
+          versions.map((v) => {
+            const current = v.version === version.version;
+            return (
+              <li class="shrink-0">
+                <a
+                  href={versionPath(lang, v.version, versions)}
+                  aria-current={current ? "page" : undefined}
+                  class:list={[
+                    "flex min-h-11 flex-col justify-center gap-0.5 rounded-xl border px-4 py-2 transition-colors lg:border-transparent",
+                    current
+                      ? "border-primary/40 bg-surface2 text-foreground"
+                      : "text-muted-foreground hover:bg-surface2 hover:text-foreground",
+                  ]}
+                >
+                  <span class="flex items-baseline gap-2">
+                    <span class="font-semibold text-foreground">v{v.version}</span>
+                    <time datetime={v.date} class="text-xs">
+                      {formatDay(v.date, lang, "short")}
+                    </time>
+                  </span>
+                  <span class="hidden text-xs lg:block">
+                    {t(lang, "releaseNotes.changes", { count: changeCount(v) })}
+                  </span>
+                </a>
+              </li>
+            );
+          })
+        }
+      </ol>
+      <p class="hidden text-xs leading-relaxed text-muted-foreground lg:block" set:html={brandHtml(t(lang, "releaseNotes.since"))} />
+    </nav>
+
+    <section aria-labelledby="release-notes-title" class="flex min-w-0 max-w-[48rem] flex-1 flex-col gap-8">
+      <div class="flex flex-col gap-3">
+        <h1 id="release-notes-title" tabindex="-1" class={HERO_TITLE}>
+          {t(lang, "landing.releaseNotes.title")}
+        </h1>
+        <p class="text-lg leading-relaxed text-muted-foreground" set:html={brandHtml(t(lang, "landing.releaseNotes.lead"))} />
+      </div>
+
+      <article data-release-version={version.version} aria-labelledby="release-version-title" class="flex flex-col gap-6">
+        <header class="flex flex-col gap-1 border-t pt-8">
+          <div class="flex flex-wrap items-center gap-3">
+            <h2 id="release-version-title" class="text-3xl font-semibold tracking-tight">
+              v{version.version}
+            </h2>
+            {latest ? (
+              <span class="rounded-full border border-primary/40 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {t(lang, "releaseNotes.current")}
+              </span>
+            ) : null}
+          </div>
+          <p class="text-sm text-muted-foreground">
+            <time datetime={version.date}>{t(lang, "releaseNotes.published", { date })}</time>
+            {" · "}
+            {t(lang, "releaseNotes.changes", { count: changes })}
+          </p>
+        </header>
+
+        <nav aria-label={t(lang, "releaseNotes.inThisVersion")} data-release-summary class="rounded-2xl bg-surface2 p-5 sm:p-6">
+          <p class="text-sm font-semibold">{t(lang, "releaseNotes.inThisVersion")}</p>
+          <ol class="mt-3 flex flex-col gap-3">
+            {releases.map((release) => (
+              <li class="flex flex-col gap-0.5">
+                <a href={`#${release.id}`} class="font-medium text-foreground hover:underline" set:html={brandHtml(release.title)} />
+                {release.summary ? (
+                  <span class="text-sm leading-relaxed text-muted-foreground" set:html={brandHtml(release.summary)} />
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        {
+          releases.map((release) => (
+            <section id={release.id} data-release={release.id} aria-labelledby={`${release.id}-title`} class="flex scroll-mt-24 flex-col gap-5 rounded-2xl border bg-card p-5 sm:p-6">
+              <div class="flex flex-col gap-1">
+                <h3 id={`${release.id}-title`} class="text-xl font-semibold tracking-tight" set:html={brandHtml(release.title)} />
+                {release.summary ? (
+                  <p class="leading-relaxed text-muted-foreground" set:html={brandHtml(release.summary)} />
+                ) : null}
+              </div>
+              <div class="flex flex-col gap-5">
+                {release.groups.map((group) => (
+                  <div data-release-kind={group.kind} class="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-6">
+                    <h4 class="flex items-center gap-2 self-start text-sm font-semibold sm:pt-0.5">
+                      <span aria-hidden="true" class:list={["size-2 shrink-0 rounded-full", KIND_DOT[group.kind]]} />
+                      {t(lang, `releaseNotes.kinds.${group.kind}`)}
+                    </h4>
+                    <ul class="flex list-disc flex-col gap-2.5 pl-5 leading-relaxed sm:pl-4 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:text-[0.9em]">
+                      {group.items.map((item) => (
+                        <li set:html={changeHtml(item)} />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))
+        }
+      </article>
+      <p class="text-xs leading-relaxed text-muted-foreground lg:hidden" set:html={brandHtml(t(lang, "releaseNotes.since"))} />
+    </section>
+  </div>
+</PageLayout>

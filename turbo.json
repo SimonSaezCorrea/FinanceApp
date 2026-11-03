@@ -17,7 +17,9 @@
         "PUBLIC_APP_URL",
         "PUBLIC_SITE_URL",
         "EXCHANGE_RATES_SNAPSHOT",
-        "EXCHANGE_RATES_REQUIRED"
+        "EXCHANGE_RATES_REQUIRED",
+        "RELEASE_DATE",
+        "RELEASE_VERSIONS_SNAPSHOT"
       ]
     },
     "dev": {

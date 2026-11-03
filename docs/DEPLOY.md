@@ -223,6 +223,17 @@ _Actions → Deploy → Run workflow_ con `changed` / `all` / `api` / `web` / `l
    - Secret: `CLOUDFLARE_API_TOKEN`, un token de cuenta con **Cloudflare Pages · Edit** y nada más.
 3. La primera imagen del API tarda ~15 min (emulación ARM); después usa caché.
 
+**Versiones de Novedades** (spec 038): cuando el despliegue termina bien y publicó novedades que
+ningún tag tiene todavía (`packages/release-notes/releases/<slug>/`), el job `release-tag` crea el tag
+anotado **`v1.N`** en el commit desplegado, con el día de Chile en su asunto
+(`fik v1.2 · 2026-11-02`), y lo sube con el `GITHUB_TOKEN` (`contents: write`, solo ese job). Ese tag
+**es** la versión: los builds de la app y del landing leen los tags (checkout con
+`fetch-depth: 0`) para saber qué versión trajo cada novedad y su fecha; nadie escribe versión ni
+fecha a mano. v1.0 es el lanzamiento (10 oct 2026, sin novedades), así que la primera es v1.1. Un
+despliegue manual de una sola parte (`api`, `web`, `landing`) no crea tag. Si el tag falla, el
+siguiente despliegue vuelve a intentarlo con su propia fecha. Ver las versiones:
+`pnpm release-notes:versions`.
+
 ## 10. Landing y app (Cloudflare Pages)
 
 Dos proyectos, **`fik-landing`** (_Custom domains_ → `mifik.cl`) y **`fik-app`** (`app.mifik.cl`),

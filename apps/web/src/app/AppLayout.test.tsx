@@ -3,7 +3,7 @@ import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { latestReleaseId } from "@finance/release-notes/src/lazy";
+import { latestVersion } from "@finance/release-notes/src/lazy";
 
 import i18n from "../i18n";
 import { AppLayout } from "./AppLayout";
@@ -38,7 +38,7 @@ const user = (seen: string | null) => ({
   name: "Ana",
   email: "ana@test.local",
   emailVerified: true,
-  releaseNotesSeenId: seen,
+  releaseNotesSeenVersion: seen,
 });
 
 describe("AppLayout · Novedades (spec 038)", () => {
@@ -55,8 +55,8 @@ describe("AppLayout · Novedades (spec 038)", () => {
     expect(link.textContent).toContain("hay novedades");
   });
 
-  it("drops the dot once the newest record was seen (on any device: it comes from the account)", () => {
-    auth.user = user(latestReleaseId());
+  it("drops the dot once the newest version was seen (on any device: it comes from the account)", () => {
+    auth.user = user(latestVersion());
     renderLayout();
     const link = screen.getByRole("link", { name: /Novedades/ });
     expect(link.textContent).not.toContain("hay novedades");

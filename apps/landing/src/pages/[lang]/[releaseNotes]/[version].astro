@@ -1,0 +1,28 @@
+---
+import { versionCatalog, versionSlug } from "@finance/release-notes";
+
+import ReleaseVersionPage from "../../../domains/releases/components/ReleaseVersionPage.astro";
+import { type Language, LANGUAGES, LOCALIZED_SLUGS } from "../../../lib/language";
+
+/** Novedades (spec 038): one older version at its own address (`/es/novedades/v1-1/`). The
+ * newest one is the index page, so it has no page here. */
+export function getStaticPaths() {
+  const versions = versionCatalog();
+  return LANGUAGES.flatMap((lang) =>
+    versions.slice(1).map((v) => ({
+      params: {
+        lang,
+        releaseNotes: LOCALIZED_SLUGS.releaseNotes[lang],
+        version: versionSlug(v.version),
+      },
+      props: { version: v },
+    })),
+  );
+}
+
+const lang = Astro.params.lang as Language;
+const versions = versionCatalog();
+const { version } = Astro.props;
+---
+
+<ReleaseVersionPage lang={lang} version={version} versions={versions} />

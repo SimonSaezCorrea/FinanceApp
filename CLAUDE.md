@@ -1946,6 +1946,24 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     (LCP ~5 s on the throttled mobile profile, mostly the data waterfall). A Lighthouse run against
     `vite preview` in VS Code can report "charset too late": the Console Ninja extension injects a
     script ahead of `<meta charset>` — not the build.
+- **Novedades by version** (spec 038, versions 2026-11-03): what changed, written for people, in
+  `packages/release-notes/releases/<slug>/{es,en}.md` (no date in the folder or the file; `commits:`
+  in es.md lists the feat/fix it covers, checked on every push to main by `scripts/check.mjs`). A
+  **version** is one production deploy that published records, `v1.N` (v1.0 = the 2026-10-10 launch,
+  without records, so the first is v1.1): deploy.yml's `release-tag` job tags the deployed commit
+  `v1.N` with Chile's day in the subject when everything went well and records no tag has yet were
+  published (never on a manual run of one part). `scripts/versions.mjs` reads the tags (a record
+  belongs to the first tag whose tree has it; untagged ones are the next version, dated
+  `RELEASE_DATE` or today in Chile; `RELEASE_VERSIONS_SNAPSHOT=<json>` replaces git for the built-site
+  tests) and `vite-plugin.mjs` hands them to the builds as `virtual:fik-release-versions` (web and
+  landing checkouts in deploy.yml/landing-rates.yml use `fetch-depth: 0`). Site: `/es/novedades/` shows
+  ONLY the newest version beside the index of versions, each older one at `/es/novedades/v1-1/`
+  (`[releaseNotes]/[version].astro`, sitemap pairs from the tags). App `/whats-new`: versions list beside
+  the chosen one (`?version=1.1`; chips above it below `RELEASE_NOTES_PANES_MIN_WIDTH` 720), "Nueva" on
+  versions newer than what was seen on arrival. The account keeps the newest version seen,
+  `User.releaseNotesSeenVersion` (`POST /auth/me/release-notes/seen` `{version}`, numeric compare, only
+  forward; migration `20261102120000_release_notes_seen_version`). `pnpm release-notes:versions` prints
+  them.
 - **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`], `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] and `@finance/contracts/exchange-rate-rules` [`isCarried`, `rateOn`, specs/033] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest; `@finance/money/rate-format` = `formatRate`/`formatRateChange`/`formatPercentChange` with no `decimal.js`, specs/033), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/fik.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family and `DateField` — the app's own calendar, moved from `apps/web` on 2026-10-14 so the sign-up's birth date uses it too [`max`, `openTo="years"`, `defaultMonth`, `todayShortcut`, `variant="bare"`; Escape closes the calendar, never the dialog around it], `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); every auth cookie is `Secure` unless ALL `CORS_ORIGIN` origins are plain `http://` on loopback (`origins.config.ts`'s `requiresSecureCookies`, 2026-10-10) — secure by default, never tied to `NODE_ENV`, so a deployment that forgets `NODE_ENV=production` still sends them over HTTPS only; `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
   - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/CLF — las tres del MVP; `CLF` es la UF), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).
@@ -2573,7 +2591,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.9.0**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.9.2**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.

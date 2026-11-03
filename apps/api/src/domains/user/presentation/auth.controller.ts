@@ -463,7 +463,7 @@ export class AuthController {
     return this.commandBus.execute(new CloseOnboardingCommand(user.id));
   }
 
-  /** Novedades (spec 038): the person saw up to `releaseId`; the dot goes away on every device. */
+  /** Novedades (spec 038): the person saw up to `version`; the dot goes away on every device. */
   @Post("me/release-notes/seen")
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
@@ -472,7 +472,7 @@ export class AuthController {
     @Body(new ZodValidationPipe(auth.markReleaseNotesSeenRequestSchema))
     body: auth.MarkReleaseNotesSeenRequest,
   ): Promise<void> {
-    return this.commandBus.execute(new MarkReleaseNotesSeenCommand(user.id, body.releaseId));
+    return this.commandBus.execute(new MarkReleaseNotesSeenCommand(user.id, body.version));
   }
 
   // --- Account emails (specs/032) -------------------------------------------------------------

@@ -1,4 +1,13 @@
 <!--
+Sync Impact Report — 2026-11-03 (amendment 2.9.2)
+- Version change: 2.9.1 → 2.9.2 (PATCH: a convention is recorded; no principle changes meaning).
+- RECORDED: Novedades (spec 038) are grouped by VERSION — one production deploy that published
+  records, `v1.N`, tagged in git by deploy.yml's `release-tag` job with the deploy's day. Record
+  folders carry no date (`releases/<slug>/`); builds read the tags (packages/release-notes/
+  scripts/versions.mjs). The account keeps the newest version seen (`User.releaseNotesSeenVersion`,
+  migration `20261102120000_release_notes_seen_version`). A version is a business identifier, never
+  a row id (Principle VIII).
+
 Sync Impact Report — 2026-11-02 (amendment 2.9.1)
 - Version change: 2.9.0 → 2.9.1 (PATCH: a dependency is recorded; no principle changes meaning).
 - RECORDED (Principle V): Better Stack via a Vector container for server logs (no npm dependency).
@@ -2381,4 +2390,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.9.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-02
+**Version**: 2.9.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-03

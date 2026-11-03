@@ -48,8 +48,8 @@ export interface UserProps {
   emailVerifiedAt?: Date | null;
   /** The first-steps guide was finished or closed (it never shows again). */
   onboardingClosedAt?: Date | null;
-  /** The newest Novedades record the person saw (spec 038); null/absent = none. */
-  releaseNotesSeenId?: string | null;
+  /** The newest Novedades version the person saw (spec 038, `1.2`); null/absent = none. */
+  releaseNotesSeenVersion?: string | null;
 }
 
 /** `email` is not part of a profile edit (specs/032): it changes only by confirming a pending
@@ -80,6 +80,12 @@ export type PreferencesPatch = Partial<{
 }>;
 
 /** Full years elapsed since birthDate (only the age is ever exposed, never the exact date). */
+/** `"1.2"` → `[1, 2]`; anything else (null, a pre-version record id) → null. */
+function parseReleaseVersion(value: string | null | undefined): [number, number] | null {
+  const match = /^(\d{1,4})\.(\d{1,4})$/.exec(value ?? "");
+  return match ? [Number(match[1]), Number(match[2])] : null;
+}
+
 function calculateAge(birthDate: Date | null): number | null {
   if (!birthDate) return null;
   const now = new Date();
@@ -202,17 +208,22 @@ export class User {
     return true;
   }
 
-  get releaseNotesSeenId(): string | null {
-    return this.props.releaseNotesSeenId ?? null;
+  get releaseNotesSeenVersion(): string | null {
+    return this.props.releaseNotesSeenVersion ?? null;
   }
 
-  /** The person opened Novedades with `releaseId` as the newest record (spec 038). Only moves
-   * forward — ids start with their date, so comparing them orders them —: repeating it, or an
-   * older id (a stale tab), changes nothing (Principle VII form a). Returns whether it changed. */
-  markReleaseNotesSeen(releaseId: string): boolean {
-    const current = this.props.releaseNotesSeenId;
-    if (current && current >= releaseId) return false;
-    this.props.releaseNotesSeenId = releaseId;
+  /** The person opened Novedades with `version` as the newest (spec 038). Only moves forward,
+   * comparing numbers (`1.10` after `1.9`): repeating it, or an older version (a stale tab),
+   * changes nothing (Principle VII form a). A stored value that isn't a version counts as nothing
+   * seen. Returns whether it changed. */
+  markReleaseNotesSeen(version: string): boolean {
+    const current = parseReleaseVersion(this.props.releaseNotesSeenVersion);
+    const next = parseReleaseVersion(version);
+    if (!next) return false;
+    if (current && (current[0] > next[0] || (current[0] === next[0] && current[1] >= next[1]))) {
+      return false;
+    }
+    this.props.releaseNotesSeenVersion = version;
     return true;
   }
 
@@ -413,7 +424,7 @@ export class User {
       phone: this.props.phone,
       hideBalances: this.props.hideBalances,
       onboardingClosed: this.onboardingClosed,
-      releaseNotesSeenId: this.releaseNotesSeenId,
+      releaseNotesSeenVersion: this.releaseNotesSeenVersion,
       extraCurrencies: this.props.extraCurrencies,
       budgetAlertThreshold: this.props.budgetAlertThreshold,
       mfaEnabled: this.props.mfaEnabled,

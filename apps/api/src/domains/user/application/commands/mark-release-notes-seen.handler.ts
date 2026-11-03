@@ -13,10 +13,10 @@ interface Context {
 }
 
 /**
- * Novedades (spec 038): remembers, on the account, the newest record the person saw, so the app's
- * "new" dot goes away on every device. Only moves forward; a repeat or an older id writes nothing
- * (Principle VII form a). The id is not checked against the records (the API doesn't ship them):
- * a made-up future id only hides the person's own dot.
+ * Novedades (spec 038): remembers, on the account, the newest version the person saw, so the app's
+ * "new" dot goes away on every device. Only moves forward; a repeat or an older version writes
+ * nothing (Principle VII form a). The version is not checked against the records (the API doesn't
+ * ship them): a made-up future version only hides the person's own dot.
  */
 @Injectable()
 @CommandHandler(MarkReleaseNotesSeenCommand)
@@ -42,7 +42,7 @@ export class MarkReleaseNotesSeenHandler extends BaseCommandHandler<
     command: MarkReleaseNotesSeenCommand,
     context: Context,
   ): Promise<HandleResult<void>> {
-    context.changed = context.user.markReleaseNotesSeen(command.releaseId);
+    context.changed = context.user.markReleaseNotesSeen(command.version);
     return { result: undefined, events: [] };
   }
 

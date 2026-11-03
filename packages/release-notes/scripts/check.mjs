@@ -98,9 +98,10 @@ export function formatReport(missing, range) {
     `✖ Novedades: ${missing.length} commit(s) feat/fix de ${range} no están en ningún registro:`,
     ...missing.map((c) => `    ${c.hash.slice(0, 8)}  ${c.subject}`),
     "",
-    "  Escribe el registro de este despliegue (spec 038):",
+    "  Escribe la novedad (spec 038):",
     "    1. pnpm release-notes:pending   (imprime el bloque commits: listo para pegar)",
-    "    2. crea packages/release-notes/releases/<YYYY-MM-DD>-<slug>/es.md y en.md",
+    "    2. crea packages/release-notes/releases/<slug>/es.md y en.md (sin fecha: la versión",
+    "       y su día los pone el deploy con el tag v1.N)",
     "    3. commit `docs(release): …` y vuelve a empujar",
   ].join("\n");
 }

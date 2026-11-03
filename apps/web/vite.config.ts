@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
+import { releaseVersions } from "@finance/release-notes/vite-plugin.mjs";
 import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
 
 /** The API's origin, for a `preconnect`: the session request goes there before anything renders,
@@ -58,6 +59,8 @@ export default defineConfig(({ mode }) => {
           ),
       },
       sentry,
+      // Novedades (spec 038): the versions of the release records, read from git tags.
+      releaseVersions(),
     ],
     // Force a single React instance (pnpm can surface a second hoisted copy,
     // which breaks hooks in libs like sonner/recharts).
