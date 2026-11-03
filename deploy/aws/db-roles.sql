@@ -29,6 +29,9 @@ GRANT fik_app TO fik_admin;
 
 REVOKE ALL ON DATABASE fik FROM PUBLIC;
 GRANT CONNECT ON DATABASE fik TO fik_migrate, fik_app, fik_readonly;
+-- Migrations that backfill ids define a helper in pg_temp (e.g. 20261101232030); the REVOKE above
+-- took TEMPORARY away from everyone, so the migrating role gets it back, and only it.
+GRANT TEMPORARY ON DATABASE fik TO fik_migrate;
 
 ALTER SCHEMA public OWNER TO fik_migrate;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
