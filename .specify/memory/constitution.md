@@ -1,6 +1,7 @@
 <!--
 Sync Impact Report — 2026-11-02 (amendment 2.9.1)
 - Version change: 2.9.0 → 2.9.1 (PATCH: a dependency is recorded; no principle changes meaning).
+- RECORDED (Principle V): Better Stack via a Vector container for server logs (no npm dependency).
 - RECORDED (Principle V): `@sentry/react` (apps/web, loaded on demand) for browser error reports and
   dev-only `@sentry/vite-plugin` for source maps, which never reach Cloudflare Pages. Sentry is added
   to the published privacy policy as a processor (policy version 2026-11-02).
@@ -2320,7 +2321,10 @@ identificador adivinable o no.
   responses with **`compression`** (Express middleware, 2026-10-09). The app reports browser errors
   with **`@sentry/react`** (loaded on demand, inert without `VITE_SENTRY_DSN`; no user, cookies,
   headers, bodies, query strings, replay or tracing) and uploads its source maps with dev-only
-  **`@sentry/vite-plugin`** (2026-11-02; Sentry is a declared data processor). Adding a new runtime
+  **`@sentry/vite-plugin`** (2026-11-02; Sentry is a declared data processor). The server's logs go to
+  **Better Stack** through a **Vector** container (`deploy/vector.yaml`, read-only Docker log files,
+  inert without its Parameter Store destination); log lines and error reports carry one bounded line
+  per error, never the query string or a library's dump of its arguments. Adding a new runtime
   dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
 - **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
   single Next.js app is removed. (Principle II was rewritten to the NestJS/CQRS mechanism in 2.0.0.

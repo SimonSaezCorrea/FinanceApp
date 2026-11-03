@@ -1,0 +1,73 @@
+# Ships the logs of the API and Caddy to Better Stack (the `logs` service in docker-compose.yml).
+#
+# It reads the files Docker already writes for each container (json-file driver, `tag` = the
+# container's name) read-only, so it needs neither the Docker socket nor a change in the API.
+# This file is a TEMPLATE: render-logs-config.sh (run by deploy.sh) writes /opt/fik/logs/vector.yaml
+# from it with the source's ingesting host from Parameter Store /fik/logs/INGESTING_HOST, and the
+# source token as a secret file (/fik/logs/SOURCE_TOKEN). Vector does not read environment
+# variables in its configuration, and a secret can't stand for the host of a URL. Without both
+# parameters the service is never started, and nothing leaves the server.
+#
+# The API writes one JSON object per line in production (main.ts); its fields (level, context,
+# message) become fields in Better Stack. Anything else (Caddy, a crash) arrives as `message`.
+data_dir: /var/lib/vector
+
+secret:
+  logs:
+    type: directory
+    path: /run/secrets/fik-logs
+
+sources:
+  docker:
+    type: file
+    include:
+      - /var/lib/docker/containers/*/*-json.log
+    # First start: from now on, never the history already on disk.
+    read_from: end
+
+transforms:
+  fik:
+    type: remap
+    inputs: [docker]
+    drop_on_error: true
+    drop_on_abort: true
+    source: |
+      entry = parse_json!(.message)
+      container = string(entry.attrs.tag) ?? ""
+      # Only this app's containers (api, caddy, migrate), never the collector or anything else.
+      if !match(container, r'^fik-(api|caddy|migrate)') {
+        abort
+      }
+      line = strip_whitespace(string(entry.log) ?? "")
+      if line == "" {
+        abort
+      }
+      . = { "dt": entry.time, "container": container, "stream": entry.stream }
+      parsed, err = parse_json(line)
+      if err == null && is_object(parsed) {
+        . = merge(., object!(parsed))
+      } else {
+        .message = line
+      }
+
+sinks:
+  better_stack:
+    type: http
+    inputs: [fik]
+    uri: "https://__INGESTING_HOST__"
+    method: post
+    encoding:
+      codec: json
+    compression: gzip
+    auth:
+      strategy: bearer
+      token: "SECRET[logs.source_token]"
+    batch:
+      max_bytes: 1000000
+      timeout_secs: 5
+    # If Better Stack is unreachable, keep a bounded backlog in memory and drop the newest beyond
+    # it: losing log lines is better than the collector eating the server's memory.
+    buffer:
+      type: memory
+      max_events: 5000
+      when_full: drop_newest

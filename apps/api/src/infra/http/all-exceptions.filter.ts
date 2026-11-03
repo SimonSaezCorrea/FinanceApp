@@ -11,7 +11,7 @@ import type { Request, Response } from "express";
 import type { ApiError } from "@finance/contracts";
 
 import { reportError } from "../../instrument";
-import { describeError, needsStack } from "./describe-error";
+import { describeError, needsStack, pathOnly, reportableError } from "./describe-error";
 
 /**
  * Maps every error to the language-agnostic contract shape
@@ -61,13 +61,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      const where = `${req.method} ${req.originalUrl ?? req.url}`;
+      const where = `${req.method} ${pathOnly(req.originalUrl ?? req.url)}`;
       const description = describeError(exception);
       this.logger.error(
         `${where} → ${status} ${code} | ${description}`,
         needsStack(exception) && exception instanceof Error ? exception.stack : undefined,
       );
-      reportError(exception);
+      reportError(reportableError(exception));
     }
 
     const body: ApiError = { error: { code, ...(field ? { field } : {}) } };

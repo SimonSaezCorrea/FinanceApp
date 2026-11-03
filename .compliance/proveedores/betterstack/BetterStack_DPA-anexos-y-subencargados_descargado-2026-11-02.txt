@@ -1,0 +1,288 @@
+Fuente: https://betterstack.com/dpa/schedules — descargado 2026-11-02 (anexos del DPA: subencargados, transferencias, medidas de seguridad).
+
+ Schedule A 
+ Authorized Subprocessors
+
+ Subprocessor (Location) 
+ Function 
+
+ Amazon Web Services, Inc. (United States) 
+ Infrastructure 
+
+ Google Ireland Limited (Europe) 
+ Infrastructure and email communication 
+
+ Cloudflare, Inc. (Global) 
+ Cloud services 
+
+ Hetzner Online GmbH. (Europe) 
+ Infrastructure 
+
+ FrontApp, Inc. (United States) 
+ Customer communication 
+
+ Chartmogul GmbH & Co. (Global) 
+ Analytics and CRM 
+
+ Linear Orbit, Inc. (United States) 
+ Issue tracking and project management 
+
+ Slack Technologies LLC (United States) 
+ Communication 
+
+ OpenAI, L.L.C. (United States) 
+ AI services 
+
+ Schedule B 
+ Description of Processing Activities
+
+ Schedule B(1) List of Parties 
+
+ Data Exporter: 
+
+Name: Customer, as identified in the Agreement 
+
+Address: As identified in the Agreement 
+
+Activities relevant to the transfer: See Schedule B(2) below 
+
+Role: Controller
+
+ Data Importer: 
+
+Name: Better Stack entity, as identified in the Agreement 
+
+Address: As identified in the Agreement 
+
+Activities relevant to the transfer: See Schedule B(2) below 
+
+Role: Processor
+
+ Schedule B(2) Description of Transfer 
+
+ Categories of data subjects: Employees, contractors, customers, vendors, and end users of the customer
+
+ Categories of personal data: The Personal Data that is sent to Better Stack by, or on behalf of, Customer for the purpose of using the Services. Primarily identification personal data including name, email, IP address and similar identifiers.
+
+ Sensitive data: No sensitive data unless expressly agreed to the contrary in the Agreement.
+
+ Frequency of the transfer: Continuous
+
+Nature and subject matter of processing:
+
+ storage (hosting) and other processing necessary to provide, maintain and improve the Services provided to Customer under the Agreement,
+
+ technical support provided to the Customer on a case by case basis,
+
+ disclosures in accordance with the Agreement and the DPA, as compelled by law, and
+
+ other processing as necessary to provide the Services
+
+ Duration of the processing: Continuous during the Processing Term
+
+Purpose(s) of the data transfer and further processing:
+
+ Processing to provide, maintain, support, and improve the Services provided to the Customer in accordance with the Agreement;
+
+ Processing initiated by the users in their use of the Services; and
+
+ Processing to comply with other documented reasonable instructions provided by the Customer (e.g., via email) where such instructions are consistent with the Agreement (including this DPA).
+
+ Retention period (or, if not possible to determine, the criteria used to determine that period): Processing Term
+
+ Schedule C 
+ Security Measures
+
+ The technical and organizational measures implemented by the Better Stack (including any relevant certifications) to ensure an appropriate level of security taking into account the nature, scope, context, and purposes of the processing, and the risks for the rights and freedoms of natural persons,include:
+
+ Information Security Program: 
+
+ Information Security Program: Better Stack maintains comprehensive policies including Acceptable Use Policy, Asset Management Policy, Backup Policy, Business Continuity/Disaster Recovery Plans, Code of Conduct, Data Classification, Deletion and Protection Policies, Encryption and Password Policies, Incident Response Plan, Physical Security Policy, Responsible Disclosure Policy, Risk Assessment Policy, Software Development Life Cycle Policy, System Access Management Policy, Vendor Management Policy, Vulnerability Management Policy
+
+ Training and Awareness: Better Stack conducts regular security training and awareness programs for personnel.
+
+ Audits: Better Stack undergoes a regular SOC2 audit, obtains and maintains SOC 2 Type II certification to ensure compliance with industry security standards.
+
+ Access Controls: 
+
+ Access Control: Better Stack enforces the least-privilege access, ensuring that employees only access systems necessary for their roles.
+
+ Access Reviews & Monitoring: Better Stack conducts periodic access control reviews.
+
+ Multi-Factor Authentication (MFA): MFA is required for all access to critical systems and administrative interfaces.
+
+ Operational Security: 
+
+ Business Continuity: Better Stack maintains and regularly tests a Business Continuity and Disaster Recovery Plan (BC/DR plan).
+
+ Redundancy: Better Stack’s infrastructure is designed to ensure uninterrupted service in case of failures.
+
+ Assessment of security measures: Better Stack uses automated compliance tools (Vanta, Inc.) to monitor employee activity and adherence to policies.
+
+ Customer Data: 
+
+ Encryption: Better Stack ensures that personal data is encrypted using industry-standard encryption protocols and utilizes end-to-end encryption to prevent unauthorized access.
+
+ Access: Better Stack applies access control measures, ensuring only authorized personnel can access customer personal data.
+
+ Data Availability: Better Stack maintains a Backup Policy with periodic automated backups of critical data.
+
+ Data Transfer: Better Stack assures that all external data transmission are encrypted end-to-end.
+
+ Data Retention: Better Stack follows a Data Retention Policy aligned with contractual obligations and compliance requirements.
+
+ Incident Response Plan: Better Stack has an Incident Response Plan (IRP) to mitigate and recover from physical or technical incidents.
+
+ Application and Network Security: 
+
+ Secure Software Development Life Cycle : Better Stack maintains Software Development Life Cycle Policy. Security is embedded in development processes, including code reviews, automated security scans, and vulnerability testing.
+
+ In-Application Security: Better Stack security measures include Multi-Factor Authentication (MFA), Single Sign-On (SSO), configurable password complexity, segregation of duties, logical separation of customer data, and exportable event logs.
+
+ Logs Management: Better Stack retains logs for regulatory requirements, ensuring auditability and traceability.
+
+ Penetration testing: Better Stack conducts regular penetration tests to identify security gaps.
+
+ Subprocessors: 
+
+ Assessment: Better Stack follows a Vendor Management Policy, requiring subprocessors to undergo security assessments.
+
+ Certifications: Better Stack collects and reviews third-party certifications (SOC 2, ISO 27001, etc.) on an annual basis.
+
+ Schedule D 
+ Application of the SCCs
+
+ In relation to transfers of Customer Personal Data that is protected by the GDPR, the EU SCCs shall apply, completed as follows: 
+
+ Module Two or Module Three will apply (as applicable);
+
+ in Clause 7, the optional docking clause will apply;
+
+ in Clause 9, Option 2 will apply, and the time period for prior notice of Sub-processor changes shall be as set out in section 12 of this DPA;
+
+ in Clause 11, the optional language will not apply;
+
+ in Clause 17, Option 1 will apply, and the EU SCCs will be governed by Irish law;
+
+ in Clause 18(b), disputes shall be resolved before the courts of the EU Member State in which the data exporter is established and otherwise Ireland;
+
+ Annex I of the EU SCCs shall be deemed completed with the information set out in Schedule B to this DPA;
+
+ and Subject to section 5.5 of this DPA, Annex II of the EU SCCs shall be deemed completed with the information set out in Schedule C to this DPA,
+
+ In relation to transfers of Account Data protected by the GDPR and processed in accordance with Section 2.2 of this DPA, the EU SCCs shall apply, completed as follows: 
+
+ Module One will apply;
+
+ in Clause 7, the optional docking clause will apply;
+
+ in Clause 11, the optional language will not apply;
+
+ in Clause 17, Option 1 will apply, and the EU SCCs will be governed by Irish law;
+
+ in Clause 18(b), disputes shall be resolved before the courts of Ireland;
+
+ Annex I of the EU SCCs shall be deemed completed with the information set out in Schedule B to this DPA;
+
+ and Subject to section 5.5 of this DPA, Annex II of the EU SCCs shall be deemed completed with the information set out in Schedule C to this DPA;
+
+ In relation to transfers of Customer Personal Data or Account Data protected by the UK GDPR or Swiss DPA and processed in accordance with Section 2.2 of this DPA, the EU SCCs shall apply, completed as follows: 
+
+ references to "Regulation (EU) 2016/679" shall be interpreted as references to UK Privacy Laws or the Swiss DPA (as applicable);
+
+ references to specific Articles of "Regulation (EU) 2016/679" shall be replaced with the equivalent article or section of UK Privacy Laws or the Swiss DPA (as applicable);
+
+ references to "EU", "Union", "Member State" and "Member State law" shall be replaced with references to "UK" or "Switzerland", or "UK law" or "Swiss law" (as applicable);
+
+ the term "member state" shall not be interpreted in such a way as to exclude data subjects in the UK or Switzerland from the possibility of suing for their rights in their place of habitual residence (i.e., the UK or Switzerland);
+
+ Clause 13(a) and Part C of Annex I are not used and the "competent supervisory authority" is the UK Information Commissioner or Swiss Federal Data Protection Information Commissioner (as applicable);
+
+ references to the "competent supervisory authority" and "competent courts" shall be replaced with references to the "Information Commissioner" and the "courts of England and Wales" or the "Swiss Federal Data Protection Information Commissioner" and "applicable courts of Switzerland" (as applicable);
+
+ in Clause 17, the Standard Contractual Clauses shall be governed by the laws of England and Wales or Switzerland (as applicable);
+
+ and with respect to transfers to which UK Privacy Laws apply, Clause 18 shall be amended to state "Any dispute arising from these Clauses shall be resolved by the courts of England and Wales. A data subject may bring legal proceeding against the data exporter and/or data importer before the courts of any country in the UK. The Parties agree to submit themselves to the jurisdiction of such courts", and with respect to transfers to which the Swiss DPA applies, Clause 18(b) shall state that disputes shall be resolved before the applicable courts of Switzerland;
+
+ To the extent that and for so long as the EU SCCs as implemented in accordance with sub-paragraphs above cannot be used to lawfully transfer Customer Personal Data and Account Data in accordance with the UK GDPR to Better Stack, the UK SCCs shall be incorporated into and form an integral part of this DPA and shall apply to transfers governed by the UK GDPR. 
+For the purposes of the UK SCCs, the relevant annexes, appendices or tables shall be deemed populated with the information set out in Schedules A and B of this DPA. In relation to data that is protected by the UK GDPR, the EU SCCs will apply as follows:
+
+ apply as completed in accordance with paragraph 7(a) above; and
+
+ be deemed amended as specified by Part 2 of the UK Addendum, which shall be deemed incorporated into and form an integral part of this DPA.
+
+In addition, tables 1 to 3 in Part 1 of the UK Addendum shall be completed respectively with the information set out in Schedule B and Schedule C of this DPA and table 4 in Part 1 of the UK Addendum shall be deemed completed by selecting "neither party".
+
+ Schedule E 
+ UK Addendum to the EU Commission Standard Contractual Clauses
+
+ Date of this Addendum: This Addendum is effective from the same date as the DPA.
+
+ Background: The Information Commissioner considers this Addendum to provide appropriate safeguards for the purposes of transfers of personal data to a third country or an international organization in reliance on Articles 46 of the UK GDPR and, with respect to data transfers from controllers to processors and/or processors to processors.
+
+ Interpretation of this Schedule E. Where this Addendum uses terms that are defined in the Annex those terms shall have the same meaning as in the Annex. In addition, the following terms have the following meanings:
+
+ This Addendum: This Addendum to the Clauses.
+
+ The Annex: The Standard Contractual Clauses set out in the Annex of Commission Implementing Decision (EU) 2021/914 of 4 June 2021
+
+ UK Data Protection Laws: All laws relating to data protection, the processing of personal data, privacy and/or electronic communications in force from time to time in the UK, including the UK GDPR and the Data Protection Act 2018.
+
+ UK GDPR: The United Kingdom General Data Protection Regulation, as it forms part of the law of England and Wales, Scotland and Northern Ireland by virtue of section 3 of the European Union (Withdrawal) Act 2018.
+
+ UK: The United Kingdom of Great Britain and Northern Ireland.
+
+ This Addendum shall be read and interpreted in the light of the provisions of UK Data Protection Laws, and so that it fulfils the intention for it to provide the appropriate safeguards as required by Article 46 GDPR.
+
+ This Addendum shall not be interpreted in a way that conflicts with rights and obligations provided for in UK Data Protection Laws.
+
+ Any references to legislation (or specific provisions of legislation) means that legislation (or specific provision) as it may change over time. This includes where that legislation (or specific provision) has been consolidated, re-enacted and/or replaced after this Addendum has been entered into.
+
+ Hierarchy: In the event of a conflict or inconsistency between this Addendum and the provisions of the Clauses or other related agreements between the Parties, existing at the time this Addendum is agreed or entered into thereafter, the provisions which provide the most protection to data subjects shall prevail.
+
+ Incorporation of the Clauses: This Addendum incorporates the Clauses which are deemed to be amended to the extent necessary so they operate:
+
+ for transfers made by the data exporter to the data importer, to the extent that UK Data Protection Laws apply to the data exporter’s processing when making that transfer; and
+
+ to provide appropriate safeguards for the transfers in accordance with Articles 46 of the UK GDPR Laws.
+
+ The amendments required by Section 7 above, include (without limitation):
+
+ References to the “Clauses” means this Addendum as it incorporates the Clauses.
+
+ Clause 6 Description of the transfer(s) is replaced with: “The details of the transfers(s) and in particular the categories of personal data that are transferred and the purpose(s) for which they are transferred) are those specified in Schedule B(2) where UK Data Protection Laws apply to the data exporter’s processing when making that transfer”.
+
+ References to “Regulation (EU) 2016/679” or “that Regulation” are replaced by “UK Data Protection Laws” and references to specific Article(s) of “Regulation (EU) 2016/679” are replaced with the equivalent Article or Section of UK Data Protection Laws.
+
+ References to Regulation (EU) 2018/1725 are removed.
+
+ References to the “Union”, “EU” and “EU Member State” are all replaced with the “UK”.
+
+ Clause 13(a) and Part C of Annex II are not used; the “competent supervisory authority” is the Information Commissioner.
+
+ Clause 17 is replaced to state “These Clauses are governed by the laws of England and Wales”.
+
+ Clause 18 is replaced to state: “Any dispute arising from these Clauses shall be resolved by the courts of England and Wales. A data subject may also bring legal proceedings against the data exporter and/or data importer before the courts of any country in the UK. The Parties agree to submit themselves to the jurisdiction of such courts.”
+
+ The footnotes to the Clauses do not form part of the Addendum.
+
+ Amendments to this Addendum
+
+ The Parties may agree to change Clause 17 and/or 18 to refer to the laws and/or courts of Scotland or Northern Ireland.
+
+ The Parties may amend this Addendum provided it maintains the appropriate safeguards required by Art 46 UK GDPR for the relevant transfer by incorporating the Clauses and making changes to them in accordance with Section 7 above.
+
+ Executing this Addendum
+
+ The Parties may enter into the Addendum (incorporating the Clauses) in any way that makes them legally binding on the Parties and allows data subjects to enforce their rights as set out in the Clauses. This includes (but is not limited to):
+
+ By attaching this Addendum as Schedule 4 to the Better Stack DPA.
+
+ By adding this Addendum to the Clauses and including in the following above the signatures in Schedule B(1):
+
+ “By signing we agree to be bound by the UK Addendum to the EU Commission Standard Contractual Clauses dated:” and add the date (where all transfers are under the Addendum)
+
+ “By signing we also agree to be bound by the UK Addendum to the EU Commission Standard Contractual Clauses dated” and add the date (where there are transfers both under the Clauses and under the Addendum) (or words to the same effect) and executing the Clauses; or
+
+ By amending the Clauses in accordance with this Addendum and executing those amended Clauses.
+

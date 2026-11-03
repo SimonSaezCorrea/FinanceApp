@@ -14,9 +14,42 @@ export function describeError(exception: unknown): string {
   if (prisma) return describePrismaError(prisma);
 
   if (exception instanceof Error) {
-    return `${exception.name}: ${exception.message}`;
+    return bounded(`${exception.name}: ${firstLine(exception.message)}`);
   }
-  return `Non-Error thrown: ${String(exception)}`;
+  return bounded(`Non-Error thrown: ${firstLine(String(exception))}`);
+}
+
+/** The longest description written to the log or sent to Sentry. */
+const MAX_DESCRIPTION = 300;
+
+/**
+ * Only the first line, and a bounded one: what follows it is where a library puts the data it was
+ * handed — Prisma's validation errors print the whole query with its arguments (a RUT, an email,
+ * an amount), a driver error its `detail`. The log and Sentry are outside the database, so they
+ * must never carry that (privacy policy §4).
+ */
+function bounded(text: string): string {
+  return text.length > MAX_DESCRIPTION ? `${text.slice(0, MAX_DESCRIPTION)}…` : text;
+}
+
+/** The request path without its query or hash, which can carry filters and ids. */
+export function pathOnly(url: string): string {
+  return url.split(/[?#]/, 1)[0] ?? url;
+}
+
+/**
+ * What is reported to Sentry for an unexpected error: the same one-line description the log gets,
+ * keeping the original stack frames (the only thing that locates it) but never the raw message.
+ */
+export function reportableError(exception: unknown): Error {
+  const description = describeError(exception);
+  const reported = new Error(description);
+  reported.name = exception instanceof Error ? exception.name : "NonError";
+  if (exception instanceof Error && exception.stack) {
+    const frames = exception.stack.split("\n").filter((line) => line.trimStart().startsWith("at "));
+    reported.stack = [`${reported.name}: ${description}`, ...frames].join("\n");
+  }
+  return reported;
 }
 
 /**

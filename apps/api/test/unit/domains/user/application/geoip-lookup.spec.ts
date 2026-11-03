@@ -64,8 +64,11 @@ describe("GeoIpLookup", () => {
 
     expect(result).toEqual({ country: "CL", city: null });
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("https://api.ipinfo.io/lite/190.196.0.1?token=tok"),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      "https://api.ipinfo.io/lite/190.196.0.1",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer tok" },
+        signal: expect.any(AbortSignal),
+      }),
     );
     expect(cache.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ ip: "190.196.0.1", country: "CL" }),

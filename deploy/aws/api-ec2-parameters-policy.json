@@ -7,7 +7,8 @@
       "Action": ["ssm:GetParametersByPath", "ssm:GetParameters", "ssm:GetParameter"],
       "Resource": [
         "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod",
-        "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod/*"
+        "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod/*",
+        "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/logs/*"
       ]
     },
     {

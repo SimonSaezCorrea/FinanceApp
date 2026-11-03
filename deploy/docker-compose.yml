@@ -7,6 +7,8 @@ x-logging: &logging
   options:
     max-size: "10m"
     max-file: "5"
+    # Each line carries the container's name, which is how the `logs` collector tells them apart.
+    tag: "{{.Name}}"
 
 services:
   api:
@@ -71,5 +73,21 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # Ships the API's and Caddy's logs to Better Stack (deploy/vector.yaml). Started by deploy.sh
+  # only when render-logs-config.sh found its parameters; reads Docker's log files read-only.
+  logs:
+    image: timberio/vector:0.60.0-alpine
+    command: ["--config", "/etc/vector/vector.yaml"]
+    volumes:
+      - ./logs/vector.yaml:/etc/vector/vector.yaml:ro
+      - ./logs/secrets:/run/secrets/fik-logs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Where it remembers how far it read, so a restart neither resends nor skips lines.
+      - vector_data:/var/lib/vector
+    mem_limit: 128m
+    profiles: ["logs"]
+    restart: unless-stopped
+
 volumes:
   caddy_data:
+  vector_data:

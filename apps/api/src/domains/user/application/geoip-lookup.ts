@@ -70,10 +70,11 @@ export class GeoIpLookup {
 
   private async fetchFromIpinfo(ip: string, token: string): Promise<IpinfoFetchResult> {
     try {
-      const res = await fetch(
-        `https://api.ipinfo.io/lite/${encodeURIComponent(ip)}?token=${token}`,
-        { signal: AbortSignal.timeout(3000) },
-      );
+      // The token goes in a header, never the URL: a URL ends up in logs and error reports.
+      const res = await fetch(`https://api.ipinfo.io/lite/${encodeURIComponent(ip)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(3000),
+      });
       if (!res.ok) return { ok: false };
       const body = (await res.json()) as { country_code?: string };
       return { ok: true, country: body.country_code ?? null };

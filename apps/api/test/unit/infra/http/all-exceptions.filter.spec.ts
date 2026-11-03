@@ -88,6 +88,36 @@ describe("AllExceptionsFilter", () => {
     expect(stack).toBeTypeOf("string");
   });
 
+  it("never logs what a library printed below the first line, nor the query string", () => {
+    const { host } = makeHost();
+    const filter = new AllExceptionsFilter();
+    const error = vi
+      .spyOn(
+        (filter as unknown as { logger: { error: (...args: unknown[]) => void } }).logger,
+        "error",
+      )
+      .mockImplementation(() => undefined);
+    const validation = Object.assign(
+      new Error(
+        "Invalid `prisma.user.findUnique()` invocation:\n\n  where: { email: 'ana@mail.cl' }",
+      ),
+      { name: "PrismaClientValidationError" },
+    );
+    const request = { method: "GET", originalUrl: "/api/v1/transactions?categoryId=x#y" };
+    filter.catch(validation, {
+      switchToHttp: () => ({
+        getResponse: () => ({ status: () => ({ json: vi.fn() }) }),
+        getRequest: () => request,
+      }),
+    } as never);
+
+    const message = String(error.mock.calls[0]?.[0]);
+    expect(message).toContain("GET /api/v1/transactions →");
+    expect(message).toContain("Invalid `prisma.user.findUnique()` invocation:");
+    expect(message).not.toContain("ana@mail.cl");
+    expect(message).not.toContain("categoryId");
+  });
+
   it("stays silent for an expected 4xx", () => {
     const { message } = captureLog(new NotFoundException());
     expect(message).toBe("");

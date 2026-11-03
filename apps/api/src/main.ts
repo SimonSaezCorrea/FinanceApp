@@ -1,7 +1,7 @@
 // Sentry must load before anything else it may need to patch.
 import "./instrument";
 import "reflect-metadata";
-import { Logger, type LogLevel } from "@nestjs/common";
+import { ConsoleLogger, Logger, type LogLevel } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
@@ -31,8 +31,16 @@ function logLevels(nodeEnv: string | undefined, override: string | undefined): L
 }
 
 async function bootstrap() {
+  // Production writes one JSON object per line (level, context, message, timestamp), which the log
+  // collector (deploy/vector.yaml) turns into searchable fields in Better Stack; anywhere else the
+  // usual coloured text.
+  const production = process.env.NODE_ENV === "production";
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: logLevels(process.env.NODE_ENV, process.env.LOG_LEVEL),
+    logger: new ConsoleLogger({
+      logLevels: logLevels(process.env.NODE_ENV, process.env.LOG_LEVEL),
+      json: production,
+      colors: !production,
+    }),
   });
   const config = app.get(ConfigService);
 

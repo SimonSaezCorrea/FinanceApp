@@ -27,6 +27,8 @@ echo "Deploying ${API_IMAGE}"
 # api.env from Parameter Store /fik/prod/: a parameter added or changed there reaches the API on
 # the next deploy. If it can't be rendered, stop before touching the running API.
 bash ./render-api-env.sh
+# The log collector's configuration from /fik/logs/ (empty there = no log leaves the server).
+bash ./render-logs-config.sh
 
 # The instance role grants read access to ECR: no stored credentials.
 aws ecr get-login-password --region "$AWS_REGION" \
@@ -39,6 +41,15 @@ docker compose --profile tools run --rm migrate
 # Caddy must be up, and picks up any Caddyfile change without dropping connections.
 docker compose up -d --no-deps --no-recreate caddy
 docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+
+# Log shipping (Vector → Better Stack): recreated so it reads the configuration just rendered, or
+# stopped when render-logs-config.sh found no destination. Never blocks the deploy.
+if [ -f ./logs/vector.yaml ]; then
+  docker compose --profile logs up -d --no-deps --force-recreate logs \
+    || echo "Log collector did not start; the deploy goes on." >&2
+else
+  docker compose --profile logs rm -sf logs >/dev/null 2>&1 || true
+fi
 
 old_ids="$(docker compose ps -q api)"
 old_count="$(printf '%s\n' "$old_ids" | grep -c . || true)"

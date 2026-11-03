@@ -161,13 +161,15 @@ Después:
 
 Con Session Manager (o `aws ssm send-command`), crear en `/opt/fik`:
 
-| Archivo              | Desde                       | Notas                               |
-| -------------------- | --------------------------- | ----------------------------------- |
-| `docker-compose.yml` | `deploy/docker-compose.yml` | tal cual                            |
-| `Caddyfile`          | `deploy/Caddyfile`          | tal cual                            |
-| `deploy.sh`          | `deploy/deploy.sh`          | `sudo chmod 700 /opt/fik/deploy.sh` |
-| `deploy.env`         | `deploy/deploy.env.example` | con el registry de ECR              |
-| `render-api-env.sh`  | `deploy/aws/`               | escribe `api.env` (ver abajo)       |
+| Archivo                 | Desde                       | Notas                               |
+| ----------------------- | --------------------------- | ----------------------------------- |
+| `docker-compose.yml`    | `deploy/docker-compose.yml` | tal cual                            |
+| `Caddyfile`             | `deploy/Caddyfile`          | tal cual                            |
+| `deploy.sh`             | `deploy/deploy.sh`          | `sudo chmod 700 /opt/fik/deploy.sh` |
+| `deploy.env`            | `deploy/deploy.env.example` | con el registry de ECR              |
+| `render-api-env.sh`     | `deploy/aws/`               | escribe `api.env` (ver abajo)       |
+| `render-logs-config.sh` | `deploy/aws/`               | prepara el envío de logs (abajo)    |
+| `vector.yaml`           | `deploy/vector.yaml`        | plantilla del recolector de logs    |
 
 **`api.env` no se escribe a mano.** Las variables del API viven en **Parameter Store**
 (Systems Manager → Parameter Store → Ohio, gratis): **cada parámetro `/fik/prod/<NOMBRE>` es una
@@ -252,6 +254,26 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
    enlace abre `mifik.cl/es/verify-email/` y confirma la dirección.
 7. _Tipos de cambio_ tiene datos (el API los registra al arrancar y a las 8/12/16/20 h).
 
+### Logs en Better Stack
+
+El servicio `logs` de `docker-compose.yml` (Vector, `timberio/vector:0.60.0-alpine`, tope de 128 MB)
+lee de solo lectura los archivos que Docker ya escribe por contenedor (`/var/lib/docker/containers`,
+cada línea con el nombre del contenedor por la opción `tag`) y manda a Better Stack las de `api`,
+`caddy` y `migrate`. No usa el socket de Docker ni toca el API. El API escribe en producción una
+línea JSON por mensaje (`main.ts`), así que `level`, `context` y `message` llegan como campos.
+
+- Parámetros, **fuera de `/fik/prod/`** para que el API nunca reciba el token:
+  `/fik/logs/INGESTING_HOST` (_String_, el host de ingesta de la fuente) y
+  `/fik/logs/SOURCE_TOKEN` (_SecureString_, el token de la fuente). El rol del servidor lee
+  `/fik/logs/*` (`api-ec2-parameters-policy.json`).
+- `render-logs-config.sh` (lo corre `deploy.sh`) escribe `/opt/fik/logs/vector.yaml` con el host y
+  `/opt/fik/logs/secrets/source_token` (chmod 600). Sin los dos parámetros los borra y `deploy.sh`
+  deja el recolector detenido: ningún log sale del servidor.
+- La opción `tag` solo aplica a contenedores creados después: Caddy se recrea a mano una vez
+  (`sudo docker compose up -d --force-recreate caddy`, unos segundos sin servicio); el API la toma en
+  el siguiente despliegue.
+- Ver si funciona: `sudo docker compose --profile logs logs --tail 50 logs`.
+
 ## Dónde ver cada cosa
 
 | Qué                              | Dónde                                                                                                |
@@ -262,7 +284,7 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 | `api.env` en uso                 | EC2 → `fik-api` → Connect → Session Manager → `sudo cat /opt/fik/api.env` (se genera, no se edita)   |
 | Despliegues (API, app, landing)  | GitHub → Actions → Deploy                                                                            |
 | Versiones publicadas de Pages    | Cloudflare → Workers & Pages → `fik-landing` / `fik-app` → Deployments                               |
-| Logs del API                     | Session Manager → ver Mantenimiento (Logs)                                                           |
+| Logs del API                     | Better Stack → Telemetry → la fuente de fik; en el servidor, Session Manager → Mantenimiento (Logs)  |
 | Costos                           | AWS → Billing → Bills (y el presupuesto `fik-monthly`, US$45, que avisa a `mifik.general@gmail.com`) |
 
 ## Ver la base desde un PC

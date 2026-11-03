@@ -17,7 +17,8 @@ export class LogStatementPaidListener implements IEventHandler<StatementPaidEven
 
   handle(event: StatementPaidEvent): void {
     this.logger.log(
-      `paid: statement ${event.statementId} on account ${event.accountId} — ${event.amount} from ${event.paidFromAccountId}`,
+      // Ids only, never the amount: the log leaves the database (Better Stack, privacy policy §4).
+      `paid: statement ${event.statementId} on account ${event.accountId} from ${event.paidFromAccountId}`,
     );
   }
 }

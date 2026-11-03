@@ -1,0 +1,180 @@
+Fuente: https://betterstack.com/dpa — descargado 2026-11-02 (texto extraído del HTML, sin navegación del sitio).
+
+Data Processing Agreement
+
+Last Updated:
+Feb 25, 2025
+
+This DPA, entered into by the Better Stack customer identified on the applicable Better Stack ordering document for Better Stack services ("Customer") and the Better Stack company identified on the ordering document ("Better Stack"), governs the processing of personal data that Customer uploads or otherwise provides Better Stack in connection with the services and the processing of any personal data that Better Stack uploads or otherwise provides to Customer in connection with the services.
+
+ 1. Definitions
+
+ "Account Data" 
+means Personal Data that relates to Customer’s relationship with Better Stack, including to access Customer’s account and billing information, identity verification, maintain or improve performance of the Services, provide support, investigate and prevent system abuse, or fulfill legal obligations.
+
+ "Applicable Data Protection Legislation" 
+refers to laws and regulations applicable to Better Stack's processing of personal data under the Agreement, including (a) the GDPR, (b) the GDPR as saved into United Kingdom law by virtue of section 3 of the United Kingdom's European Union (Withdrawal) Act 2019 ("UK GDPR") and the Data Protection Act 2018 (together, "UK Laws"), (c) the Swiss Federal Data Protection Act and its implementing regulations ("Swiss DPA"), and (d) CCPA, in each case, as may be amended, superseded or replaced.
+
+ "Customer Personal Data" 
+means Personal Data Better Stack processes as a Processor on behalf of Customer.
+
+ "CCPA" 
+means the California Consumer Privacy Act of 2018 including regulations adopted in following years, including the California Privacy Rights Act of 2020.
+
+ "Europe" 
+means the European Economic Area ("EEA"), the United Kingdom ("UK") and Switzerland, or another country which ensures an adequate level of protection for the rights and freedoms of data subjects in relation to the processing of Personal Data, as determined by the European Commission in the case that GDPR applies and as determined by the ICO in the case that UK Laws apply.
+
+ "GDPR" 
+means Regulation 2016/679 of the European Parliament and of the Council on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (General Data Protection Regulation).
+
+ "Personal Data" 
+means any information, including personal information, relating to an identified or identifiable natural person (“data subject”) or as defined in and subject to Applicable Data Protection Legislation.
+
+ "Personal Data Breach" 
+means any accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to Customer Personal Data.
+
+ "Process" 
+and its cognates mean any operation or set of operations which is performed on Personal Data or sets of Personal Data, whether or not by automated means, such as collection, recording, organization, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction.
+
+ "Restricted Transfer" 
+means: (i) where the GDPR applies, a transfer of personal data from the EEA to a country outside of the EEA which is not subject to an adequacy determination by the European Commission; (ii) where the UK GDPR applies, a transfer of personal data from the UK to any other country which is not based on adequacy regulations pursuant to Section 17A of the Data Protection Act 2018; and (iii) where the Swiss DPA applies, a transfer of personal data to a country outside of Switzerland which is not included on the list of adequate jurisdictions published by the Swiss Federal Data Protection and Information Commissioner.
+
+ "Standard Contractual Clauses" 
+or "SCCs" means (i) where the GDPR applies, the standard contractual clauses annexed to the European Commission's Implementing Decision (EU) 2021/914 of 4 June 2021 standard contractual clauses for the transfer of personal data to third countries pursuant to Regulation (EU) 2016/679 of the European Parliament and of the Council, available at https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32021D0914&from=EN ("EU SCCs"); (ii) where the UK GDPR applies, the applicable standard data protection clauses adopted pursuant to Article 46(2)(c), or (d) where the UK GDPR means the International Data Transfer Addendum to the EU Standard Contractual Clauses issued by the Information Commissioner's Office under s.119A(1) of the Data Protection Act 2018, as such Addendum may be revised under Section 18 therein ("UK SCCs") and (iii) where the Swiss DPA applies, the applicable standard data protection clauses issued, approved or recognized by the Swiss Federal Data Protection and Information Commissioner (the "Swiss SCCs") (in each case, as updated, amended or superseded from time to time).
+
+ "Subprocessor" 
+means any entity which provides processing services to Better Stack in furtherance of Better Stack’s processing on behalf of Customer.
+
+ 2. Nature of Data Processing
+
+ 2.1 
+Customer Personal Data. Better Stack agrees to process Personal Data received from the Customer only on the instructions of the Customer. As the Controller of Personal Data, for avoidance of doubt, the Customer sets the purpose of processing for this DPA. Schedule B (Details of Processing) of this DPA further specifies the nature and purpose of the processing, the processing activities, the duration of the processing, the types of Personal Data and categories of data subjects.
+
+ 2.2 
+Better Stack as a Controller of Account Data. The parties acknowledge that, regarding the processing of Account Data, Customer is a controller and Better Stack is an independent controller, not a joint controller with Customer. Better Stack will process Account Data as a controller (a) in order to manage the relationship with Customer; (b) carry out Better Stack's core business operations; (c) in order to detect, prevent, or investigate security incidents, fraud, and other abuse or misuse of the Services; (d) identity verification; (e) to comply with Better Stack’s legal or regulatory obligations; and (f) as otherwise permitted under Applicable Data Protection Legislation and in accordance with this DPA, the Agreement, and the Privacy Policy.
+
+ 3. Compliance with laws
+
+The parties shall each comply with their respective obligations under all Applicable Data Protection Legislation.
+
+ 4. Customer obligations
+
+Customer agrees to:
+
+ 4.1 
+Provide instructions to Better Stack and determine the purposes and general means of Better Stack’s processing of Customer Personal Data in accordance with the DPA; and
+
+ 4.2 
+Comply with its protection, security and other obligations with respect to Customer Personal Data prescribed by Applicable Data Protection Legislation for data controllers by: (a) establishing and maintaining a procedure for the exercise of the rights of the individuals whose Customer Personal Data are processed on behalf of Customer; (b) processing only data that has been lawfully and validly collected and ensuring that such data will be relevant and proportionate to the respective uses; and (c) ensuring compliance with the provisions of this DPA by its personnel or by any third-party accessing or using Customer Personal Data on its behalf.
+
+ 5. Better Stack obligations
+
+ 5.1 
+Processing Requirements. Better Stack will:
+
+ a. 
+Process Customer Personal Data (i) only for the purpose of providing, supporting and improving Better Stack’s services (including to provide insights and other reporting), using appropriate technical and organizational security measures; and (ii) in compliance with the instructions received from Customer. Better Stack will not use or process the Customer Personal Data for any other purpose. Better Stack will promptly inform Customer in writing if it cannot comply with the requirements under Sections 5-8 of this DPA, in which case Customer may terminate the DPA or take any other reasonable action, including suspending data processing operations;
+
+ b. 
+Inform Customer promptly if, in Better Stack’s opinion, an instruction from Customer violates Applicable Data Protection Legislation;
+
+ c. 
+If Better Stack is collecting Customer Personal Data from individuals on behalf of Customer, follow Customer’s instructions regarding such Customer Personal Data collection (including with regard to the provision of notice and exercise of choice);
+
+ d. 
+Take commercially reasonable steps to ensure that (i) persons employed by it and (ii) other persons engaged to perform on Better Stack’s behalf comply with the terms of the DPA;
+
+ e. 
+Ensure that its personnel, authorized agents and any Subprocessors are required to comply with and acknowledge and respect the confidentiality of the Customer Personal Data, including after the end of their respective employment, contract or assignment;
+
+ f. 
+If it intends to engage Subprocessors to help it satisfy its obligations in accordance with this DPA or to delegate all or part of the processing activities to such Subprocessors, exclusive of the list of Subprocessors Better Stack maintains online (see below).
+
+ 5.2 
+Notice to Customer. Better Stack will inform Customer if Better Stack becomes aware of:
+
+ a. 
+Any non-compliance by Better Stack or its personnel with Sections 5-8 of this DPA or the Applicable Data Protection Legislation relating to the protection of Customer Personal Data processed under this DPA;
+
+ b. 
+Any legally binding request for disclosure of Customer Personal Data by a law enforcement authority, unless Better Stack is otherwise forbidden by law to inform Customer, for example to preserve the confidentiality of an investigation by law enforcement authorities;
+
+ c. 
+Any notice, inquiry or investigation by a competent supervisory authority with respect to Customer Personal Data; or
+
+ d. 
+Any complaint or request (in particular, requests for access to, rectification or blocking of Customer Personal Data) received directly from data subjects of Customer. Better Stack will not respond to any such request without Customer’s prior written authorization.
+
+ 5.3 
+Assistance to Customer. Better Stack will provide reasonable assistance to Customer regarding:
+
+ a. 
+Any requests from Customer data subjects in respect of access to or the rectification, erasure, restriction, portability, blocking or deletion of Customer Personal Data that Better Stack processes for Customer. In the event that a data subject sends such a request directly to Better Stack, Better Stack will promptly send such request to Customer;
+
+ b. 
+The investigation of Personal Data Breaches and the notification to a competent supervisory authority and Customer’s data subjects regarding such Personal Data Breaches; and
+
+ c. 
+Where appropriate, the preparation of data protection impact assessments and, where necessary, carrying out consultations with any competent supervisory authority.
+
+ 5.4 
+Required Processing. If Better Stack is required by Applicable Data Protection Legislation to process any Customer Personal Data for a reason other than providing the services described in the DPA, Better Stack will inform Customer of this requirement in advance of any processing, unless Better Stack is legally prohibited from informing Customer of such processing (e.g., as a result of secrecy requirements that may exist under applicable EU member state laws).
+
+ 5.5 
+Security. Better Stack will:
+
+ a. 
+Maintain appropriate organizational and technical security measures (including with respect to personnel, facilities, hardware and software, storage and networks, access controls, monitoring and logging, vulnerability and breach detection, incident response, encryption of certain Customer Personal Data) to protect against unauthorized or accidental access, loss, alteration, disclosure or destruction of Customer Personal Data;
+
+ b. 
+Be responsible for the sufficiency of the security, privacy, and confidentiality safeguards of all Better Stack personnel with respect to Customer Personal Data and liable for any failure by such Better Stack personnel to meet the terms of this DPA;
+
+ c. 
+Take reasonable steps to confirm that all Better Stack personnel are protecting the security, privacy and confidentiality of Customer Personal Data consistent with the requirements of this DPA; and
+
+ d. 
+Notify Customer of any Personal Data Breach by Better Stack, its Subprocessors, or any other third-parties acting on Better Stack’s behalf without undue delay of becoming aware of a Personal Data Breach.
+
+ 6. Audit, certification
+
+ 6.1 
+Supervisory Authority Audit. If a competent supervisory Authority requires an audit of the data processing facilities from which Better Stack processes Customer Personal Data in order to ascertain or monitor Customer’s compliance with Applicable Data Protection Legislation, Better Stack will cooperate with such audit. Customer is responsible for all costs and fees related to such audit, including all reasonable costs and fees for any and all time Better Stack expends for any such audit, in addition to the rates for services performed by Better Stack.
+
+ 6.2 
+DPO requests. Better Stack must, upon Customer’s request (not to exceed one request per calendar year) by email to dpo@betterstack.com, certify compliance with Sections 5-8 of this DPA in writing.
+
+ 7. Data transfers
+
+ 7.1 
+Location of Processing. Customer acknowledges that Better Stack and its Subprocessors may transfer and process personal data to and in the United States of America and other locations in which Better Stack, its affiliates or its Subprocessors maintain data processing operations, as more particularly described in the Subprocessor Page. Better Stack shall ensure that such transfers are made in compliance with Applicable Data Protection Legislation and this DPA.
+
+ 7.2 
+Transfer Mechanism. The parties agree that when the transfer of personal data from Customer (as “data exporter”) to Better Stack (as “data importer”) is a Restricted Transfer, Applicable Data Protection Legislation requires that appropriate safeguards are put in place. For the purposes of such Restricted Transfers from Customer to Better Stack, the parties rely on Better Stack's certification under the EU-U.S. Data Privacy Framework, the Swiss-US Data Privacy Framework and the UK-US Data Privacy Framework (together, the “DPF”) operated by the U.S. Department of Commerce, where applicable. To the extent that the DPF is not used by Better Stack, is invalidated, or ceases to be an appropriate safeguard under Article 46 GDPR for transfers to the United States, then, such transfer shall be subject to the appropriate Standard Contractual Clauses, which shall be deemed incorporated into and form part of this DPA as specified in Schedule D below.
+
+ 8. Data return and deletion
+
+The parties agree that on the termination of the data processing services or upon Customer’s reasonable request, Better Stack shall, and shall cause any Subprocessors to, at the choice of Customer, return all the Customer Personal Data and copies of such data to Customer or securely destroy them and demonstrate to the satisfaction of Customer that it has taken such measures, unless Applicable Data Protection Legislation prevent Better Stack from returning or destroying all or part of the Customer Personal Data disclosed. In such case, Better Stack agrees to preserve the confidentiality of the Customer Personal Data retained by it and that it will only actively process such Customer Personal Data after such date in order to comply with applicable laws.
+
+ 9. Third party data processors
+
+Customer acknowledges that in the provision of some services (such as CRMs), Better Stack, on receipt of instructions from Customer, may transfer Customer Personal Data to and otherwise interact with third party data processors.
+
+ 10. Term
+
+This DPA shall remain in effect as long as Better Stack carries out Personal Data processing operations on behalf of Customer or until the termination of the Better Stack Contract (and all Personal Data has been returned or deleted in accordance with Section 8 above).
+
+ 11. Miscellaneous
+
+ 11.1 
+Any claims brought in connection with this DPA will be subject to the terms and conditions, including, but not limited to, the exclusions and limitations set forth in the Agreement.
+
+ 11.2 
+No Sale or Sharing. To the extent that the processing of Customer Personal Data is subject to U.S. data protection laws, Better Stack is prohibited from: (a) selling Customer Personal Data or otherwise making Customer Personal Data available to any third party for monetary or other valuable consideration; (b) sharing Customer Personal Data with any third party for cross-behavioral advertising; (c) retaining, using, or disclosing Customer Personal Data for any purpose other than for the business purposes specified in this DPA or as otherwise permitted by U.S. data protection laws; (d) retaining, using or disclosing Customer Personal Data outside of the direct business relationship between the parties, and; (e) except as otherwise permitted by U.S. data protection laws, combining Customer Personal Data with personal data that Better Stack receives from or on behalf of another person or persons, or collects from its own interaction with the data subject. Better Stack will notify Customer promptly if it makes the determination that it can no longer meet its obligations under applicable U.S. data protection laws.
+
+ 12. Appending list of Subprocessors
+
+Customer hereby authorizes Better Stack to entrust additional processors with the processing of personal data according to this DPA.
+
+At the time of execution of this Agreement, Better Stack has entrusted the processing of personal data under this DPA to the additional processors in Schedule A.
+
+ Access Schedules to the DPA here .
