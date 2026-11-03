@@ -1,10 +1,11 @@
 import { Home, RefreshCw } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { isRouteErrorResponse, useRouteError } from "react-router";
 
 import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
 import { Button } from "@finance/ui/src/shared/ui/button";
+import { reportError } from "../shared/lib/errorReporting";
 import { NotFoundRoute } from "./lazyPages";
 
 /** Replaces react-router's default "Unexpected Application Error!" screen. A 404 thrown by the
@@ -13,8 +14,13 @@ import { NotFoundRoute } from "./lazyPages";
 export function RouteErrorBoundary() {
   const error = useRouteError();
   const { t } = useTranslation();
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
 
-  if (isRouteErrorResponse(error) && error.status === 404)
+  useEffect(() => {
+    if (!notFound) reportError(error);
+  }, [error, notFound]);
+
+  if (notFound)
     return (
       <Suspense fallback={null}>
         <NotFoundRoute />

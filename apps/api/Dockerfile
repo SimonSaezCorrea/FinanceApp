@@ -23,6 +23,9 @@ RUN pnpm --filter @finance/money build \
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# The commit this image was built from: Sentry tags each error with it (deploy.yml passes it).
+ARG SENTRY_RELEASE=
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 COPY --from=build /repo /repo
 WORKDIR /repo/apps/api
 # Never run as root inside the container.

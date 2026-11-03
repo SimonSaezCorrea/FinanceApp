@@ -2,6 +2,7 @@ import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common"
 import { CommandBus } from "@nestjs/cqrs";
 import { Cron } from "@nestjs/schedule";
 
+import { reportError } from "../../instrument";
 import { CronSwitch } from "../config/cron.config";
 import { RecordExchangeRatesCommand } from "../../domains/exchange-rate/application/commands/record-exchange-rates.command";
 
@@ -44,15 +45,21 @@ export class ExchangeRateCron implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.crons.enabled) return;
-    void this.record(new Date()).catch((err: unknown) =>
-      this.logger.error(`Initial exchange-rate recording failed: ${String(err)}`),
-    );
+    void this.record(new Date()).catch((err: unknown) => {
+      this.logger.error(`Initial exchange-rate recording failed: ${String(err)}`);
+      reportError(err);
+    });
   }
 
   @Cron("0 8-20 * * *", { timeZone: "America/Santiago" })
   async run(): Promise<void> {
     if (!this.crons.enabled) return;
-    await this.record(new Date());
+    try {
+      await this.record(new Date());
+    } catch (err: unknown) {
+      this.logger.error(`Exchange-rate recording failed: ${String(err)}`);
+      reportError(err);
+    }
   }
 
   private async record(now: Date): Promise<void> {

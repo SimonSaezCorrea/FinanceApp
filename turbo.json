@@ -8,6 +8,11 @@
       "env": [
         "VITE_API_URL",
         "VITE_LANDING_URL",
+        "VITE_SENTRY_DSN",
+        "VITE_RELEASE",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SENTRY_AUTH_TOKEN",
         "PUBLIC_API_URL",
         "PUBLIC_APP_URL",
         "PUBLIC_SITE_URL",

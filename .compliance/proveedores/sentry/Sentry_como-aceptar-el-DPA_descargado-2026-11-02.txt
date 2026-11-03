@@ -1,0 +1,33 @@
+Fuente: https://www.sentry.help/en/articles/13965008-how-do-i-sign-your-data-processing-addendum — descargado 2026-11-02.
+
+ How do I sign your Data Processing Addendum?
+
+ How do I sign your Data Processing Addendum?
+
+ September 16, 2026 
+
+ Table of contents
+
+ Issue
+
+ I need to sign a DPA with Sentry.
+
+ Applies To
+
+ All Plans
+
+ Resolution
+
+ If you prefer a signed copy of our DPA, go to this DocuSign link and follow the prompts.
+​
+We offer a Data Processing Addendum for customers who send personal data to Sentry. You’ll find our DPA in the Legal & Compliance section of your organization’s navigation menu in Sentry. It can be accessed by any member of the Sentry organization, but can only be signed/accepted by members with an Owner or Billing role.
+
+ Note: All members can view this document, but only Billing or Owner members can sign or accept it.
+
+ If you’d like to know who signed it, you can check your organization’s audit log. 
+
+ You can also reach out to Support for assistance.
+​
+Changes to the DPA are only available to Enterprise customers . 
+
+ Related Articles

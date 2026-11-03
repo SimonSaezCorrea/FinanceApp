@@ -131,6 +131,8 @@ jobs:
           context: .
           file: apps/api/Dockerfile
           platforms: linux/arm64
+          build-args: |
+            SENTRY_RELEASE=${{ env.SHA }}
           push: true
           tags: |
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.value }}
@@ -185,6 +187,19 @@ jobs:
         env:
           VITE_API_URL: https://api.mifik.cl
           VITE_LANDING_URL: https://mifik.cl
+          # Browser errors (inert while the repo variable is empty) and the source maps that make
+          # them readable, uploaded to Sentry and deleted from dist/ before Pages sees it.
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_WEB }}
+          VITE_RELEASE: ${{ env.SHA }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Refuse to publish source maps
+        run: |
+          if find apps/web/dist -name '*.map' | grep -q .; then
+            echo "::error::apps/web/dist has source maps; they must never reach Cloudflare Pages."
+            exit 1
+          fi
       - name: Upload to Cloudflare Pages (fik-app)
         run: npx --yes "$WRANGLER" pages deploy apps/web/dist --project-name=fik-app --branch=main --commit-hash="$SHA" --commit-dirty=true
         env:

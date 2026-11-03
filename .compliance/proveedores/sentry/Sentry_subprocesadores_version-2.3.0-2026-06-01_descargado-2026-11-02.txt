@@ -1,0 +1,73 @@
+Fuente: https://sentry.io/legal/subprocessors/ — descargado 2026-11-02 (texto extraído del HTML).
+
+ Subprocessors
+
+ FEED 
+
+Last Updated: June 1, 2026 
+ The following is a list of subprocessors that Sentry may engage to provide the Sentry service. Subscribe to this RSS feed to be notified of Sentry subprocessor changes (note: requires adding the RSS feed URL to an RSS feed reader).
+
+ Please note that if you select a data storage location for your use of Sentry, your service data remains in your specified location as described in our documentation . 
+
+ General
+
+ Applicable to all Sentry products (based on customer’s selection of data storage location).
+
+ Company Information Location Processing Purpose* 
+ Amazon Web Services, Inc.
+410 Terry Avenue North
+Seattle, WA 98109
+United States European Union 
+United States Cloud infrastructure services 
+ Anthropic, PBC
+548 Market St
+San Francisco, CA 94104
+United States United States AI/ML services 
+ Cloudflare, Inc.
+101 Townsend St
+San Francisco, CA 94107
+United States European Union 
+United States Cloud infrastructure services 
+ Google LLC (Google Cloud Platform)
+1600 Amphitheatre Parkway
+Mountain View, CA 94043
+United States European Union 
+United States Cloud infrastructure services 
+ Intercom, Inc.
+55 2nd St, 4th Fl
+San Francisco, CA 94105
+United States United States Customer support and messaging services 
+ OpenAI, L.L.C.
+3180 18th St.
+San Francisco, CA 94110
+United States United States AI/ML services 
+ Sinch Email (Mailgun)
+112 E Pecan St, #1135
+San Antonio, TX 78205
+United States European Union Email delivery services 
+ Twilio Inc. (SendGrid)
+101 Spear Street, First Floor
+San Francisco, CA 94105
+United States United States Email delivery services 
+
+ *Cloud infrastructure services include hosting, email delivery, and AI/ML infrastructure services. 
+ Affiliates
+
+ Applicable to all Sentry products.
+
+ Company Information Processing Purpose 
+ Functional Software GmbH
+Jakov-Lind-Straße 5/4OG
+1020 Wien
+Vienna, Austria Provides parts of the Service and related technical support 
+ Sentry Software Canada Inc.
+129 Spadina Ave, 7th Floor
+Toronto, ON M5V 2L3
+Canada Provides parts of the Service and related technical support 
+ Sentry Software Netherlands B.V.
+Schiphol Boulevard 359
+WTC Schiphol Airport, D-Tower
+11th floor
+1118BJ Schiphol
+Netherlands
+ Provides parts of the Service and related technical support 

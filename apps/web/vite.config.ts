@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
@@ -15,9 +16,34 @@ function apiOrigin(mode: string): string | null {
   }
 }
 
+/** Source maps go to Sentry (so a browser error reads as our code, not minified noise) and NEVER
+ * to Cloudflare Pages: they are only generated when the deploy can upload them (`SENTRY_AUTH_TOKEN`
+ * set), and deleted from `dist/` right after. Without the token the build has no maps at all. */
+function sentrySourceMaps() {
+  const authToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+  if (!authToken) return null;
+  return sentryVitePlugin({
+    authToken,
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    release: { name: process.env.VITE_RELEASE || undefined },
+    sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
+    bundleSizeOptimizations: {
+      excludeDebugStatements: true,
+      excludeTracing: true,
+      excludeReplayIframe: true,
+      excludeReplayShadowDom: true,
+      excludeReplayWorker: true,
+    },
+    telemetry: false,
+  });
+}
+
 export default defineConfig(({ mode }) => {
   const origin = apiOrigin(mode);
+  const sentry = sentrySourceMaps();
   return {
+    build: { sourcemap: sentry ? "hidden" : false },
     plugins: [
       react(),
       {
@@ -31,6 +57,7 @@ export default defineConfig(({ mode }) => {
               (origin ? `\n    <link rel="preconnect" href="${origin}" crossorigin />` : ""),
           ),
       },
+      sentry,
     ],
     // Force a single React instance (pnpm can surface a second hoisted copy,
     // which breaks hooks in libs like sonner/recharts).

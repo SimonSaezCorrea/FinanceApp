@@ -7,5 +7,6 @@
  * History: "2026-09-20" (consent text only, no published policy yet) → "2026-10-11" (policy
  * published on the public site and linked from the sign-up consent) → "2026-10-14" (deleting the
  * account always deletes everything; the "keep an anonymized history" option is gone) →
- * "2026-10-15" ("Descargar mis datos": a copy of ALL the data, Excel or JSON, from the app). */
-export const CURRENT_PRIVACY_POLICY_VERSION = "2026-10-15";
+ * "2026-10-15" ("Descargar mis datos": a copy of ALL the data, Excel or JSON, from the app) →
+ * "2026-11-02" (Sentry receives the app's browser error reports). */
+export const CURRENT_PRIVACY_POLICY_VERSION = "2026-11-02";

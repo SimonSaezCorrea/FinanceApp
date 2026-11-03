@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { Cron } from "@nestjs/schedule";
 
+import { reportError } from "../../instrument";
 import { CronSwitch } from "../config/cron.config";
 import { PurgeExpiredRecordsCommand } from "../../domains/idempotency-record/application/commands/purge-expired-records.command";
 import { PurgeExpiredCacheCommand } from "../../domains/ip-geolocation-cache/application/commands/purge-expired-cache.command";
@@ -68,6 +69,7 @@ export class MaintenanceCron {
       this.logger.log(`${name}: ${await work()}`);
     } catch (err: unknown) {
       this.logger.error(`${name} failed: ${String(err)}`);
+      reportError(err);
     }
   }
 }

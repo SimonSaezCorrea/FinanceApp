@@ -10,6 +10,7 @@ import type { Request, Response } from "express";
 
 import type { ApiError } from "@finance/contracts";
 
+import { reportError } from "../../instrument";
 import { describeError, needsStack } from "./describe-error";
 
 /**
@@ -66,6 +67,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         `${where} → ${status} ${code} | ${description}`,
         needsStack(exception) && exception instanceof Error ? exception.stack : undefined,
       );
+      reportError(exception);
     }
 
     const body: ApiError = { error: { code, ...(field ? { field } : {}) } };

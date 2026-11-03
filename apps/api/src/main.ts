@@ -1,3 +1,5 @@
+// Sentry must load before anything else it may need to patch.
+import "./instrument";
 import "reflect-metadata";
 import { Logger, type LogLevel } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";

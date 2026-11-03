@@ -12,9 +12,11 @@ import { preloadPage } from "./app/lazyPages";
 import { Providers } from "./app/providers";
 import { primeSession } from "./domains/auth/hooks/useAuth";
 import { router } from "./app/router";
+import { reportError, startErrorReporting } from "./shared/lib/errorReporting";
 import { trackScrollbarGap } from "./shared/lib/scrollbarGap";
 import "./styles/index.css";
 
+startErrorReporting();
 configureClient({ baseUrl: import.meta.env.VITE_API_URL });
 primeSession();
 preloadPage(window.location.pathname);
@@ -23,7 +25,14 @@ trackScrollbarGap();
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");
 
-createRoot(rootEl).render(
+// A render error outside the router (the providers): the router's own errors reach
+// RouteErrorBoundary instead and are reported there.
+createRoot(rootEl, {
+  onUncaughtError: (error) => {
+    console.error(error);
+    reportError(error);
+  },
+}).render(
   <StrictMode>
     <Providers>
       <RouterProvider router={router} />

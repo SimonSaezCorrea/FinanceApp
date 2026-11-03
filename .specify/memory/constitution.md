@@ -1,4 +1,10 @@
 <!--
+Sync Impact Report — 2026-11-02 (amendment 2.9.1)
+- Version change: 2.9.0 → 2.9.1 (PATCH: a dependency is recorded; no principle changes meaning).
+- RECORDED (Principle V): `@sentry/react` (apps/web, loaded on demand) for browser error reports and
+  dev-only `@sentry/vite-plugin` for source maps, which never reach Cloudflare Pages. Sentry is added
+  to the published privacy policy as a processor (policy version 2026-11-02).
+
 Sync Impact Report — 2026-11-01 (amendment 2.9.0)
 - Version change: 2.8.2 → 2.9.0 (MINOR: a table is added; no principle text changes meaning).
 - AMENDED Principle VI title and Principle VIII: 34 → 35 tables — `account-credit-limit`
@@ -2311,7 +2317,10 @@ identificador adivinable o no.
   Design tokens include the **clay `--accent`** channel (HSL, dark/light). The public site
   (`apps/landing`, specs/031) is built with **Astro** + `@astrojs/react` (render at build only) +
   `@astrojs/sitemap`; dev-only `@astrojs/check` and `@resvg/resvg-js`. The API compresses its
-  responses with **`compression`** (Express middleware, 2026-10-09). Adding a new runtime
+  responses with **`compression`** (Express middleware, 2026-10-09). The app reports browser errors
+  with **`@sentry/react`** (loaded on demand, inert without `VITE_SENTRY_DSN`; no user, cookies,
+  headers, bodies, query strings, replay or tracing) and uploads its source maps with dev-only
+  **`@sentry/vite-plugin`** (2026-11-02; Sentry is a declared data processor). Adding a new runtime
   dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
 - **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
   single Next.js app is removed. (Principle II was rewritten to the NestJS/CQRS mechanism in 2.0.0.
@@ -2368,4 +2377,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.9.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-01
+**Version**: 2.9.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-02
