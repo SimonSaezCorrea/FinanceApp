@@ -34,8 +34,9 @@ infraestructura de producción (`docs/DEPLOY.md`).
    - **Cerrar sesiones:** de un usuario, desde su Perfil o directo en la tabla `session`; de todos,
      cambiando los secretos JWT.
    - **Base de datos:** cambiar las contraseñas de `fik_app`/`fik_migrate` (Parameter Store +
-     `deploy/aws/db-roles.sql` + desplegar), quitar las IP de administración
-     (`deploy/aws/db-allow-my-ip.sh --revoke`).
+     `deploy/aws/db-roles.sql` + desplegar). La base no tiene acceso público: desde un PC solo se
+     llega por el túnel de Session Manager (`deploy/aws/db-tunnel.sh`); cortarlo = quitar el permiso
+     `ssm:StartSession` del usuario IAM comprometido.
    - **Proveedores:** rotar la clave de Resend, el token de IPinfo y los tokens de Cloudflare/GitHub
      que corresponda.
 3. Abrir la bitácora del incidente en `21719-registro-vulneraciones.md`.

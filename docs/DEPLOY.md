@@ -66,10 +66,10 @@ consultar mindicador.cl e IPinfo.
   de contraseñas.
 - Instancia: **db.t4g.micro**. Almacenamiento: **gp3, 20 GB**, autoescalado hasta 50 GB.
 - Conectividad: VPC por defecto, security group **`fik-db`** (quitar el `default`). Se creó con
-  **Public access: No** y el 2026-10-11 pasó a **Yes** para administrarla desde un PC (DBeaver,
-  psql): el security group igual solo abre el 5432 al servidor y a las IP agregadas con
-  `deploy/aws/db-allow-my-ip.sh`, y RDS exige TLS (una conexión sin cifrar se rechaza). Ver
-  "Ver la base desde un PC" más abajo.
+  **Public access: No**. Entre el 2026-10-11 y el 2026-11-04 estuvo en **Yes** para usar DBeaver;
+  volvió a **No** y desde un PC se llega por un túnel de Session Manager a través del servidor (ver
+  "Ver la base desde un PC" más abajo). El security group solo abre el 5432 a `fik-api`, y RDS exige
+  TLS (una conexión sin cifrar se rechaza).
 - Nombre inicial de la base: **`fik`**.
 - Respaldos automáticos: **1 día**, por decisión (2026-10-11): restauración a cualquier minuto de
   las últimas 24 h; subirlo si hace falta (`aws rds modify-db-instance --db-instance-identifier
@@ -285,6 +285,25 @@ línea JSON por mensaje (`main.ts`), así que `level`, `context` y `message` lle
   el siguiente despliegue.
 - Ver si funciona: `sudo docker compose --profile logs logs --tail 50 logs`.
 
+### Alarmas de CloudWatch
+
+Seis alarmas (2026-11-04, nivel gratuito: hasta 10) avisan por correo con el tema SNS **`fik-alarms`**
+(suscripción de `mifik.general@gmail.com`, confirmada desde el correo). Cada una avisa también cuando
+vuelve a OK.
+
+| Alarma                   | Condición                                               | Acción además del aviso |
+| ------------------------ | ------------------------------------------------------- | ----------------------- |
+| `fik-api-system-check`   | EC2: falla el chequeo de sistema 2 min seguidos         | **recover** (otro host) |
+| `fik-api-instance-check` | EC2: falla el chequeo de la instancia 3 min seguidos    | **reboot**              |
+| `fik-db-low-storage`     | RDS: menos de 2 GB libres (el disco autoescala a 50 GB) | —                       |
+| `fik-db-low-memory`      | RDS: menos de 100 MB de memoria libre por 15 min        | —                       |
+| `fik-db-high-cpu`        | RDS: CPU sobre 80 % por 15 min                          | —                       |
+| `fik-db-low-cpu-credits` | RDS: menos de 20 créditos de CPU (t4g, ráfagas)         | —                       |
+
+`recover` conserva el ID, la IP elástica, los volúmenes y el rol: el servidor vuelve tal cual. La
+disponibilidad vista desde fuera (API, sitio, app) y los errores del API los vigila Better Stack.
+Lo normal hoy (2026-11-04): ~200 MB de memoria libre, CPU ~4 %, 288 créditos, 18 GB libres.
+
 ## Dónde ver cada cosa
 
 | Qué                              | Dónde                                                                                                |
@@ -297,21 +316,28 @@ línea JSON por mensaje (`main.ts`), así que `level`, `context` y `message` lle
 | Versiones publicadas de Pages    | Cloudflare → Workers & Pages → `fik-landing` / `fik-app` → Deployments                               |
 | Logs del API                     | Better Stack → Telemetry → la fuente de fik; en el servidor, Session Manager → Mantenimiento (Logs)  |
 | Costos                           | AWS → Billing → Bills (y el presupuesto `fik-monthly`, US$45, que avisa a `mifik.general@gmail.com`) |
+| Alarmas (servidor y base)        | AWS → CloudWatch → Ohio → Alarms (`fik-*`); avisan por SNS `fik-alarms` a `mifik.general@gmail.com`  |
 
 ## Ver la base desde un PC
 
-1. Abrir el 5432 a tu IP actual (repetirlo cada vez que cambie tu IP; borra la anterior):
-   `AWS_PROFILE=fik bash deploy/aws/db-allow-my-ip.sh <tu-nombre>`. Para cerrar todo acceso de PC:
-   `... db-allow-my-ip.sh --revoke`.
-2. Certificado de la región: `https://truststore.pki.rds.amazonaws.com/us-east-2/us-east-2-bundle.pem`.
-3. DBeaver → PostgreSQL: host `fik-db.cfoeucaao0d1.us-east-2.rds.amazonaws.com`, puerto 5432, base
-   `fik`, usuario **`fik_readonly`** (contraseña: Parameter Store
-   `/fik/admin/DATABASE_READONLY_PASSWORD`). Pestaña **SSL**: _Use SSL_, _Root certificate_ = el
-   archivo del paso 2, _SSL mode_ = `verify-full`.
-4. `fik_readonly` solo mira: toda transacción suya es de solo lectura y no tiene permiso de
+La base no tiene dirección pública: se llega con un túnel de **Session Manager** que pasa por el
+servidor `fik-api` (sin SSH ni puertos abiertos; queda registrado en CloudTrail).
+
+1. Una vez por PC: instalar el **Session Manager plugin** (Windows: `winget install
+Amazon.SessionManagerPlugin`, luego abrir una terminal nueva) y tener el AWS CLI con sesión
+   (`aws login --profile fik`).
+2. Abrir el túnel y dejar la terminal abierta mientras se usa (Ctrl+C lo cierra):
+   `AWS_PROFILE=fik bash deploy/aws/db-tunnel.sh` → `localhost:15432` llega a la base (15432 para no
+   chocar con el Postgres local de desarrollo en 5432; otro puerto: `db-tunnel.sh 25432`).
+3. Certificado de la región: `https://truststore.pki.rds.amazonaws.com/us-east-2/us-east-2-bundle.pem`.
+4. DBeaver → PostgreSQL: host `localhost`, puerto `15432`, base `fik`, usuario **`fik_readonly`**
+   (contraseña: Parameter Store `/fik/admin/DATABASE_READONLY_PASSWORD`). Pestaña **SSL**: _Use SSL_,
+   _Root certificate_ = el archivo del paso 3, _SSL mode_ = **`verify-ca`** (el certificado nombra el
+   host de RDS, no `localhost`, así que `verify-full` falla; `verify-ca` igual comprueba que es RDS).
+5. `fik_readonly` solo mira: toda transacción suya es de solo lectura y no tiene permiso de
    escritura sobre ninguna tabla. Para corregir algo a propósito, una **segunda conexión** con
    `fik_admin` (`/fik/admin/DATABASE_ADMIN_PASSWORD`): lo que se modifique o borre ahí es real.
-5. **Nada del repo se conecta a producción desde un PC:** el API, el CLI de Prisma (toda migración,
+6. **Nada del repo se conecta a producción desde un PC:** el API, el CLI de Prisma (toda migración,
    incluido `migrate dev`) y el seed se niegan a arrancar si la URL apunta a RDS y
    `NODE_ENV` no es `production` (`apps/api/src/infra/config/production-database.ts`). Para hacer
    algo deliberado contra producción hay que escribir `NODE_ENV=production` a propósito.
