@@ -17,7 +17,6 @@ const PAGES = [
   { slug: "privacy-policy", h1: "landing-privacy-policy-title" },
   { slug: "pricing", h1: "landing-pricing-title" },
   { slug: "faq", h1: "landing-faq-title" },
-  { slug: "ai", h1: "landing-ai-title" },
 ] as const;
 const LANGS = ["es", "en"] as const;
 
@@ -275,6 +274,20 @@ describe("public site build", () => {
       expect(page).toContain(`${SITE}/es/pricing/`);
     }
   });
+
+  // The summary for AI assistants: people can open it, search results don't show it (it outranked
+  // the home page for "mifik"); /llms.txt is what the assistants read.
+  for (const lang of LANGS) {
+    it(`/${lang}/ai/ is public but unlisted`, () => {
+      const html = htmlOf(lang, "ai");
+      expect(html).toMatch(/<h1[^>]*id="landing-ai-title"/);
+      expect(html).toContain('<meta name="robots" content="noindex, follow"');
+      expect(html).not.toContain('rel="canonical"');
+      const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
+      const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
+      expect(xml).not.toContain(`${SITE}/${lang}/ai/`);
+    });
+  }
 
   it("publishes robots.txt pointing at the sitemap", () => {
     const robots = readFileSync(join(DIST, "robots.txt"), "utf8");

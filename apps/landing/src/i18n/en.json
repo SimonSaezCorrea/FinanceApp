@@ -28,7 +28,7 @@
       },
       "allGuides": "All guides",
       "legal": "Legal",
-      "copyright": "© {{year}} fik",
+      "copyright": "© {{year}} fik · mifik.cl",
       "llms": "For AI assistants",
       "editorial": "How we write",
       "releaseNotes": "What's new"
@@ -324,7 +324,7 @@
     "meta": {
       "home": {
         "title": "fik · Personal finance in {{country}}",
-        "description": "The backbone that keeps your finances balanced. Personal finance in {{country}} with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
+        "description": "fik (mifik.cl), the backbone that keeps your finances balanced. Personal finance in {{country}} with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
       },
       "about": {
         "title": "About · fik",

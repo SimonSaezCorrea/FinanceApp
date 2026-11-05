@@ -27,7 +27,7 @@ const address = `${site.replace(/^https?:\/\//, "")}/llms.txt`;
 const [beforeAddress, afterAddress] = t(lang, "landing.ai.stepAddress", { url: "%URL%" }).split("%URL%");
 ---
 
-<PageLayout lang={lang} page="ai">
+<PageLayout lang={lang} page="ai" unlisted>
   <article class="mx-auto flex max-w-[52rem] flex-col gap-8 pb-16 pt-8 sm:pt-10 lg:pt-16">
     <header class="flex flex-col gap-4">
       <h1

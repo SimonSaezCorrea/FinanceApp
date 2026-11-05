@@ -47,9 +47,13 @@ interface Props {
   /** The page's own address per language when it is not `pagePath(lang, page)` (spec 035: a guide
    * and its pair, whose slugs differ; a language missing here has no version of the page). */
   paths?: Partial<Record<Language, string>>;
+  /** A public page people may open but search results should not show (`/ai/`: a summary written
+   * for AI assistants, which outranked the home page for "mifik"). `noindex, follow`, out of the
+   * sitemap, no canonical or alternates; unlike the email pages it keeps its visit statistics. */
+  unlisted?: boolean;
 }
-const { lang, page, notFound = false, utility, paths } = Astro.props;
-const unindexed = notFound || utility !== undefined;
+const { lang, page, notFound = false, utility, paths, unlisted = false } = Astro.props;
+const unindexed = notFound || utility !== undefined || unlisted;
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
 const url = (l: Language) => `${site}${paths?.[l] ?? pagePath(l, page)}`;
 // Alternates only for the languages the page exists in (a guide written in one language has none).
@@ -67,7 +71,7 @@ const image = `${site}/og/fik-${lang}.png`;
 // public pages: never on the pages an email link opens (their address carries a one-time token
 // the beacon would send along with the URL), never on the 404, never in the app.
 const analyticsToken = import.meta.env.PUBLIC_CF_WEB_ANALYTICS_TOKEN?.trim();
-const analytics = analyticsToken && !unindexed ? JSON.stringify({ token: analyticsToken }) : null;
+const analytics = analyticsToken && (!unindexed || unlisted) ? JSON.stringify({ token: analyticsToken }) : null;
 // Structured data on the home page (both languages): tells Google the site is called "fik"
 // (also searched as "mifik") so brand searches show that name and lead here.
 const structuredData =
@@ -130,7 +134,7 @@ const structuredData =
     {utility && <meta name="referrer" content="no-referrer" />}
     {
       unindexed ? (
-        <meta name="robots" content="noindex" />
+        <meta name="robots" content={unlisted ? "noindex, follow" : "noindex"} />
       ) : (
         <>
           <link rel="canonical" href={url(lang)} />

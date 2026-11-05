@@ -40,6 +40,9 @@ const LOCALIZED_PAIRS = [
 
 // Pages an email link opens (specs/032): never indexed, never in the sitemap.
 const EMAIL_LINK_PAGES = /^\/(es|en)\/(verify-email|reset-password)\/$/;
+// Public but unlisted (PageLayout's `unlisted`): the summary for AI assistants. /llms.txt is the
+// file those assistants read; the page is for people copying it, not for search results.
+const UNLISTED_PAGES = /^\/(es|en)\/ai\/$/;
 
 export default defineConfig({
   site,
@@ -53,7 +56,9 @@ export default defineConfig({
     sitemap({
       filter: (page) => {
         const path = new URL(page).pathname;
-        return !REDIRECT_PAGES.has(path) && !EMAIL_LINK_PAGES.test(path);
+        return (
+          !REDIRECT_PAGES.has(path) && !EMAIL_LINK_PAGES.test(path) && !UNLISTED_PAGES.test(path)
+        );
       },
       i18n: { defaultLocale: "es", locales: { es: "es-CL", en: "en-US" } },
       serialize(item) {

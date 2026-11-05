@@ -28,7 +28,7 @@
       },
       "allGuides": "Todas las guías",
       "legal": "Legal",
-      "copyright": "© {{year}} fik",
+      "copyright": "© {{year}} fik · mifik.cl",
       "llms": "Para asistentes de IA",
       "editorial": "Cómo escribimos",
       "releaseNotes": "Novedades"
@@ -324,7 +324,7 @@
     "meta": {
       "home": {
         "title": "fik · Finanzas personales en {{country}}",
-        "description": "La columna que hace cuadrar tus finanzas. Finanzas personales en {{country}} con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
+        "description": "fik (mifik.cl), la columna que hace cuadrar tus finanzas. Finanzas personales en {{country}} con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
       },
       "about": {
         "title": "Nosotros · fik",
