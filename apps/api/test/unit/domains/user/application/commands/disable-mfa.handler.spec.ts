@@ -9,6 +9,7 @@ import type { UserRepositoryPort } from "../../../../../../src/domains/user/doma
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { fakeTrustedDevices } from "../../../../support/fake-ports";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -111,6 +112,7 @@ describe("DisableMfaHandler", () => {
       recoveryCodes,
       sessions,
       fakePrisma(),
+      fakeTrustedDevices(),
     );
 
     await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a"));
@@ -135,6 +137,7 @@ describe("DisableMfaHandler", () => {
       recoveryCodes,
       sessions,
       fakePrisma(),
+      fakeTrustedDevices(),
     );
 
     await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a"));
@@ -159,6 +162,7 @@ describe("DisableMfaHandler", () => {
       recoveryCodes,
       sessions,
       fakePrisma(),
+      fakeTrustedDevices(),
     );
 
     await expect(
@@ -188,6 +192,7 @@ describe("DisableMfaHandler", () => {
       recoveryCodes,
       sessions,
       prisma,
+      fakeTrustedDevices(),
     );
 
     await expect(

@@ -22,6 +22,7 @@ import {
   type SecurityNoticeKind,
 } from "../src/infra/email/templates/security-notice";
 import { renderVerifyEmail } from "../src/infra/email/templates/verify-email";
+import { renderMfaCode, type MfaCodeEmailPurpose } from "../src/infra/email/templates/mfa-code";
 
 const LOCALES: EmailLocale[] = ["es", "en"];
 const NOTICES: SecurityNoticeKind[] = [
@@ -33,17 +34,22 @@ const NOTICES: SecurityNoticeKind[] = [
   "PASSKEY_REMOVED",
   "EMAIL_CHANGED",
   "ACCOUNT_DELETED",
+  "RECOVERY_CODES_REGENERATED",
+  "TRUSTED_DEVICE_ADDED",
+  "MFA_METHOD_CHANGED",
 ];
 /** What a notice names, when it names something (the passkey, the new address). */
 const DETAIL: Partial<Record<SecurityNoticeKind, string>> = {
   PASSKEY_ADDED: "iPhone de Ana",
   PASSKEY_REMOVED: "iPhone de Ana",
   EMAIL_CHANGED: "ana.nueva@ejemplo.cl",
+  TRUSTED_DEVICE_ADDED: "Chrome · Windows",
 };
 const DETAIL_MEANING: Partial<Record<SecurityNoticeKind, string>> = {
   PASSKEY_ADDED: "Nombre de la llave de acceso",
   PASSKEY_REMOVED: "Nombre de la llave de acceso",
   EMAIL_CHANGED: "Dirección nueva de la cuenta",
+  TRUSTED_DEVICE_ADDED: "Navegador y sistema del dispositivo",
 };
 
 const site = "https://mifik.cl";
@@ -133,6 +139,9 @@ const NOTICE_NAMES: Record<SecurityNoticeKind, string> = {
   PASSKEY_REMOVED: "Llave de acceso eliminada",
   EMAIL_CHANGED: "Correo cambiado (a la dirección anterior)",
   ACCOUNT_DELETED: "Cuenta eliminada",
+  RECOVERY_CODES_REGENERATED: "Códigos de recuperación nuevos",
+  TRUSTED_DEVICE_ADDED: "Dispositivo recordado",
+  MFA_METHOD_CHANGED: "Método de verificación cambiado",
 };
 
 function variablesOf(names: VariableName[], detailMeaning?: string): Variable[] {
@@ -208,6 +217,15 @@ const entries: Entry[] = [
       { page: "reset-password" },
     ),
   },
+  ...(["LOGIN", "ENROLL", "STEP_UP"] as MfaCodeEmailPurpose[]).map((purpose): Entry => ({
+    id: `mfa-code-${purpose.toLowerCase()}`,
+    group: "security",
+    name: `Código de verificación (${purpose})`,
+    variables: variablesOf(["contact"]),
+    versions: versionsOf((v, locale) =>
+      renderMfaCode({ locale, siteUrl: v.site, contact: v.contact, purpose, code: "482913" }),
+    ),
+  })),
   ...NOTICES.map((kind): Entry => ({
     id: `notice-${kind.toLowerCase()}`,
     group: "security",

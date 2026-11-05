@@ -34,34 +34,42 @@ export function StepUpPanel({
   const { t } = useTranslation();
   const { user } = useAuth();
   const { data: passkeys } = usePasskeysQuery();
-  const { stepUp, stepUpPasskeyOptions, stepUpPasskeyVerify } = useProfileMutations();
+  const { stepUp, stepUpPasskeyOptions, stepUpPasskeyVerify, sendStepUpEmailCode } =
+    useProfileMutations();
+  const [emailSent, setEmailSent] = useState(false);
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [usingPasskey, setUsingPasskey] = useState(false);
 
   const methods = auth.stepUpMethodsFor({
+    mfaMethod: user?.mfaMethod ?? null,
     mfaEnabled: user?.mfaEnabled ?? false,
     passkeyCount: passkeys?.length ?? 0,
   });
   const hasTotp = methods.includes("totp");
+  const hasEmail = methods.includes("email");
   const hasPasskey = methods.includes("passkey");
   const passwordOnly = methods.length === 1 && methods[0] === "password";
   // What the modal's own confirm button submits — "none" when only a passkey is configured,
   // since that button has nothing to send; the passkey button below is the real action then.
-  let primaryField: "password" | "totp" | "none" = "none";
+  let primaryField: "password" | "totp" | "email" | "none" = "none";
   if (passwordOnly) primaryField = "password";
   else if (hasTotp) primaryField = "totp";
+  else if (hasEmail) primaryField = "email";
 
   let confirmDisabled = true;
   if (primaryField === "password") confirmDisabled = password.length === 0;
-  else if (primaryField === "totp") confirmDisabled = !/^\d{6}$/.test(code);
+  else if (primaryField === "totp" || primaryField === "email") {
+    confirmDisabled = !/^\d{6}$/.test(code);
+  }
 
   function reset() {
     setPassword("");
     setCode("");
     setError(null);
     setUsingPasskey(false);
+    setEmailSent(false);
   }
 
   function close(next: boolean) {
@@ -74,9 +82,20 @@ export function StepUpPanel({
     try {
       const { verifiedUntil } = passwordOnly
         ? await stepUp.mutateAsync({ method: "password", password })
-        : await stepUp.mutateAsync({ method: "totp", code });
+        : await stepUp.mutateAsync({ method: primaryField === "email" ? "email" : "totp", code });
       close(false);
       onVerified(new Date(verifiedUntil));
+    } catch (err) {
+      const errCode = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+      setError(t(`errors.${errCode}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+    }
+  }
+
+  async function sendEmailCode() {
+    setError(null);
+    try {
+      await sendStepUpEmailCode.mutateAsync();
+      setEmailSent(true);
     } catch (err) {
       const errCode = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${errCode}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
@@ -147,6 +166,38 @@ export function StepUpPanel({
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             />
           </Field>
+        ) : hasEmail ? (
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void sendEmailCode()}
+              disabled={sendStepUpEmailCode.isPending}
+            >
+              {emailSent
+                ? t("profile.security.stepUp.resendEmailCode")
+                : t("profile.security.stepUp.sendEmailCode")}
+            </Button>
+            {emailSent ? (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {t("profile.security.stepUp.emailSent", { email: user?.email ?? "" })}
+              </p>
+            ) : null}
+            <Field
+              label={t("profile.security.stepUp.emailCodeLabel")}
+              htmlFor="step-up-email-code"
+              error={hasPasskey ? undefined : error}
+            >
+              <Input
+                id="step-up-email-code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              />
+            </Field>
+          </div>
         ) : null}
         {hasPasskey ? (
           <div className="flex flex-col gap-1.5">

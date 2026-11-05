@@ -471,3 +471,50 @@ export function fakeScopeLookup(
     ...overrides,
   };
 }
+
+/** `trusted-device` (specs/040): remembers nothing unless a test says so. */
+export function fakeTrustedDevices(
+  overrides: Partial<
+    import("../../../src/domains/trusted-device/domain/ports/trusted-device.repository.port").TrustedDeviceRepositoryPort
+  > = {},
+): import("../../../src/domains/trusted-device/domain/ports/trusted-device.repository.port").TrustedDeviceRepositoryPort {
+  return {
+    rememberWithTx: vi.fn().mockResolvedValue(undefined),
+    findValidByTokenHash: vi.fn().mockResolvedValue(null),
+    touch: vi.fn().mockResolvedValue(undefined),
+    listForUser: vi.fn().mockResolvedValue([]),
+    deleteOwned: vi.fn().mockResolvedValue(true),
+    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
+    purgeExpired: vi.fn().mockResolvedValue(0),
+    ...overrides,
+  };
+}
+
+/** `MfaCodeService` (specs/040): sends nothing for real; every code is wrong unless a test says so. */
+export function fakeMfaCodes(
+  overrides: Partial<
+    Record<
+      keyof import("../../../src/domains/user/application/mfa-code-service").MfaCodeService,
+      unknown
+    >
+  > = {},
+): import("../../../src/domains/user/application/mfa-code-service").MfaCodeService {
+  return {
+    issueAndSend: vi.fn().mockResolvedValue({ sent: true }),
+    issueAndSendOrThrow: vi.fn().mockResolvedValue(undefined),
+    verifyWithTx: vi.fn().mockResolvedValue(false),
+    revokeWithTx: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  } as never;
+}
+
+/** `SessionStepUpPort`: a step-up done `ageMs` ago on the caller's session (`null` = never). */
+export function fakeSessionStepUp(
+  ageMs: number | null = 0,
+): import("../../../src/domains/session/domain/ports/session-step-up.port").SessionStepUpPort {
+  return {
+    markSteppedUp: vi.fn(),
+    consumeWithTx: vi.fn().mockResolvedValue(true),
+    steppedUpAt: vi.fn().mockResolvedValue(ageMs === null ? null : new Date(Date.now() - ageMs)),
+  };
+}

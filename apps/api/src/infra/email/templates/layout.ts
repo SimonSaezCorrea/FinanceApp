@@ -18,6 +18,8 @@ export interface LayoutInput {
   /** Paragraphs, already filled (raw text: escaped here for HTML). */
   paragraphs: string[];
   button?: { label: string; url: string };
+  /** A one-time code shown large, between the paragraphs and the notes (specs/040). */
+  code?: string;
   /** Smaller paragraphs after the button. */
   notes?: string[];
 }
@@ -67,6 +69,7 @@ ${paragraph(t.buttonFallback, 13, MUTED)}
 <h1 style="margin:0 0 16px;font:700 22px/1.3 ${FONT};color:${INK}">${bodyHtml(input.title)}</h1>
 ${input.paragraphs.map((p) => paragraph(p)).join("\n")}
 ${button}
+${input.code ? `<p style="margin:8px 0 24px;font:700 32px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:8px;color:${INK}">${escapeHtml(input.code)}</p>` : ""}
 ${(input.notes ?? []).map((n) => paragraph(n, 13, MUTED)).join("\n")}
 </td></tr>
 <tr><td style="padding:16px 32px 28px;border-top:1px solid ${LINE}">
@@ -82,6 +85,7 @@ ${paragraph(contact, 12, MUTED)}
     "",
     ...input.paragraphs.flatMap((p) => [p, ""]),
     ...(input.button ? [`${input.button.label}: ${input.button.url}`, ""] : []),
+    ...(input.code ? [input.code, ""] : []),
     ...(input.notes ?? []).flatMap((n) => [n, ""]),
     "—",
     t.footer,

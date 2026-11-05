@@ -31,6 +31,7 @@ function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRe
 function fakeStepUp(ageMs: number | null = 0): SessionStepUpPort {
   return {
     markSteppedUp: vi.fn(),
+    consumeWithTx: vi.fn().mockResolvedValue(true),
     steppedUpAt: vi.fn().mockResolvedValue(ageMs === null ? null : new Date(Date.now() - ageMs)),
   };
 }

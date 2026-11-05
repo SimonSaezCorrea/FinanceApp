@@ -1,7 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { hash } from "bcryptjs";
-import * as OTPAuth from "otpauth";
 
 import type { auth } from "@finance/contracts";
 
@@ -20,6 +19,12 @@ import {
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { generateRecoveryCodes } from "../recovery-code-generator";
+import { isValidTotp } from "../totp";
+import { MfaCodeService } from "../mfa-code-service";
+import {
+  TRUSTED_DEVICE_REPOSITORY,
+  type TrustedDeviceRepositoryPort,
+} from "../../../trusted-device/domain/ports/trusted-device.repository.port";
 import { ConfirmMfaEnrollmentCommand } from "./confirm-mfa-enrollment.command";
 import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 
@@ -28,6 +33,8 @@ interface Context {
   /** Set inside `handle()` once the code validates — read back by `persist()`, which runs after
    * `handle()` returns but shares this same object by reference. */
   recoveryCodeHashes?: string[];
+  /** Set when this confirmed a METHOD CHANGE: remembered devices are forgotten in `persist()`. */
+  changed?: boolean;
 }
 
 const RECOVERY_CODE_BCRYPT_ROUNDS = 10;
@@ -45,6 +52,8 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
     @Inject(MFA_RECOVERY_CODE_REPOSITORY)
     private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
+    private readonly mfaCodes: MfaCodeService,
   ) {
     super(eventBus);
   }
@@ -60,36 +69,55 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
     context: Context,
   ): Promise<HandleResult<auth.ConfirmMfaEnrollmentResponse>> {
     const { user } = context;
-    // Checked before evaluating any code: already active has no "replace device" path (must
-    // disable first), and with nothing pending there is no secret to validate against.
-    if (user.mfaEnabled) throw new MfaAlreadyEnabledError();
-    if (!user.mfaSecret) throw new MfaNotPendingError();
-    const totp = new OTPAuth.TOTP({
-      algorithm: "SHA1",
-      digits: 6,
-      period: 30,
-      secret: OTPAuth.Secret.fromBase32(user.mfaSecret ?? ""),
-    });
-    const delta = totp.validate({ token: command.input.code.trim(), window: 1 });
-    if (delta === null) throw new InvalidMfaCodeError();
+    // Checked before evaluating any code. A pending TOTP secret from before specs/040 (no pending
+    // method) still confirms as the app.
+    const pending = user.mfaPendingMethod ?? (!user.mfaEnabled && user.mfaSecret ? "TOTP" : null);
+    if (!pending) {
+      if (user.mfaEnabled) throw new MfaAlreadyEnabledError();
+      throw new MfaNotPendingError();
+    }
+    const code = command.input.code.trim();
+    const valid =
+      pending === "EMAIL"
+        ? await this.prisma.$transaction((tx) =>
+            this.mfaCodes.verifyWithTx(tx, user.id, "ENROLL", code),
+          )
+        : isValidTotp(user.mfaSecret, code);
+    if (!valid) throw new InvalidMfaCodeError();
 
-    user.confirmMfaEnrollment();
+    const outcome = user.confirmMfaEnrollment();
+    const now = new Date();
+    if (outcome === "CHANGED") {
+      // The recovery codes stay; remembered devices were trusted under the old method.
+      context.changed = true;
+      return {
+        result: { recoveryCodes: null },
+        events: [new AccountSecurityEvent(user.id, "MFA_METHOD_CHANGED", now)],
+      };
+    }
 
     const plainCodes = generateRecoveryCodes();
     context.recoveryCodeHashes = await Promise.all(
-      plainCodes.map((code) => hash(code, RECOVERY_CODE_BCRYPT_ROUNDS)),
+      plainCodes.map((c) => hash(c, RECOVERY_CODE_BCRYPT_ROUNDS)),
     );
     return {
       result: { recoveryCodes: plainCodes },
-      events: [new AccountSecurityEvent(user.id, "MFA_ENABLED", new Date())],
+      events: [new AccountSecurityEvent(user.id, "MFA_ENABLED", now)],
     };
   }
 
   protected override async persist(context: Context): Promise<void> {
-    const hashes = context.recoveryCodeHashes ?? [];
     await this.prisma.$transaction(async (tx) => {
       await this.repo.saveWithTx(tx, context.user);
-      await this.recoveryCodes.createManyWithTx(tx, context.user.id, hashes);
+      if (context.changed) {
+        await this.devices.deleteAllForUserWithTx(tx, context.user.id);
+      } else {
+        await this.recoveryCodes.createManyWithTx(
+          tx,
+          context.user.id,
+          context.recoveryCodeHashes ?? [],
+        );
+      }
     });
   }
 }

@@ -144,6 +144,9 @@ export const currentUserSchema = z.object({
   budgetAlertThreshold: z.number().int().min(1).max(100).nullable(),
   /** Whether login requires a TOTP (or recovery code) second factor (specs/021). */
   mfaEnabled: z.boolean(),
+  /** Which second factor (specs/040): `null` without MFA. Optional so the app still reads an API
+   * that predates it (absent with `mfaEnabled` = the authenticator app). */
+  mfaMethod: z.enum(["totp", "email"]).nullable().optional(),
   /** How many single-use recovery codes are still unused — never the codes themselves, which
    * are shown exactly once, at activation confirmation. Always 0 when mfaEnabled is false. */
   mfaRecoveryCodesRemaining: z.number().int().min(0),
@@ -274,11 +277,23 @@ export type UserEmailResponse = z.infer<typeof userEmailResponseSchema>;
 
 // ---- MFA (specs/021) ----
 
+/** The second-factor methods (specs/040): an authenticator app, or a code sent by email. */
+export const mfaMethodSchema = z.enum(["totp", "email"]);
+export type MfaMethod = z.infer<typeof mfaMethodSchema>;
+
 /** `POST /auth/login`'s response shape. With MFA active, no session is issued yet — only a
  * `mfa_pending_token` cookie (set by the controller, not part of this body) — and `user` is
  * omitted entirely rather than sent partial/placeholder data. */
 export const loginResponseSchema = z.discriminatedUnion("mfaRequired", [
-  z.object({ mfaRequired: z.literal(true) }),
+  z.object({
+    mfaRequired: z.literal(true),
+    /** Which second factor to ask for (specs/040). Absent from an older API = the app. */
+    mfaMethod: mfaMethodSchema.optional(),
+    /** `email` only: whether a code was sent now (false = resend limit or email unavailable). */
+    codeSent: z.boolean().optional(),
+    /** `email` only, with `codeSent: false` by the limit: seconds until another can be sent. */
+    retryAfterSeconds: z.number().int().min(0).optional(),
+  }),
   z.object({ mfaRequired: z.literal(false), user: currentUserSchema }),
 ]);
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
@@ -288,12 +303,23 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
  * (TOTP only, in practice) and to complete a pending login's second factor. */
 export const mfaCodeSchema = z.string().trim().min(6).max(20);
 
-export const startMfaEnrollmentResponseSchema = z.object({
-  qrCodeDataUrl: z.string(),
-  /** Plaintext secret, shown ONLY in this response, as the manual-entry alternative to
-   * scanning the QR — never exposed again after enrollment is confirmed. */
-  secret: z.string(),
-});
+/** `POST /auth/me/mfa/enroll` (specs/040): which method to set up. Absent = the app (older
+ * clients). With MFA already active this CHANGES the method and needs a recent step-up. */
+export const startMfaEnrollmentRequestSchema = z.object({ method: mfaMethodSchema.optional() });
+export type StartMfaEnrollmentRequest = z.infer<typeof startMfaEnrollmentRequestSchema>;
+
+export const startMfaEnrollmentResponseSchema = z.union([
+  z.object({
+    /** Absent from an older API. */
+    method: z.literal("totp").optional(),
+    qrCodeDataUrl: z.string(),
+    /** Plaintext secret, shown ONLY in this response, as the manual-entry alternative to
+     * scanning the QR — never exposed again after enrollment is confirmed. */
+    secret: z.string(),
+  }),
+  /** A code went to the confirmed email; confirming it activates (or switches to) email codes. */
+  z.object({ method: z.literal("email"), codeSent: z.literal(true) }),
+]);
 export type StartMfaEnrollmentResponse = z.infer<typeof startMfaEnrollmentResponseSchema>;
 
 export const confirmMfaEnrollmentRequestSchema = z.object({ code: mfaCodeSchema });
@@ -301,16 +327,46 @@ export type ConfirmMfaEnrollmentRequest = z.infer<typeof confirmMfaEnrollmentReq
 
 export const confirmMfaEnrollmentResponseSchema = z.object({
   /** The 10 recovery codes, in plaintext, shown exactly once — never returned by any other
-   * endpoint or response afterward. */
-  recoveryCodes: z.array(z.string()),
+   * endpoint or response afterward. `null` when this confirmed a METHOD CHANGE (specs/040): the
+   * existing codes are kept. */
+  recoveryCodes: z.array(z.string()).nullable(),
 });
 export type ConfirmMfaEnrollmentResponse = z.infer<typeof confirmMfaEnrollmentResponseSchema>;
 
 export const disableMfaRequestSchema = z.object({ password: z.string().min(1) });
 export type DisableMfaRequest = z.infer<typeof disableMfaRequestSchema>;
 
-export const verifyMfaLoginRequestSchema = z.object({ code: mfaCodeSchema });
-export type VerifyMfaLoginRequest = z.infer<typeof verifyMfaLoginRequestSchema>;
+export const verifyMfaLoginRequestSchema = z.object({
+  code: mfaCodeSchema,
+  /** Remember this browser for `TRUSTED_DEVICE_DAYS` (specs/040). */
+  rememberDevice: z.boolean().optional().default(false),
+});
+export type VerifyMfaLoginRequest = z.input<typeof verifyMfaLoginRequestSchema>;
+
+/** `POST /auth/login/mfa-resend` and `POST /auth/sessions/step-up/email-code` (specs/040). */
+export const mfaCodeSentResponseSchema = z.object({ codeSent: z.literal(true) });
+export type MfaCodeSentResponse = z.infer<typeof mfaCodeSentResponseSchema>;
+
+/** `POST /auth/me/mfa/recovery-codes` (specs/040): 10 new codes, shown once; the old ones died. */
+export const regenerateRecoveryCodesResponseSchema = z.object({
+  recoveryCodes: z.array(z.string()).length(10),
+});
+export type RegenerateRecoveryCodesResponse = z.infer<typeof regenerateRecoveryCodesResponseSchema>;
+
+/** A browser remembered to skip the second factor (specs/040). */
+export const trustedDeviceSchema = z.object({
+  id: z.string(),
+  deviceLabel: z.string(),
+  createdAt: z.string(),
+  expiresAt: z.string(),
+  lastUsedAt: z.string().nullable(),
+  /** This browser's own `mfa_trusted` cookie points at it. */
+  isCurrent: z.boolean(),
+});
+export type TrustedDevice = z.infer<typeof trustedDeviceSchema>;
+
+export const listTrustedDevicesResponseSchema = z.object({ items: z.array(trustedDeviceSchema) });
+export type ListTrustedDevicesResponse = z.infer<typeof listTrustedDevicesResponseSchema>;
 
 // ---- Passkeys / WebAuthn (specs/022) ----
 
@@ -399,18 +455,22 @@ export type ListSessionsResponse = z.infer<typeof listSessionsResponseSchema>;
 /** How long a step-up verification lets the session that did it close other sessions. */
 export const STEP_UP_WINDOW_MINUTES = 5;
 
-export const stepUpMethodSchema = z.enum(["totp", "passkey", "password"]);
+export const stepUpMethodSchema = z.enum(["totp", "email", "passkey", "password"]);
 export type StepUpMethod = z.infer<typeof stepUpMethodSchema>;
 
 /** Which methods may verify a step-up: a second factor when the user has one (TOTP and/or a
  * passkey — then the password alone is NOT enough), the password only when they have neither.
  * Shared by the API (which enforces it) and the web (which offers exactly these). */
 export function stepUpMethodsFor(input: {
-  mfaEnabled: boolean;
+  /** The account's second factor (specs/040); wins over `mfaEnabled` when given. */
+  mfaMethod?: MfaMethod | null;
+  /** Older callers: MFA on = the authenticator app. */
+  mfaEnabled?: boolean;
   passkeyCount: number;
 }): StepUpMethod[] {
   const methods: StepUpMethod[] = [];
-  if (input.mfaEnabled) methods.push("totp");
+  const method = input.mfaMethod ?? (input.mfaEnabled ? "totp" : null);
+  if (method) methods.push(method);
   if (input.passkeyCount > 0) methods.push("passkey");
   return methods.length > 0 ? methods : ["password"];
 }
@@ -420,6 +480,14 @@ export function stepUpMethodsFor(input: {
 export const stepUpRequestSchema = z.discriminatedUnion("method", [
   z.object({
     method: z.literal("totp"),
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/),
+  }),
+  /** The code `POST /auth/sessions/step-up/email-code` just sent (specs/040). */
+  z.object({
+    method: z.literal("email"),
     code: z
       .string()
       .trim()

@@ -10,6 +10,7 @@ import type { SessionIssuer } from "../../../../../src/domains/user/application/
 import type { TokenIssuer } from "../../../../../src/domains/user/application/token-issuer";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import { buildUserRepo } from "../../../support/repositories";
+import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
 
 /**
  * Proves the password check runs on a locked row: N concurrent wrong passwords against a fresh
@@ -50,7 +51,15 @@ describe("login rate limit under concurrency (integration)", () => {
   });
 
   const handler = () =>
-    new LoginHandler({ publish: () => {} } as never, userRepo, tokenIssuer, sessionIssuer, prisma);
+    new LoginHandler(
+      { publish: () => {} } as never,
+      userRepo,
+      tokenIssuer,
+      sessionIssuer,
+      prisma,
+      new PrismaTrustedDeviceRepository(prisma),
+      { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
+    );
 
   it("5 concurrent wrong passwords each count exactly once, and the 5th locks", async () => {
     const attempts = Array.from({ length: 5 }, () =>

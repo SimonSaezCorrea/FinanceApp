@@ -1,7 +1,15 @@
 import type { auth } from "@finance/contracts";
 
 import { UserAccountDeletedEvent } from "./events/user-account-deleted.event";
-import { AccountDisabledError, MfaAlreadyEnabledError, MfaNotPendingError } from "./errors";
+import {
+  AccountDisabledError,
+  MfaAlreadyEnabledError,
+  MfaNotPendingError,
+  MfaSameMethodError,
+} from "./errors";
+
+/** The second-factor method as the database names it (specs/040). */
+export type MfaMethod = "TOTP" | "EMAIL";
 
 export type UserStatus = "ACTIVE" | "DISABLED";
 
@@ -40,6 +48,11 @@ export interface UserProps {
   mfaSecret: string | null;
   mfaFailedAttempts: number;
   mfaLockedUntil: Date | null;
+  /** Which second factor (specs/040). Optional so fixtures from before keep compiling; null/absent
+   * with `mfaEnabled` reads as TOTP (rows from before the column). */
+  mfaMethod?: MfaMethod | null;
+  /** The method being set up — activation or change — until its first code is confirmed. */
+  mfaPendingMethod?: MfaMethod | null;
   /** Wrong-password counter for login, same shape as the MFA one (see `recordLoginFailure`). */
   loginFailedAttempts: number;
   loginLockedUntil: Date | null;
@@ -178,6 +191,15 @@ export class User {
   get mfaLockedUntil(): Date | null {
     return this.props.mfaLockedUntil;
   }
+  get mfaPendingMethod(): MfaMethod | null {
+    return this.props.mfaPendingMethod ?? null;
+  }
+  /** The active second factor, or null without MFA. A row from before specs/040 (MFA on, no
+   * method) used the authenticator app — the only method then. */
+  mfaMethodOrDefault(): MfaMethod | null {
+    if (!this.props.mfaEnabled) return null;
+    return this.props.mfaMethod ?? "TOTP";
+  }
   /** Read before `delete()` scrubs it — e.g. by `DeleteAccountHandler`, to hash it into the
    * account-deletion compliance log before it's gone. */
   get identifierValue(): string | null {
@@ -285,28 +307,51 @@ export class User {
   }
 
   /**
-   * Starts (or restarts) an MFA enrollment: stores a fresh pending secret, replacing any
-   * previous unconfirmed one (a refreshed/abandoned activation screen simply gets a new QR —
-   * nothing was protecting the account with the old pending secret anyway). Rejected once MFA
-   * is already active — this app has no "replace device" path, only disable-then-reactivate.
+   * Starts (or restarts) setting up a second factor (specs/040). Without MFA it is an activation;
+   * with MFA active it is a METHOD CHANGE — the caller enforces the recent step-up that requires.
+   * TOTP stores a fresh pending secret (the active method keeps working until confirmed: an EMAIL
+   * account ignores the secret, and a TOTP account can't "change" to TOTP). Any earlier unconfirmed
+   * setup is simply replaced.
    */
-  startMfaEnrollment(secret: string): void {
-    if (this.props.mfaEnabled) throw new MfaAlreadyEnabledError();
-    this.props.mfaSecret = secret;
+  startMfaEnrollment(method: MfaMethod, secret: string | null = null): void {
+    if (this.props.mfaEnabled && this.mfaMethodOrDefault() === method) {
+      throw new MfaSameMethodError();
+    }
+    if (method === "TOTP") {
+      if (!secret) throw new MfaNotPendingError();
+      this.props.mfaSecret = secret;
+    }
+    this.props.mfaPendingMethod = method;
   }
 
-  /** Confirms a pending enrollment. Requires a secret from a prior `startMfaEnrollment` — the
-   * TOTP code itself is validated by the calling handler (pure crypto, no aggregate state). */
-  confirmMfaEnrollment(): void {
-    if (this.props.mfaEnabled) throw new MfaAlreadyEnabledError();
-    if (!this.props.mfaSecret) throw new MfaNotPendingError();
+  /**
+   * Confirms the pending setup once its first code checked out (the code itself is validated by
+   * the handler). Returns whether this ACTIVATED MFA or CHANGED its method. Moving to EMAIL drops
+   * the TOTP secret. A pending TOTP secret from before specs/040 (no pending method) still confirms.
+   */
+  confirmMfaEnrollment(): "ACTIVATED" | "CHANGED" {
+    const pending =
+      this.props.mfaPendingMethod ??
+      (!this.props.mfaEnabled && this.props.mfaSecret ? "TOTP" : null);
+    if (!pending) {
+      if (this.props.mfaEnabled) throw new MfaAlreadyEnabledError();
+      throw new MfaNotPendingError();
+    }
+    if (pending === "TOTP" && !this.props.mfaSecret) throw new MfaNotPendingError();
+    const outcome = this.props.mfaEnabled ? "CHANGED" : "ACTIVATED";
     this.props.mfaEnabled = true;
+    this.props.mfaMethod = pending;
+    this.props.mfaPendingMethod = null;
+    if (pending === "EMAIL") this.props.mfaSecret = null;
+    return outcome;
   }
 
   /** Invalidates the secret and resets the rate-limit counters — recovery codes are discarded
    * by the caller (a separate aggregate/table) in the same transaction. */
   disableMfa(): void {
     this.props.mfaEnabled = false;
+    this.props.mfaMethod = null;
+    this.props.mfaPendingMethod = null;
     this.props.mfaSecret = null;
     this.props.mfaFailedAttempts = 0;
     this.props.mfaLockedUntil = null;
@@ -385,6 +430,8 @@ export class User {
     this.props.countryId = null;
     this.props.countryName = null;
     this.props.mfaEnabled = false;
+    this.props.mfaMethod = null;
+    this.props.mfaPendingMethod = null;
     this.props.mfaSecret = null;
     this.props.mfaFailedAttempts = 0;
     this.props.mfaLockedUntil = null;
@@ -428,6 +475,7 @@ export class User {
       extraCurrencies: this.props.extraCurrencies,
       budgetAlertThreshold: this.props.budgetAlertThreshold,
       mfaEnabled: this.props.mfaEnabled,
+      mfaMethod: (this.mfaMethodOrDefault()?.toLowerCase() ?? null) as auth.MfaMethod | null,
       mfaRecoveryCodesRemaining,
       emailVerified: this.emailVerified,
     };

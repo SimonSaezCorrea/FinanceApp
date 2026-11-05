@@ -212,3 +212,41 @@ export class EmailUnavailableError extends DomainError {
     super("EMAIL_UNAVAILABLE", 503);
   }
 }
+
+/** MFA (specs/040): regenerating recovery codes, or changing the method, without MFA active. */
+export class MfaNotEnabledError extends DomainError {
+  constructor() {
+    super("MFA_NOT_ENABLED", 409);
+  }
+}
+
+/** MFA (specs/040): email codes need a CONFIRMED email — never send a code to an unproven address. */
+export class MfaEmailNotVerifiedError extends DomainError {
+  constructor() {
+    super("MFA_EMAIL_NOT_VERIFIED", 409);
+  }
+}
+
+/** MFA (specs/040): "change" to the method the account already uses. */
+export class MfaSameMethodError extends DomainError {
+  constructor() {
+    super("MFA_SAME_METHOD", 409);
+  }
+}
+
+/** MFA (specs/040): a code was sent less than a minute ago, or 5 in the last hour. Carries how
+ * long until another can be sent, so the screen can count down instead of guessing. */
+export class MfaCodeRateLimitedError extends DomainError {
+  readonly details: { retryAfterSeconds: number };
+  constructor(retryAfterSeconds: number) {
+    super("MFA_CODE_RATE_LIMITED", 429);
+    this.details = { retryAfterSeconds };
+  }
+}
+
+/** A remembered device that doesn't exist or isn't the caller's (specs/040). */
+export class TrustedDeviceNotFoundError extends DomainError {
+  constructor() {
+    super("TRUSTED_DEVICE_NOT_FOUND", 404);
+  }
+}

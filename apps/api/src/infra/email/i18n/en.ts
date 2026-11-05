@@ -27,6 +27,29 @@ export const en: EmailCatalog = {
       "Changing it signs you out everywhere. If you use two-step verification, we'll still ask for it.",
     ignore: "If you didn't ask for this, ignore this email: your password stays the same.",
   },
+  mfaCode: {
+    preheader: "Your code expires in 10 minutes.",
+    expires: "It expires in 10 minutes and works only once.",
+    neverAsk: "No one from fik will ever ask you for this code: don't share it with anyone.",
+    ignore: "If this wasn't you, ignore this email and change your password.",
+    purposes: {
+      LOGIN: {
+        subject: "Your code to sign in to fik",
+        title: "Sign-in code",
+        body: "Someone entered your fik password. To finish signing in, type this code:",
+      },
+      ENROLL: {
+        subject: "Your code to turn on email verification in fik",
+        title: "Confirm email verification",
+        body: "To have your fik account ask for a code sent to this email when signing in, type this code in your profile:",
+      },
+      STEP_UP: {
+        subject: "Your code to confirm it's you in fik",
+        title: "Confirm it's you",
+        body: "To go ahead with a security change in your fik account, type this code:",
+      },
+    },
+  },
   securityNotice: {
     when: "When: {date} (Chile time).",
     notYou:
@@ -45,7 +68,7 @@ export const en: EmailCatalog = {
       MFA_ENABLED: {
         subject: "You turned on two-step verification in fik",
         title: "Two-step verification on",
-        body: "From now on, signing in to fik with your password also asks for a code from your authenticator app.",
+        body: "From now on, signing in to fik with your password also asks for a code: from your authenticator app or sent to your email, depending on the method you chose.",
       },
       MFA_DISABLED: {
         subject: "Two-step verification was turned off in fik",
@@ -66,6 +89,21 @@ export const en: EmailCatalog = {
         subject: "Your fik account email changed",
         title: "Your email changed",
         body: "Your fik account email is now {detail}. This address no longer receives our emails and can no longer recover the account.",
+      },
+      RECOVERY_CODES_REGENERATED: {
+        subject: "You generated new recovery codes in fik",
+        title: "New recovery codes",
+        body: "10 new recovery codes were generated for your fik account. The previous ones no longer work. Devices you had remembered will ask for the code again.",
+      },
+      TRUSTED_DEVICE_ADDED: {
+        subject: "You remembered a device in fik",
+        title: "Device remembered",
+        body: "“{detail}” won't be asked for the verification code for 30 days when signing in with your password. You can remove it in Profile → Security.",
+      },
+      MFA_METHOD_CHANGED: {
+        subject: "You changed your two-step verification in fik",
+        title: "Verification method changed",
+        body: "The way your fik account asks for the second step when signing in was changed. Devices you had remembered will ask for the code again.",
       },
       ACCOUNT_DELETED: {
         subject: "You deleted your fik account",

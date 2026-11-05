@@ -1,3 +1,4 @@
+import type { auth } from "@finance/contracts";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -10,6 +11,7 @@ import { ConfirmMfaEnrollmentHandler } from "../../../../../src/domains/user/app
 import { ConfirmMfaEnrollmentCommand } from "../../../../../src/domains/user/application/commands/confirm-mfa-enrollment.command";
 import { buildMfaRecoveryCodeRepo, buildUserRepo } from "../../../support/repositories";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
 
 /**
  * Real-test-DB integration test (Constitution VI/IX) — requires `DATABASE_URL` pointing at a
@@ -42,8 +44,15 @@ describe("MFA enrollment (integration)", () => {
   });
 
   it("stores the secret encrypted and creates 10 unused recovery code rows on confirm", async () => {
-    const startHandler = new StartMfaEnrollmentHandler({ publish: () => {} } as never, userRepo);
-    const { secret } = await startHandler.execute(new StartMfaEnrollmentCommand(userId));
+    const startHandler = new StartMfaEnrollmentHandler(
+      { publish: () => {} } as never,
+      userRepo,
+      {} as never,
+      { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
+    );
+    const { secret } = (await startHandler.execute(
+      new StartMfaEnrollmentCommand(userId),
+    )) as Extract<auth.StartMfaEnrollmentResponse, { secret: string }>;
 
     // The raw column must never equal the plaintext secret.
     const rawRow = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -63,6 +72,8 @@ describe("MFA enrollment (integration)", () => {
       userRepo,
       recoveryCodeRepo,
       prisma,
+      new PrismaTrustedDeviceRepository(prisma),
+      { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
     );
     const { recoveryCodes } = await confirmHandler.execute(
       new ConfirmMfaEnrollmentCommand(userId, { code }),
@@ -75,6 +86,6 @@ describe("MFA enrollment (integration)", () => {
     const rows = await prisma.mfaRecoveryCode.findMany({ where: { userId } });
     expect(rows).toHaveLength(10);
     expect(rows.every((r) => r.usedAt === null)).toBe(true);
-    expect(rows.every((r) => r.codeHash !== recoveryCodes[0])).toBe(true);
+    expect(rows.every((r) => r.codeHash !== recoveryCodes![0])).toBe(true);
   });
 });

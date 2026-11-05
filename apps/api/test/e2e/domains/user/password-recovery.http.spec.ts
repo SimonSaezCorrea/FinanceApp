@@ -134,7 +134,7 @@ describe("Password recovery HTTP (e2e)", () => {
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password: newPassword });
     expect(newLogin.status).toBe(200);
-    expect(newLogin.body).toEqual({ mfaRequired: true });
+    expect(newLogin.body).toEqual({ mfaRequired: true, mfaMethod: "totp" });
 
     await waitForEmail(outbox, email, "security-notice", "Recuperaste el acceso");
   });

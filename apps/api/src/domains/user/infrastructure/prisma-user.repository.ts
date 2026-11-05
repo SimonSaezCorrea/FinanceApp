@@ -63,6 +63,8 @@ function rowToProps(row: Row, mfaEncryptionKey: string): UserProps {
       : null,
     mfaFailedAttempts: row.mfaFailedAttempts,
     mfaLockedUntil: row.mfaLockedUntil,
+    mfaMethod: row.mfaMethod,
+    mfaPendingMethod: row.mfaPendingMethod,
     loginFailedAttempts: row.loginFailedAttempts,
     loginLockedUntil: row.loginLockedUntil,
     emailVerifiedAt: row.emailVerified,
@@ -174,6 +176,8 @@ export class PrismaUserRepository implements UserRepositoryPort {
             : null,
           mfaFailedAttempts: snap.mfaFailedAttempts,
           mfaLockedUntil: snap.mfaLockedUntil,
+          mfaMethod: snap.mfaMethod ?? null,
+          mfaPendingMethod: snap.mfaPendingMethod ?? null,
           loginFailedAttempts: snap.loginFailedAttempts,
           loginLockedUntil: snap.loginLockedUntil,
           // Written only when the aggregate knows it (fixtures that predate specs/032 leave it

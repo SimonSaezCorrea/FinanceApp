@@ -11,5 +11,8 @@ export class LoginCommand implements SystemCommand {
     /** User-Agent/IP of the request — only used when this login actually establishes a
      * session (not when it only reaches the MFA-pending step). */
     public readonly device?: DeviceContext,
+    /** The browser's `mfa_trusted` cookie, when it has one (specs/040): a valid one of THIS
+     * account skips the second factor, never the password. */
+    public readonly trustedDeviceToken?: string,
   ) {}
 }

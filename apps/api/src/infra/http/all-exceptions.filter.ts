@@ -35,6 +35,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = "INTERNAL_ERROR";
     let field: string | undefined;
+    let details: Record<string, unknown> | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -58,6 +59,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.httpStatus;
       code = exception.code;
       field = exception.field;
+      // A domain error may carry facts the client needs to act (e.g. when it may retry).
+      details = exception.details;
     }
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -74,14 +77,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
       reportError(reportableError(exception));
     }
 
-    const body: ApiError = { error: { code, ...(field ? { field } : {}) } };
+    const body: ApiError = {
+      error: { code, ...(field ? { field } : {}), ...(details ? { details } : {}) },
+    };
     res.status(status).json(body);
   }
 }
 
-function isDomainError(
-  exception: unknown,
-): exception is { httpStatus: number; code: string; field?: string } {
+function isDomainError(exception: unknown): exception is {
+  httpStatus: number;
+  code: string;
+  field?: string;
+  details?: Record<string, unknown>;
+} {
   return (
     exception instanceof Error &&
     typeof (exception as { httpStatus?: unknown }).httpStatus === "number" &&

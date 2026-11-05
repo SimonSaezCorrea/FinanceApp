@@ -1,5 +1,6 @@
 import { hash } from "bcryptjs";
 import * as OTPAuth from "otpauth";
+import { fakeMfaCodes } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { VerifyStepUpHandler } from "../../../../../../src/domains/user/application/commands/verify-step-up.handler";
@@ -52,7 +53,7 @@ function props(overrides: Partial<UserProps> = {}): UserProps {
   };
 }
 
-function setup(userProps: UserProps, passkeyCount = 0) {
+function setup(userProps: UserProps, passkeyCount = 0, mfaCodes = fakeMfaCodes()) {
   const users: UserRepositoryPort = {
     findByEmail: vi.fn(),
     findById: vi.fn().mockResolvedValue(User.fromPersistence(userProps)),
@@ -68,7 +69,11 @@ function setup(userProps: UserProps, passkeyCount = 0) {
   const passkeys = {
     findByUserId: vi.fn().mockResolvedValue(Array.from({ length: passkeyCount }, () => ({}))),
   } as unknown as PasskeyRepositoryPort;
-  const stepUp: SessionStepUpPort = { markSteppedUp: vi.fn(), steppedUpAt: vi.fn() };
+  const stepUp: SessionStepUpPort = {
+    markSteppedUp: vi.fn(),
+    steppedUpAt: vi.fn(),
+    consumeWithTx: vi.fn(),
+  };
   const prisma = {
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn({})),
   } as unknown as PrismaService;
@@ -78,6 +83,7 @@ function setup(userProps: UserProps, passkeyCount = 0) {
     passkeys,
     stepUp,
     prisma,
+    mfaCodes,
   );
   return { handler, users, stepUp };
 }
@@ -149,5 +155,41 @@ describe("VerifyStepUpHandler", () => {
     const saved = vi.mocked(users.saveWithTx).mock.calls[0]?.[1] as User;
     expect(saved.mfaFailedAttempts).toBe(1);
     expect(stepUp.markSteppedUp).not.toHaveBeenCalled();
+  });
+});
+
+describe("VerifyStepUpHandler - email method (specs/040 US3)", () => {
+  const emailUser = () => props({ mfaEnabled: true, mfaMethod: "EMAIL", mfaSecret: null });
+
+  it("accepts the emailed STEP_UP code and refuses the authenticator method", async () => {
+    const mfaCodes = fakeMfaCodes({ verifyWithTx: vi.fn().mockResolvedValue(true) });
+    const { handler, stepUp } = setup(emailUser(), 0, mfaCodes);
+    await handler.execute(
+      new VerifyStepUpCommand("u1", "sess", { method: "email", code: "123456" }),
+    );
+    expect(mfaCodes.verifyWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "STEP_UP",
+      "123456",
+      expect.any(Date),
+    );
+    expect(stepUp.markSteppedUp).toHaveBeenCalled();
+
+    const other = setup(emailUser());
+    await expect(
+      other.handler.execute(
+        new VerifyStepUpCommand("u1", "sess", { method: "totp", code: "123456" }),
+      ),
+    ).rejects.toThrow(StepUpMethodNotAllowedError);
+  });
+
+  it("a wrong emailed code counts as a failed attempt", async () => {
+    const { handler, users } = setup(emailUser());
+    await expect(
+      handler.execute(new VerifyStepUpCommand("u1", "sess", { method: "email", code: "000000" })),
+    ).rejects.toThrow(InvalidMfaCodeError);
+    const saved = (users.saveWithTx as ReturnType<typeof vi.fn>).mock.calls[0]![1] as User;
+    expect(saved.mfaFailedAttempts).toBe(1);
   });
 });

@@ -8,6 +8,7 @@ import { User, type UserProps } from "../../../../../../src/domains/user/domain/
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { fakeTrustedDevices } from "../../../../support/fake-ports";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -95,6 +96,7 @@ describe("ChangePasswordHandler", () => {
       repo,
       sessions,
       fakePrisma(),
+      fakeTrustedDevices(),
     );
 
     await expect(
@@ -121,6 +123,7 @@ describe("ChangePasswordHandler", () => {
       repo,
       sessions,
       fakePrisma(),
+      fakeTrustedDevices(),
     );
 
     await handler.execute(
@@ -148,6 +151,7 @@ describe("ChangePasswordHandler", () => {
       repo,
       sessions,
       fakePrisma(),
+      fakeTrustedDevices(),
     );
 
     await handler.execute(
@@ -182,6 +186,7 @@ describe("ChangePasswordHandler", () => {
       repo,
       sessions,
       prisma,
+      fakeTrustedDevices(),
     );
 
     await expect(

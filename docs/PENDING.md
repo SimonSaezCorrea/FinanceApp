@@ -56,25 +56,27 @@ Lo que queda **explícitamente pendiente**:
   integración pesada (descargar/parsear/verificar el BLOB firmado de metadatos FIDO, decidir qué
   fabricantes permitir) de valor dudoso para una app de finanzas personales.
 
-### 3b. Verificación en dos pasos — real desde specs/021 (2026-09-18), tres caminos quedan fuera
+### 3b. Verificación en dos pasos — completa desde specs/040 (2026-11-05)
 
-El switch "Verificación en dos pasos" **dejó de ser decorativo**: activa/desactiva MFA real vía
-TOTP (app autenticadora), exige el segundo paso en cada login de una cuenta con MFA activo, y
-soporta códigos de recuperación de un solo uso. Ver `specs/021-mfa-totp/` para el diseño completo.
-Tres caminos quedaron **explícitamente fuera de alcance de esa iteración** (decisión del dueño del
-producto, no un hueco técnico encontrado después):
+specs/021 dejó MFA real por TOTP con códigos de recuperación y tres caminos fuera. specs/040 los
+cerró los tres:
 
-- **Segundo factor por email o SMS**: solo TOTP por app autenticadora existe hoy. El backend no
-  tiene proveedor de email/SMS transaccional integrado (mismo hueco que el punto 1 de esta
-  sección) — agregarlo es la misma integración que ya falta ahí, más un tercer tipo de código en
-  `verify-mfa-login.handler.ts`.
-- **"Recordar este dispositivo"**: no existe un mecanismo para saltarse el segundo paso en logins
-  futuros desde el mismo navegador. Cada login de una cuenta con MFA activo pide el código
-  siempre, sin excepción. Implementarlo requeriría una cookie de dispositivo confiable de larga
-  duración (separada de las de sesión) y una tabla que la valide.
-- **Regenerar códigos de recuperación sin reactivar todo MFA**: hoy la única forma de obtener un
-  set nuevo de códigos es desactivar MFA (reingresando la contraseña) y volver a activarlo desde
-  cero — no hay un endpoint "solo regenerar códigos" que preserve el secreto TOTP vigente.
+- **Regenerar códigos de recuperación** sin reactivar: `POST /auth/me/mfa/recovery-codes`, tras un
+  step-up que se consume en la misma transacción.
+- **"Recordar este dispositivo" por 30 días**: tabla `trusted-device` + cookie httpOnly
+  `mfa_trusted` (solo su SHA-256 en la base), máx. 10 por cuenta, olvidados al cambiar/recuperar
+  la contraseña, desactivar o cambiar el método y regenerar códigos.
+- **Código de 6 dígitos por correo** como método alternativo a TOTP (tabla `mfa-code`, HMAC con
+  llave derivada de `MFA_ENCRYPTION_KEY`, 10 min, un reenvío por minuto y 5 por hora), también para
+  el step-up; cambiar de método exige step-up.
+
+Sigue pendiente, a propósito:
+
+- **SMS**: descartado (costo, SIM swapping). **WhatsApp** queda como canal futuro: el envío pasa
+  por `MfaCodeSenderPort` y `MfaCodeChannel` ya prevé otro valor, así que sería otra
+  implementación, no otro flujo.
+- Pedir un **paso extra al reactivar un dispositivo recordado tras mucho tiempo sin uso**: hoy el
+  vencimiento es fijo a 30 días desde que se recordó, sin importar el uso.
 
 ### 4. Sesiones y dispositivos — real desde specs/023 (2026-09-19), revocación por credencial cerrada por specs/024
 

@@ -23,6 +23,9 @@ vi.mock("@finance/client", async (importOriginal) => ({
     startMfaEnrollment: (...args: unknown[]) => startMfaEnrollment(...args),
     confirmMfaEnrollment: (...args: unknown[]) => confirmMfaEnrollment(...args),
     disableMfa: (...args: unknown[]) => disableMfa(...args),
+    regenerateRecoveryCodes: (...args: unknown[]) => regenerateRecoveryCodes(...args),
+    listTrustedDevices: vi.fn().mockResolvedValue({ items: [] }),
+    removeTrustedDevice: vi.fn(),
   },
 }));
 
@@ -58,6 +61,7 @@ async function completeStepUp() {
 const startMfaEnrollment = vi.fn();
 const confirmMfaEnrollment = vi.fn();
 const disableMfa = vi.fn();
+const regenerateRecoveryCodes = vi.fn();
 const meMock = vi.fn().mockResolvedValue({
   id: "u1",
   email: "a@b.com",
@@ -171,6 +175,13 @@ describe("SecuritySection — change password", () => {
   });
 });
 
+/** The activation panel opens on the method choice (specs/040); the app is preselected. */
+async function chooseApp() {
+  fireEvent.click(
+    await screen.findByRole("button", { name: i18n.t("profile.security.mfa.continue") }),
+  );
+}
+
 describe("SecuritySection — MFA", () => {
   it("switching MFA on opens the enrollment panel and shows the QR", async () => {
     startMfaEnrollment.mockResolvedValue({
@@ -183,8 +194,9 @@ describe("SecuritySection — MFA", () => {
       name: i18n.t("profile.security.twoFactor.label"),
     });
     fireEvent.click(toggle);
+    await chooseApp();
 
-    await waitFor(() => expect(startMfaEnrollment).toHaveBeenCalled());
+    await waitFor(() => expect(startMfaEnrollment).toHaveBeenCalledWith({ method: "totp" }));
     expect(await screen.findByAltText(i18n.t("profile.security.mfa.qrAlt"))).toBeDefined();
   });
 
@@ -198,6 +210,7 @@ describe("SecuritySection — MFA", () => {
     fireEvent.click(
       await screen.findByRole("switch", { name: i18n.t("profile.security.twoFactor.label") }),
     );
+    await chooseApp();
     await screen.findByAltText(i18n.t("profile.security.mfa.qrAlt"));
 
     fireEvent.change(screen.getByLabelText(i18n.t("profile.security.mfa.codeLabel")), {
@@ -221,6 +234,7 @@ describe("SecuritySection — MFA", () => {
     fireEvent.click(
       await screen.findByRole("switch", { name: i18n.t("profile.security.twoFactor.label") }),
     );
+    await chooseApp();
     await screen.findByAltText(i18n.t("profile.security.mfa.qrAlt"));
 
     fireEvent.change(screen.getByLabelText(i18n.t("profile.security.mfa.codeLabel")), {
@@ -566,5 +580,56 @@ describe("SecuritySection — sessions", () => {
     await screen.findByText("Chrome · Windows");
     const link = screen.getByRole("link", { name: "IPinfo" });
     expect(link.getAttribute("href")).toBe("https://ipinfo.io");
+  });
+});
+
+describe("SecuritySection — new recovery codes (specs/040 US1)", () => {
+  const codes = Array.from({ length: 10 }, (_, i) => `AAAA-BBB${i}`);
+
+  it("is offered only with MFA on, and shows the remaining count", async () => {
+    meMock.mockResolvedValueOnce({
+      ...(await meMock()),
+      mfaEnabled: true,
+      mfaRecoveryCodesRemaining: 3,
+    });
+    renderSecurity();
+    expect(
+      await screen.findByText(i18n.t("profile.security.mfa.recovery.remaining", { count: 3 })),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: i18n.t("profile.security.mfa.recovery.regenerate") }),
+    ).toBeDefined();
+  });
+
+  it("asks to step up when the server requires it, then shows the new codes once", async () => {
+    meMock.mockResolvedValue({
+      ...(await meMock()),
+      mfaEnabled: true,
+      mfaRecoveryCodesRemaining: 2,
+    });
+    regenerateRecoveryCodes
+      .mockRejectedValueOnce(new ApiRequestError("STEP_UP_REQUIRED", 403))
+      .mockResolvedValueOnce({ recoveryCodes: codes });
+    renderSecurity();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: i18n.t("profile.security.mfa.recovery.regenerate"),
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.security.mfa.recovery.confirm") }),
+    );
+    // The account has MFA (TOTP), so the step-up asks for the app's code.
+    const codeInput = await screen.findByLabelText(i18n.t("profile.security.stepUp.codeLabel"));
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.stepUp.confirm") }),
+    );
+
+    const list = await screen.findByTestId("recovery-codes");
+    expect(within(list).getByText(codes[0]!)).toBeDefined();
+    expect(regenerateRecoveryCodes).toHaveBeenCalledTimes(2);
+    meMock.mockReset();
   });
 });

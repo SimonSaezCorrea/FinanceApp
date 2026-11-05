@@ -1,4 +1,18 @@
 <!--
+Sync Impact Report — 2026-11-05 (amendment 2.10.0)
+- Version change: 2.9.2 → 2.10.0 (MINOR: two tables are added; no principle text changes meaning).
+- AMENDED Principle VI title and Principle VIII: 35 → 37 tables — `trusted-device` (browsers that
+  skip the second factor for 30 days; only the SHA-256 of the cookie token is stored) and `mfa-code`
+  (6-digit second-factor codes by channel, stored as an HMAC keyed by HKDF of
+  `MFA_ENCRYPTION_KEY`), both `domain/` + `infrastructure/` leaves composed by `user` (specs/040).
+- RECORDED (Principle VII): `POST /auth/me/mfa/recovery-codes` is form (a) (it consumes the
+  session's step-up with a conditional update inside its transaction); code issuing is form (b)
+  (partial unique index: one active code per account and purpose); `DELETE
+  /auth/me/mfa/trusted-devices/:id` is form (a).
+- RECORDED (Principle II): trusted devices are deleted scoped by `userId`; a cookie of another
+  account never skips this account's second factor.
+- Templates: none changed.
+
 Sync Impact Report — 2026-11-03 (amendment 2.9.2)
 - Version change: 2.9.1 → 2.9.2 (PATCH: a convention is recorded; no principle changes meaning).
 - RECORDED: Novedades (spec 038) are grouped by VERSION — one production deploy that published
@@ -2001,7 +2015,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 35 tables)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 37 tables)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -2081,7 +2095,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 35 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 37 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -2390,4 +2404,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.9.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-03
+**Version**: 2.10.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-05

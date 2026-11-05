@@ -18,6 +18,15 @@ export function usePasskeysQuery() {
 }
 
 /** Real sessions/devices (specs/023) — replaces the old `EXAMPLE_SESSIONS` placeholder. */
+/** Browsers that skip the second factor (specs/040); only asked for while MFA is on. */
+export function useTrustedDevicesQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["trusted-devices"],
+    queryFn: () => authApi.listTrustedDevices(),
+    enabled,
+  });
+}
+
 export function useSessionsQuery() {
   return useQuery({ queryKey: ["sessions"], queryFn: () => sessionsApi.list() });
 }
@@ -68,7 +77,11 @@ export function useProfileMutations() {
     }),
     changePassword: useMutation({
       mutationFn: (body: auth.ChangePasswordRequest) => profileApi.changePassword(body),
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["sessions"] });
+        // A new password forgets every remembered device (specs/040).
+        queryClient.invalidateQueries({ queryKey: ["trusted-devices"] });
+      },
     }),
     updatePreferences: useMutation({
       mutationFn: (body: auth.UpdatePreferencesRequest) => profileApi.updatePreferences(body),
@@ -79,7 +92,14 @@ export function useProfileMutations() {
       onSuccess: () => clearUser(),
     }),
     startMfaEnrollment: useMutation({
-      mutationFn: () => authApi.startMfaEnrollment(),
+      mutationFn: (body: auth.StartMfaEnrollmentRequest = {}) => authApi.startMfaEnrollment(body),
+    }),
+    regenerateRecoveryCodes: useMutation({
+      mutationFn: () => authApi.regenerateRecoveryCodes(),
+      onSuccess: () => {
+        refreshUser();
+        queryClient.invalidateQueries({ queryKey: ["trusted-devices"] });
+      },
     }),
     confirmMfaEnrollment: useMutation({
       mutationFn: (body: auth.ConfirmMfaEnrollmentRequest) => authApi.confirmMfaEnrollment(body),
@@ -90,7 +110,12 @@ export function useProfileMutations() {
       onSuccess: () => {
         refreshUser();
         queryClient.invalidateQueries({ queryKey: ["sessions"] });
+        queryClient.invalidateQueries({ queryKey: ["trusted-devices"] });
       },
+    }),
+    removeTrustedDevice: useMutation({
+      mutationFn: (id: string) => authApi.removeTrustedDevice(id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trusted-devices"] }),
     }),
     startPasskeyRegistration: useMutation({
       mutationFn: () => passkeyApi.startRegistration(),
@@ -118,6 +143,10 @@ export function useProfileMutations() {
     }),
     // Step-up before closing another session or "cerrar todas" (2026-09-25) — success just
     // returns `verifiedUntil`; nothing to invalidate, the caller keeps that timestamp itself.
+    // specs/040: a code to the confirmed email, for an account whose second factor is email.
+    sendStepUpEmailCode: useMutation({
+      mutationFn: () => authApi.sendStepUpEmailCode(),
+    }),
     stepUp: useMutation({
       mutationFn: (body: auth.StepUpRequest) => sessionsApi.stepUp(body),
     }),

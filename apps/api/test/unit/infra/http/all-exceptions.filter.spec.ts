@@ -46,6 +46,20 @@ describe("AllExceptionsFilter", () => {
     expect(json).toHaveBeenCalledWith({ error: { code: "EMAIL_TAKEN", field: "email" } });
   });
 
+  it("passes a domain error's details through (specs/040 retryAfterSeconds)", () => {
+    const { host, status, json } = makeHost();
+    const error = Object.assign(new Error("MFA_CODE_RATE_LIMITED"), {
+      code: "MFA_CODE_RATE_LIMITED",
+      httpStatus: 429,
+      details: { retryAfterSeconds: 42 },
+    });
+    new AllExceptionsFilter().catch(error, host);
+    expect(status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({
+      error: { code: "MFA_CODE_RATE_LIMITED", details: { retryAfterSeconds: 42 } },
+    });
+  });
+
   it("falls back to a generic status-derived code when none was thrown", () => {
     const { host, status, json } = makeHost();
     new AllExceptionsFilter().catch(new NotFoundException(), host);

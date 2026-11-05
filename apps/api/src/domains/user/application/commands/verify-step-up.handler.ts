@@ -26,11 +26,12 @@ import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/use
 import { stepUpExpiry } from "../step-up";
 import { isValidTotp, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
 import { VerifyStepUpCommand } from "./verify-step-up.command";
+import { MfaCodeService } from "../mfa-code-service";
 
-type TotpOutcome = "ok" | "invalid" | "locked" | "unauthorized";
+type CodeOutcome = "ok" | "invalid" | "locked" | "unauthorized";
 
 /**
- * Step-up by TOTP or password (2026-09-25). The method must be one `auth.stepUpMethodsFor` allows
+ * Step-up by TOTP, an emailed code (specs/040) or password (2026-09-25). The method must be one `auth.stepUpMethodsFor` allows
  * for this user: with TOTP or a passkey configured the password alone is refused — a second factor
  * is what this protects. TOTP shares login's lockout counter (same row lock, same threshold) so
  * switching between the two never buys a guesser more attempts. On success the caller's own
@@ -49,6 +50,7 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
     @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
     private readonly prisma: PrismaService,
+    private readonly mfaCodes: MfaCodeService,
   ) {
     super(eventBus);
   }
@@ -57,7 +59,11 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     const user = await this.users.findById(command.userId);
     if (!user) throw new UnauthorizedError();
     const passkeyCount = (await this.passkeys.findByUserId(user.id)).length;
-    const allowed = auth.stepUpMethodsFor({ mfaEnabled: user.mfaEnabled, passkeyCount });
+    const method = user.mfaMethodOrDefault();
+    const allowed = auth.stepUpMethodsFor({
+      mfaMethod: method === "EMAIL" ? "email" : method === "TOTP" ? "totp" : null,
+      passkeyCount,
+    });
     if (!allowed.includes(command.input.method)) throw new StepUpMethodNotAllowedError();
     return user;
   }
@@ -71,7 +77,12 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
         throw new InvalidCurrentPasswordError();
       }
     } else {
-      const outcome = await this.verifyTotp(user.id, command.input.code);
+      const input = command.input;
+      const outcome = await this.verifyCode(user.id, (tx, locked, now) =>
+        input.method === "email"
+          ? this.mfaCodes.verifyWithTx(tx, locked.id, "STEP_UP", input.code, now)
+          : Promise.resolve(isValidTotp(locked.mfaSecret, input.code)),
+      );
       // Thrown only AFTER the transaction committed — throwing inside would roll back the very
       // failure count the lockout depends on (same reasoning as VerifyMfaLoginHandler).
       if (outcome === "unauthorized") throw new UnauthorizedError();
@@ -84,14 +95,19 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     return { result: { verifiedUntil: stepUpExpiry(now).toISOString() }, events: [] };
   }
 
-  /** Read-validate-write under a row lock, so concurrent wrong codes can't undercount failures. */
-  private verifyTotp(userId: string, code: string): Promise<TotpOutcome> {
+  /** Read-validate-write under a row lock, so concurrent wrong codes can't undercount failures.
+   * TOTP and the emailed code (specs/040) share login's counter and lockout. A recovery code never
+   * reaches here: the request schema only takes 6 digits. */
+  private verifyCode(
+    userId: string,
+    check: (tx: unknown, locked: User, now: Date) => Promise<boolean>,
+  ): Promise<CodeOutcome> {
     return this.prisma.$transaction(async (tx) => {
       const locked = await this.users.findByIdForUpdateWithTx(tx, userId);
       if (!locked) return "unauthorized";
       const now = new Date();
       if (locked.isMfaLocked(now)) return "locked";
-      if (!isValidTotp(locked.mfaSecret, code)) {
+      if (!(await check(tx, locked, now))) {
         locked.recordMfaFailure(MFA_LOCKOUT_THRESHOLD, MFA_LOCKOUT_MINUTES, now);
         await this.users.saveWithTx(tx, locked);
         return locked.isMfaLocked(now) ? "locked" : "invalid";

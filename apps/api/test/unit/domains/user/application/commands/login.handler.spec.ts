@@ -13,6 +13,7 @@ import {
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { fakeMfaCodes, fakeTrustedDevices } from "../../../../support/fake-ports";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -88,7 +89,12 @@ function fakeSessionIssuer(): SessionIssuer {
  * aggregate, and the transaction just runs its callback. */
 function makeHandler(
   user: User | null,
-  deps: { tokenIssuer?: TokenIssuer; sessionIssuer?: SessionIssuer } = {},
+  deps: {
+    tokenIssuer?: TokenIssuer;
+    sessionIssuer?: SessionIssuer;
+    devices?: ReturnType<typeof fakeTrustedDevices>;
+    mfaCodes?: ReturnType<typeof fakeMfaCodes>;
+  } = {},
 ) {
   const repo = fakeRepo({
     findByIdentifierValue: vi.fn().mockResolvedValue(user),
@@ -106,6 +112,8 @@ function makeHandler(
     tokenIssuer,
     sessionIssuer,
     prisma,
+    deps.devices ?? fakeTrustedDevices(),
+    deps.mfaCodes ?? fakeMfaCodes(),
   );
   return { handler, repo, tokenIssuer, sessionIssuer };
 }
@@ -191,5 +199,58 @@ describe("LoginHandler", () => {
     expect(result.mfaPendingToken).toBe("pending-token");
     expect(tokenIssuer.issue).not.toHaveBeenCalled();
     expect(sessionIssuer.establish).not.toHaveBeenCalled();
+  });
+});
+
+describe("LoginHandler — remembered device (specs/040 US2)", () => {
+  const device = (userId: string, expiresAt = new Date(Date.now() + 86_400_000)) => ({
+    id: "d1",
+    userId,
+    tokenHash: "h",
+    deviceLabel: "Chrome · Windows",
+    createdAt: new Date(),
+    expiresAt,
+    lastUsedAt: null,
+  });
+
+  it("skips the second factor on this account's own remembered browser, and touches it", async () => {
+    const devices = fakeTrustedDevices({
+      findValidByTokenHash: vi.fn().mockResolvedValue(device("u1")),
+    });
+    const { handler } = makeHandler(await userWith({ mfaEnabled: true, mfaMethod: "TOTP" }), {
+      devices,
+    });
+    const result = await handler.execute(
+      new LoginCommand({ identifierValue: "123456785", password: "secret123" }, undefined, "tok"),
+    );
+    expect(result.mfaRequired).toBe(false);
+    expect(devices.touch).toHaveBeenCalledWith("d1", expect.any(Date));
+  });
+
+  it("asks for the second factor when the cookie belongs to another account", async () => {
+    const devices = fakeTrustedDevices({
+      findValidByTokenHash: vi.fn().mockResolvedValue(device("someone-else")),
+    });
+    const { handler } = makeHandler(await userWith({ mfaEnabled: true }), { devices });
+    const result = await handler.execute(
+      new LoginCommand({ identifierValue: "123456785", password: "secret123" }, undefined, "tok"),
+    );
+    expect(result.mfaRequired).toBe(true);
+    expect(devices.touch).not.toHaveBeenCalled();
+  });
+
+  it("never skips the password: a wrong one is refused and counted even on a remembered browser", async () => {
+    const devices = fakeTrustedDevices({
+      findValidByTokenHash: vi.fn().mockResolvedValue(device("u1")),
+    });
+    const user = await userWith({ mfaEnabled: true });
+    const { handler } = makeHandler(user, { devices });
+    await expect(
+      handler.execute(
+        new LoginCommand({ identifierValue: "123456785", password: "wrong" }, undefined, "tok"),
+      ),
+    ).rejects.toThrow(InvalidCredentialsError);
+    expect(user.snapshot().loginFailedAttempts).toBe(1);
+    expect(devices.findValidByTokenHash).not.toHaveBeenCalled();
   });
 });

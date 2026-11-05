@@ -5,6 +5,10 @@ import { compare } from "bcryptjs";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
+  TRUSTED_DEVICE_REPOSITORY,
+  type TrustedDeviceRepositoryPort,
+} from "../../../trusted-device/domain/ports/trusted-device.repository.port";
+import {
   MFA_RECOVERY_CODE_REPOSITORY,
   type MfaRecoveryCodeRepositoryPort,
 } from "../../../mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
@@ -33,6 +37,7 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
     private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -71,6 +76,8 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
         context.user.id,
         context.currentSessionId,
       );
+      // specs/040: without a second factor there is nothing for a device to skip.
+      await this.devices.deleteAllForUserWithTx(tx, context.user.id);
     });
   }
 }

@@ -17,9 +17,12 @@ import { Input } from "@finance/ui/src/shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hooks/useProfile";
 import { MfaEnrollmentPanel } from "./MfaEnrollmentPanel";
+import { RegenerateRecoveryCodesFlow } from "./RegenerateRecoveryCodesFlow";
 import { PasskeySection } from "./PasskeySection";
 import { StepUpPanel } from "./StepUpPanel";
 import { ProfileListRowsSkeleton } from "./ProfileSectionSkeleton";
+import { TrustedDevicesList } from "./TrustedDevicesList";
+import { formatDateTime, isPhone } from "../lib/deviceDisplay";
 
 /** A password input with a show/hide toggle — the eye icon reveals it
  * temporarily, same interaction language `MaskedAmount` already uses for
@@ -246,13 +249,6 @@ function DisableMfaModal({
   );
 }
 
-/** A device-shaped icon from a session's `deviceLabel` — a lightweight guess (phone
- * OSes vs. everything else), not a real device-type field. */
-function isPhone(deviceLabel: string | null) {
-  const label = deviceLabel?.toLowerCase() ?? "";
-  return label.includes("iphone") || label.includes("android");
-}
-
 /** "Santiago, Chile" from a session's raw `city`/`country` (ISO alpha-2) — the country
  * NAME is derived client-side via `Intl.DisplayNames` (no extra data from the API,
  * every browser already ships this) rather than stored, so it localizes for free and
@@ -273,21 +269,14 @@ function formatLocation(
   return city ? `${city}, ${countryName}` : countryName;
 }
 
-/** Day + hour:minute, localized — used for both "última actividad" and "cerrada el",
- * so a session's timeline reads precisely instead of just "today". */
-function formatDateTime(iso: string, locale: string): string {
-  const date = new Date(iso);
-  const day = date.toLocaleDateString(locale);
-  const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
-  return `${day} ${time}`;
-}
-
 export function SecuritySection() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [changingPassword, setChangingPassword] = useState(false);
   const [enrollingMfa, setEnrollingMfa] = useState(false);
+  const [changingMfaMethod, setChangingMfaMethod] = useState(false);
   const [disablingMfa, setDisablingMfa] = useState(false);
+  const [regeneratingCodes, setRegeneratingCodes] = useState(false);
   const [managingPasskeys, setManagingPasskeys] = useState(false);
   const mfaEnabled = user?.mfaEnabled ?? false;
   const { data: passkeys } = usePasskeysQuery();
@@ -359,8 +348,8 @@ export function SecuritySection() {
             <div className="text-sm">{t("profile.security.twoFactor.label")}</div>
             <div className="text-xs text-muted-foreground">
               {mfaEnabled
-                ? t("profile.security.mfa.enabledHint", {
-                    count: user?.mfaRecoveryCodesRemaining ?? 0,
+                ? t("profile.security.mfa.activeWith", {
+                    method: t(`profile.security.mfa.methods.${user?.mfaMethod ?? "totp"}.title`),
                   })
                 : t("profile.security.twoFactor.hint")}
             </div>
@@ -374,6 +363,42 @@ export function SecuritySection() {
             aria-label={t("profile.security.twoFactor.label")}
           />
         </div>
+        {mfaEnabled ? (
+          <div
+            id="mfa-method"
+            tabIndex={-1}
+            className="flex min-h-16 scroll-mt-24 items-center justify-between gap-4 border-b py-3 focus:outline-none"
+          >
+            <div>
+              <div className="text-sm">{t("profile.security.mfa.change.label")}</div>
+              <div className="text-xs text-muted-foreground">
+                {t(`profile.security.mfa.methods.${user?.mfaMethod ?? "totp"}.hint`)}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setChangingMfaMethod(true)}>
+              {t("profile.security.mfa.change.button")}
+            </Button>
+          </div>
+        ) : null}
+        {mfaEnabled ? (
+          <div
+            id="recovery-codes"
+            tabIndex={-1}
+            className="flex min-h-16 scroll-mt-24 items-center justify-between gap-4 border-b py-3 focus:outline-none"
+          >
+            <div>
+              <div className="text-sm">{t("profile.security.mfa.recovery.label")}</div>
+              <div className="text-xs text-muted-foreground">
+                {t("profile.security.mfa.recovery.remaining", {
+                  count: user?.mfaRecoveryCodesRemaining ?? 0,
+                })}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setRegeneratingCodes(true)}>
+              {t("profile.security.mfa.recovery.regenerate")}
+            </Button>
+          </div>
+        ) : null}
         <div
           id="passkeys"
           tabIndex={-1}
@@ -397,6 +422,7 @@ export function SecuritySection() {
           </Button>
         </div>
       </div>
+      {mfaEnabled ? <TrustedDevicesList /> : null}
       <div
         id="sessions"
         tabIndex={-1}
@@ -462,7 +488,20 @@ export function SecuritySection() {
       </div>
       <ChangePasswordDialog open={changingPassword} onOpenChange={setChangingPassword} />
       <MfaEnrollmentPanel open={enrollingMfa} onOpenChange={setEnrollingMfa} />
+      <MfaEnrollmentPanel
+        open={changingMfaMethod}
+        onOpenChange={setChangingMfaMethod}
+        mode="change"
+      />
       <DisableMfaModal open={disablingMfa} onOpenChange={setDisablingMfa} />
+      <RegenerateRecoveryCodesFlow
+        open={regeneratingCodes}
+        onOpenChange={setRegeneratingCodes}
+        // Regenerating spent the session's step-up: closing another session asks again.
+        onSpentStepUp={() => {
+          verifiedUntilRef.current = 0;
+        }}
+      />
       <PasskeySection open={managingPasskeys} onOpenChange={setManagingPasskeys} />
       <StepUpPanel
         open={stepUpOpen}

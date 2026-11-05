@@ -17,6 +17,7 @@ import {
 } from "../../../support/repositories";
 import { PrismaSessionRepository } from "../../../../../src/domains/session/infrastructure/prisma-session.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
 
 describe("MFA disable (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
@@ -69,6 +70,7 @@ describe("MFA disable (integration)", () => {
       recoveryCodeRepo,
       sessionRepo,
       prisma,
+      new PrismaTrustedDeviceRepository(prisma),
     );
     await handler.execute(new DisableMfaCommand(userId, { password: "correct-pw" }, a.sessionId));
 
@@ -97,6 +99,7 @@ describe("MFA disable (integration)", () => {
       recoveryCodeRepo,
       sessionRepo,
       prisma,
+      new PrismaTrustedDeviceRepository(prisma),
     );
     await handler.execute(new DisableMfaCommand(userId, { password: "correct-pw" }, a.sessionId));
 

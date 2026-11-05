@@ -16,12 +16,32 @@ import { isValidTotp, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp
 import { looksLikeRecoveryCode } from "../recovery-code-generator";
 import type { AuthResult } from "./register.handler";
 import { VerifyMfaLoginCommand } from "./verify-mfa-login.command";
+import {
+  TRUSTED_DEVICE_REPOSITORY,
+  type TrustedDeviceRepositoryPort,
+} from "../../../trusted-device/domain/ports/trusted-device.repository.port";
+import { trustedDeviceExpiry } from "../../../trusted-device/domain/trusted-device.entity";
+import { generateRowId } from "../../../../infra/id/generate-row-id";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
+import { parseDeviceLabel } from "../device-info";
+import { generateTrustedDeviceToken, hashTrustedDeviceToken } from "../trusted-device-cookie";
+import { MfaCodeService } from "../mfa-code-service";
+
+/** What a successful second factor returns: the session, plus the cookie token of a device the
+ * person asked to remember (specs/040). */
+export type VerifyMfaLoginResult = AuthResult & { trustedDeviceToken?: string };
+
+/** A device to remember, prepared before the transaction so the token never depends on it. */
+interface RememberPlan {
+  token: string;
+  deviceLabel: string;
+}
 
 type Outcome =
   | { kind: "unauthorized" }
   | { kind: "locked" }
   | { kind: "invalid" }
-  | { kind: "success"; user: User; remaining: number };
+  | { kind: "success"; user: User; remaining: number; remembered: RememberPlan | null };
 
 /**
  * Completes a pending login's second factor. The ENTIRE read-validate-write cycle runs inside
@@ -44,7 +64,7 @@ type Outcome =
 @CommandHandler(VerifyMfaLoginCommand)
 export class VerifyMfaLoginHandler extends BaseCommandHandler<
   VerifyMfaLoginCommand,
-  AuthResult,
+  VerifyMfaLoginResult,
   { userId: string }
 > {
   private readonly logger = new Logger(VerifyMfaLoginHandler.name);
@@ -56,6 +76,8 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
     private readonly sessionIssuer: SessionIssuer,
     private readonly prisma: PrismaService,
+    @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
+    private readonly mfaCodes: MfaCodeService,
   ) {
     super(eventBus);
   }
@@ -67,9 +89,15 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
   protected async handle(
     command: VerifyMfaLoginCommand,
     context: { userId: string },
-  ): Promise<HandleResult<AuthResult>> {
+  ): Promise<HandleResult<VerifyMfaLoginResult>> {
+    const remember: RememberPlan | null = command.input.rememberDevice
+      ? {
+          token: generateTrustedDeviceToken(),
+          deviceLabel: parseDeviceLabel(command.device?.userAgent) ?? "",
+        }
+      : null;
     const outcome = await this.prisma.$transaction((tx) =>
-      this.runLocked(tx, context.userId, command.input.code.trim()),
+      this.runLocked(tx, context.userId, command.input.code.trim(), remember),
     );
 
     switch (outcome.kind) {
@@ -85,24 +113,47 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
           { id: outcome.user.id, email: outcome.user.email },
           { userAgent: command.device?.userAgent, ip: command.device?.ip },
         );
+        const remembered = outcome.remembered;
         return {
-          result: { tokens, user: outcome.user.toContract(outcome.remaining) },
-          events: [],
+          result: {
+            tokens,
+            user: outcome.user.toContract(outcome.remaining),
+            ...(remembered ? { trustedDeviceToken: remembered.token } : {}),
+          },
+          events: remembered
+            ? [
+                new AccountSecurityEvent(
+                  outcome.user.id,
+                  "TRUSTED_DEVICE_ADDED",
+                  new Date(),
+                  remembered.deviceLabel || undefined,
+                ),
+              ]
+            : [],
         };
       }
     }
   }
 
-  private async runLocked(tx: unknown, userId: string, code: string): Promise<Outcome> {
+  private async runLocked(
+    tx: unknown,
+    userId: string,
+    code: string,
+    remember: RememberPlan | null,
+  ): Promise<Outcome> {
     const user = await this.repo.findByIdForUpdateWithTx(tx, userId);
     if (!user) return { kind: "unauthorized" };
 
     const now = new Date();
     if (user.isMfaLocked(now)) return { kind: "locked" };
 
+    // A recovery code works with either method; otherwise the account's own method decides:
+    // the app's TOTP, or the emailed LOGIN code (consumed atomically, one use).
     const valid = looksLikeRecoveryCode(code)
       ? await this.tryRecoveryCode(tx, user, code)
-      : isValidTotp(user.mfaSecret, code);
+      : user.mfaMethodOrDefault() === "EMAIL"
+        ? await this.mfaCodes.verifyWithTx(tx, user.id, "LOGIN", code, now)
+        : isValidTotp(user.mfaSecret, code);
 
     if (!valid) {
       user.recordMfaFailure(MFA_LOCKOUT_THRESHOLD, MFA_LOCKOUT_MINUTES, now);
@@ -112,8 +163,18 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
 
     user.recordMfaSuccess();
     await this.repo.saveWithTx(tx, user);
+    if (remember) {
+      await this.devices.rememberWithTx(tx, {
+        id: generateRowId(),
+        userId: user.id,
+        tokenHash: hashTrustedDeviceToken(remember.token),
+        deviceLabel: remember.deviceLabel,
+        createdAt: now,
+        expiresAt: trustedDeviceExpiry(now),
+      });
+    }
     const remaining = await this.recoveryCodes.countUnused(user.id);
-    return { kind: "success", user, remaining };
+    return { kind: "success", user, remaining, remembered: remember };
   }
 
   /** Atomically claims a recovery code inside the SAME outer transaction — a lost race (someone

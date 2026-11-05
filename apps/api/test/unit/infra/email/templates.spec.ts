@@ -8,6 +8,7 @@ import {
   type SecurityNoticeKind,
 } from "../../../../src/infra/email/templates/security-notice";
 import { renderVerifyEmail } from "../../../../src/infra/email/templates/verify-email";
+import { renderMfaCode } from "../../../../src/infra/email/templates/mfa-code";
 
 function keys(value: unknown, prefix = ""): string[] {
   if (typeof value !== "object" || value === null) return [prefix];
@@ -24,6 +25,9 @@ const KINDS: SecurityNoticeKind[] = [
   "PASSKEY_REMOVED",
   "EMAIL_CHANGED",
   "ACCOUNT_DELETED",
+  "RECOVERY_CODES_REGENERATED",
+  "TRUSTED_DEVICE_ADDED",
+  "MFA_METHOD_CHANGED",
 ];
 
 describe("email templates", () => {
@@ -85,10 +89,22 @@ describe("email templates", () => {
     const all = [
       renderVerifyEmail({ ...base, locale: "es", address: "a@b.cl", link: "https://x" }),
       renderResetPassword({ ...base, locale: "es", link: "https://x" }),
+      ...(["LOGIN", "ENROLL", "STEP_UP"] as const).map((purpose) =>
+        renderMfaCode({ ...base, locale: "es", purpose, code: "123456" }),
+      ),
       ...KINDS.map((kind) =>
         renderSecurityNotice({ ...base, locale: "es", kind, occurredAt: new Date() }),
       ),
     ];
     for (const out of all) expect(out.text).not.toMatch(/\$\s?\d|CLP|USD|saldo/i);
+  });
+
+  it("shows the second-factor code large, by purpose, and warns nobody will ask for it", () => {
+    const es_ = renderMfaCode({ ...base, locale: "es", purpose: "LOGIN", code: "048213" });
+    expect(es_.text).toMatch(/^048213$/m);
+    expect(es_.html).toContain("048213");
+    expect(es_.text).toContain("Nadie de fik te pedirá este código");
+    const en_ = renderMfaCode({ ...base, locale: "en", purpose: "STEP_UP", code: "111111" });
+    expect(en_.subject).toContain("confirm");
   });
 });

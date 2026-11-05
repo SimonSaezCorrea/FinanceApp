@@ -76,6 +76,11 @@ model User {
   /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
   /// the future is rejected without even evaluating the code (defense against timing attacks).
   mfaLockedUntil      DateTime?
+  /// Which second factor the account uses (specs/040). Null with mfaEnabled=true only on rows from
+  /// before the column existed: read as TOTP (`User.mfaMethodOrDefault`). EMAIL clears the secret.
+  mfaMethod           MfaMethod?
+  /// The method being set up (activation or change) until its first code is confirmed.
+  mfaPendingMethod    MfaMethod?
   /// Consecutive wrong passwords at login (by RUT) since the last correct one. Reset to 0 on
   /// success. Same mechanism and limits as the second factor's counter, kept separate so a
   /// wrong password never eats into the TOTP attempts or vice versa.
@@ -104,6 +109,8 @@ model User {
   customFields       CustomField[]
   fieldValues        TransactionFieldValue[]
   movementTemplates  MovementTemplate[]
+  trustedDevices     TrustedDevice[]
+  mfaCodes           MfaCode[]
 
   @@index([countryId])
   @@map("user")
@@ -1599,4 +1606,65 @@ model MovementTemplate {
   @@index([categoryId])
   @@index([recurringExpenseId])
   @@map("movement-template")
+}
+
+/// How an account's second factor is asked (specs/040).
+enum MfaMethod {
+  TOTP
+  EMAIL
+}
+
+/// A browser where the person asked not to be asked for the second factor again (specs/040). The
+/// browser holds a random 32-byte token in the httpOnly `mfa_trusted` cookie; this row keeps only its
+/// SHA-256, so a copy of the table can't produce a cookie that works. Valid 30 days from `createdAt`
+/// (never extended), at most 10 per account; all are deleted when the password changes or is reset,
+/// MFA is disabled, its method changes, or the recovery codes are regenerated.
+model TrustedDevice {
+  id          String    @id @default(uuid(7))
+  userId      String
+  tokenHash   String    @unique
+  /// "Chrome · Windows", derived once from the User-Agent when it was remembered.
+  deviceLabel String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  lastUsedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("trusted-device")
+}
+
+/// What a one-time code is for.
+enum MfaCodePurpose {
+  LOGIN
+  ENROLL
+  STEP_UP
+}
+
+/// How a one-time code travels. Only EMAIL today; another channel (e.g. WhatsApp) is a new value
+/// plus a sender, never a new flow.
+enum MfaCodeChannel {
+  EMAIL
+}
+
+/// A one-time 6-digit second-factor code sent to the person (specs/040). Stored only as an HMAC with
+/// a key derived from MFA_ENCRYPTION_KEY (a 6-digit code without a server key would fall to an
+/// offline brute force in seconds). One active code per (userId, purpose): a partial unique index
+/// on `usedAt IS NULL`, written in the migration. Valid 10 minutes, single use.
+model MfaCode {
+  id        String         @id @default(uuid(7))
+  userId    String
+  purpose   MfaCodePurpose
+  channel   MfaCodeChannel
+  codeHash  String
+  expiresAt DateTime
+  /// Consumed, or replaced by a newer code of the same purpose.
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+  @@map("mfa-code")
 }

@@ -1,9 +1,13 @@
+import type { auth } from "@finance/contracts";
 import { describe, expect, it, vi } from "vitest";
+import { fakeMfaCodes, fakeSessionStepUp } from "../../../../support/fake-ports";
 
 import { StartMfaEnrollmentHandler } from "../../../../../../src/domains/user/application/commands/start-mfa-enrollment.handler";
 import { StartMfaEnrollmentCommand } from "../../../../../../src/domains/user/application/commands/start-mfa-enrollment.command";
 import {
-  MfaAlreadyEnabledError,
+  MfaEmailNotVerifiedError,
+  MfaSameMethodError,
+  StepUpRequiredError,
   UnauthorizedError,
 } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
@@ -64,9 +68,17 @@ describe("StartMfaEnrollmentHandler", () => {
     const repo = fakeRepo({
       findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     });
-    const handler = new StartMfaEnrollmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new StartMfaEnrollmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeSessionStepUp(),
+      fakeMfaCodes(),
+    );
 
-    const result = await handler.execute(new StartMfaEnrollmentCommand("u1"));
+    const result = (await handler.execute(new StartMfaEnrollmentCommand("u1"))) as Extract<
+      auth.StartMfaEnrollmentResponse,
+      { secret: string }
+    >;
 
     expect(result.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
     expect(result.secret).toMatch(/^[A-Z2-7]+$/);
@@ -82,9 +94,17 @@ describe("StartMfaEnrollmentHandler", () => {
         .fn()
         .mockResolvedValue(User.fromPersistence(baseProps({ mfaSecret: "OLDSECRETXXXXXXX" }))),
     });
-    const handler = new StartMfaEnrollmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new StartMfaEnrollmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeSessionStepUp(),
+      fakeMfaCodes(),
+    );
 
-    const result = await handler.execute(new StartMfaEnrollmentCommand("u1"));
+    const result = (await handler.execute(new StartMfaEnrollmentCommand("u1"))) as Extract<
+      auth.StartMfaEnrollmentResponse,
+      { secret: string }
+    >;
 
     const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
     expect(saved.mfaSecret).not.toBe("OLDSECRETXXXXXXX");
@@ -99,20 +119,79 @@ describe("StartMfaEnrollmentHandler", () => {
           User.fromPersistence(baseProps({ mfaEnabled: true, mfaSecret: "ACTIVESECRETXXXX" })),
         ),
     });
-    const handler = new StartMfaEnrollmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new StartMfaEnrollmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeSessionStepUp(),
+      fakeMfaCodes(),
+    );
 
     await expect(handler.execute(new StartMfaEnrollmentCommand("u1"))).rejects.toThrow(
-      MfaAlreadyEnabledError,
+      MfaSameMethodError,
     );
     expect(repo.save).not.toHaveBeenCalled();
   });
 
   it("throws UNAUTHORIZED when the user no longer exists", async () => {
     const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(null) });
-    const handler = new StartMfaEnrollmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new StartMfaEnrollmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeSessionStepUp(),
+      fakeMfaCodes(),
+    );
 
     await expect(handler.execute(new StartMfaEnrollmentCommand("gone"))).rejects.toThrow(
       UnauthorizedError,
     );
+  });
+});
+
+describe("StartMfaEnrollmentHandler - email and method change (specs/040 US3)", () => {
+  function setup(props: UserProps, stepUpAge: number | null = 0) {
+    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(props)) });
+    const mfaCodes = fakeMfaCodes();
+    const handler = new StartMfaEnrollmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeSessionStepUp(stepUpAge),
+      mfaCodes,
+    );
+    return { handler, repo, mfaCodes };
+  }
+  const verified = { emailVerifiedAt: new Date("2026-01-01T00:00:00Z") };
+
+  it("email: sends an ENROLL code to the confirmed address and saves the pending method", async () => {
+    const { handler, repo, mfaCodes } = setup(baseProps(verified));
+    const result = await handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" }));
+    expect(result).toEqual({ method: "email", codeSent: true });
+    expect(mfaCodes.issueAndSendOrThrow).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "a@b.com", emailVerified: true }),
+      "ENROLL",
+    );
+    const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
+    expect(saved.mfaPendingMethod).toBe("EMAIL");
+    expect(saved.mfaEnabled).toBe(false);
+  });
+
+  it("email: refuses an unconfirmed address", async () => {
+    const { handler } = setup(baseProps());
+    await expect(
+      handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" })),
+    ).rejects.toThrow(MfaEmailNotVerifiedError);
+  });
+
+  it("changing an active method needs a recent step-up", async () => {
+    const active = baseProps({ ...verified, mfaEnabled: true, mfaMethod: "TOTP", mfaSecret: "X" });
+    const stale = setup(active, null);
+    await expect(
+      stale.handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" }, "sess")),
+    ).rejects.toThrow(StepUpRequiredError);
+    expect(stale.mfaCodes.issueAndSendOrThrow).not.toHaveBeenCalled();
+
+    const fresh = setup(active, 0);
+    await expect(
+      fresh.handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" }, "sess")),
+    ).resolves.toEqual({ method: "email", codeSent: true });
   });
 });

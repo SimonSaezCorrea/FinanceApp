@@ -11,4 +11,10 @@ export interface SessionStepUpPort {
   markSteppedUp(userId: string, sessionId: string, at: Date): Promise<void>;
   /** When this user's session last stepped up; `null` if never (or not theirs). */
   steppedUpAt(userId: string, sessionId: string): Promise<Date | null>;
+  /**
+   * Spends the step-up (specs/040): clears `stepUpAt` only if it still equals `at`, inside the
+   * caller's transaction. Returns whether THIS call spent it — a replay or a concurrent request
+   * finds it already cleared and gets `false` (Constitution VII, form a).
+   */
+  consumeWithTx(tx: unknown, userId: string, sessionId: string, at: Date): Promise<boolean>;
 }

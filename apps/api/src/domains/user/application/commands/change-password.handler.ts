@@ -5,6 +5,10 @@ import { compare, hash } from "bcryptjs";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
+  TRUSTED_DEVICE_REPOSITORY,
+  type TrustedDeviceRepositoryPort,
+} from "../../../trusted-device/domain/ports/trusted-device.repository.port";
+import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
@@ -33,6 +37,7 @@ export class ChangePasswordHandler extends BaseCommandHandler<
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -68,6 +73,8 @@ export class ChangePasswordHandler extends BaseCommandHandler<
         context.user.id,
         context.currentSessionId,
       );
+      // specs/040: a new password forgets every remembered device.
+      await this.devices.deleteAllForUserWithTx(tx, context.user.id);
     });
   }
 }

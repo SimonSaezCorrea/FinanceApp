@@ -37,6 +37,9 @@ import { RegisterCommand } from "../application/commands/register.command";
 import { RemovePasskeyCommand } from "../application/commands/remove-passkey.command";
 import { RenamePasskeyCommand } from "../application/commands/rename-passkey.command";
 import { RevokeOtherSessionsCommand } from "../application/commands/revoke-other-sessions.command";
+import { RegenerateRecoveryCodesCommand } from "../application/commands/regenerate-recovery-codes.command";
+import { ResendMfaLoginCodeCommand } from "../application/commands/resend-mfa-login-code.command";
+import { SendStepUpEmailCodeCommand } from "../application/commands/send-step-up-email-code.command";
 import { StartMfaEnrollmentCommand } from "../application/commands/start-mfa-enrollment.command";
 import type { StartPasskeyLoginResult } from "../application/commands/start-passkey-login.handler";
 import { StartPasskeyLoginCommand } from "../application/commands/start-passkey-login.command";
@@ -68,6 +71,14 @@ import { ListPasskeysQuery } from "../application/queries/list-passkeys.query";
 import { ListSessionsQuery } from "../application/queries/list-sessions.query";
 import { passkeyIdParamsSchema } from "./dto/passkey-id.params";
 import { sessionIdParamsSchema } from "./dto/session-id.params";
+import { RemoveTrustedDeviceCommand } from "../application/commands/remove-trusted-device.command";
+import { ListTrustedDevicesQuery } from "../application/queries/list-trusted-devices.query";
+import type { VerifyMfaLoginResult } from "../application/commands/verify-mfa-login.handler";
+import {
+  TRUSTED_DEVICE_COOKIE,
+  TRUSTED_DEVICE_COOKIE_MAX_AGE_MS,
+  TRUSTED_DEVICE_COOKIE_PATH,
+} from "../application/trusted-device-cookie";
 
 const MFA_PENDING_COOKIE = "mfa_pending_token";
 const MFA_PENDING_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
@@ -124,17 +135,33 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.LoginResponse> {
     const result = await this.commandBus.execute<LoginCommand, LoginResult>(
-      new LoginCommand(body, this.deviceFrom(req)),
+      new LoginCommand(body, this.deviceFrom(req), this.trustedDeviceToken(req)),
     );
     if (result.mfaRequired) {
       res.cookie(MFA_PENDING_COOKIE, result.mfaPendingToken, {
         ...this.cookieBase(),
         maxAge: MFA_PENDING_COOKIE_MAX_AGE_MS,
       });
-      return { mfaRequired: true };
+      return {
+        mfaRequired: true,
+        mfaMethod: result.mfaMethod,
+        ...(result.codeSent !== undefined ? { codeSent: result.codeSent } : {}),
+        ...(result.retryAfterSeconds !== undefined
+          ? { retryAfterSeconds: result.retryAfterSeconds }
+          : {}),
+      };
     }
     this.setAuthCookies(res, result.tokens);
     return { mfaRequired: false, user: result.user };
+  }
+
+  /** "Reenviar código" while signing in with the email method (specs/040). */
+  @Post("login/mfa-resend")
+  @HttpCode(200)
+  resendMfaLoginCode(@Req() req: Request): Promise<auth.MfaCodeSentResponse> {
+    const pendingToken = (req.cookies as Record<string, string> | undefined)?.[MFA_PENDING_COOKIE];
+    const { sub: userId } = this.tokenIssuer.verifyMfaPending(pendingToken ?? "");
+    return this.commandBus.execute(new ResendMfaLoginCodeCommand(userId));
   }
 
   @Post("login/mfa-verify")
@@ -146,11 +173,19 @@ export class AuthController {
   ): Promise<{ user: auth.CurrentUser }> {
     const pendingToken = (req.cookies as Record<string, string> | undefined)?.[MFA_PENDING_COOKIE];
     const { sub: userId } = this.tokenIssuer.verifyMfaPending(pendingToken ?? "");
-    const { tokens, user } = await this.commandBus.execute<VerifyMfaLoginCommand, AuthResult>(
-      new VerifyMfaLoginCommand(userId, body, this.deviceFrom(req)),
-    );
+    const { tokens, user, trustedDeviceToken } = await this.commandBus.execute<
+      VerifyMfaLoginCommand,
+      VerifyMfaLoginResult
+    >(new VerifyMfaLoginCommand(userId, body, this.deviceFrom(req)));
     res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
+    if (trustedDeviceToken) {
+      res.cookie(TRUSTED_DEVICE_COOKIE, trustedDeviceToken, {
+        ...this.cookieBase(),
+        path: TRUSTED_DEVICE_COOKIE_PATH,
+        maxAge: TRUSTED_DEVICE_COOKIE_MAX_AGE_MS,
+      });
+    }
     return { user };
   }
 
@@ -266,8 +301,15 @@ export class AuthController {
 
   @Post("me/mfa/enroll")
   @UseGuards(JwtAuthGuard)
-  startMfaEnrollment(@CurrentUser() user: AuthUser): Promise<auth.StartMfaEnrollmentResponse> {
-    return this.commandBus.execute(new StartMfaEnrollmentCommand(user.id));
+  startMfaEnrollment(
+    @CurrentUser() user: AuthUser,
+    // Optional: older clients POST with no body (= the app).
+    @Body(new ZodValidationPipe(auth.startMfaEnrollmentRequestSchema.optional()))
+    body: auth.StartMfaEnrollmentRequest | undefined,
+  ): Promise<auth.StartMfaEnrollmentResponse> {
+    return this.commandBus.execute(
+      new StartMfaEnrollmentCommand(user.id, body ?? {}, user.sessionId),
+    );
   }
 
   @Post("me/mfa/confirm")
@@ -278,6 +320,37 @@ export class AuthController {
     body: auth.ConfirmMfaEnrollmentRequest,
   ): Promise<auth.ConfirmMfaEnrollmentResponse> {
     return this.commandBus.execute(new ConfirmMfaEnrollmentCommand(user.id, body));
+  }
+
+  /** New recovery codes (specs/040 US1): spends the session's recent step-up; shown once. */
+  @Post("me/mfa/recovery-codes")
+  @UseGuards(JwtAuthGuard)
+  regenerateRecoveryCodes(
+    @CurrentUser() user: AuthUser,
+  ): Promise<auth.RegenerateRecoveryCodesResponse> {
+    return this.commandBus.execute(new RegenerateRecoveryCodesCommand(user.id, user.sessionId));
+  }
+
+  /** Browsers that skip the second factor (specs/040 US2); `isCurrent` marks this one. */
+  @Get("me/mfa/trusted-devices")
+  @UseGuards(JwtAuthGuard)
+  listTrustedDevices(
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+  ): Promise<auth.ListTrustedDevicesResponse> {
+    return this.queryBus.execute(
+      new ListTrustedDevicesQuery(user.id, this.trustedDeviceToken(req)),
+    );
+  }
+
+  @Delete("me/mfa/trusted-devices/:id")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  removeTrustedDevice(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(sessionIdParamsSchema)) params: { id: string },
+  ): Promise<void> {
+    return this.commandBus.execute(new RemoveTrustedDeviceCommand(user.id, params.id));
   }
 
   @Post("me/mfa/disable")
@@ -398,6 +471,14 @@ export class AuthController {
     @Body(new ZodValidationPipe(auth.stepUpRequestSchema)) body: auth.StepUpRequest,
   ): Promise<auth.StepUpResponse> {
     return this.commandBus.execute(new VerifyStepUpCommand(user.id, user.sessionId, body));
+  }
+
+  /** Sends a step-up code to the confirmed email (specs/040, email method). */
+  @Post("sessions/step-up/email-code")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  sendStepUpEmailCode(@CurrentUser() user: AuthUser): Promise<auth.MfaCodeSentResponse> {
+    return this.commandBus.execute(new SendStepUpEmailCodeCommand(user.id));
   }
 
   @Post("sessions/step-up/passkey-options")
@@ -547,6 +628,12 @@ export class AuthController {
    * point this Facade reads `req.headers`/`req.ip` for anything beyond cookies. */
   private deviceFrom(req: Request): { userAgent?: string; ip?: string } {
     return { userAgent: req.headers["user-agent"], ip: req.ip };
+  }
+
+  /** This browser's remembered-device token, if it has one (specs/040). */
+  private trustedDeviceToken(req: Request): string | undefined {
+    const value = (req.cookies as Record<string, string> | undefined)?.[TRUSTED_DEVICE_COOKIE];
+    return typeof value === "string" && value.length > 0 ? value : undefined;
   }
 
   /** Every auth cookie: never readable from JavaScript, and `Secure` everywhere except a purely

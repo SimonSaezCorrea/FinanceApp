@@ -4,6 +4,10 @@ import { hash } from "bcryptjs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
+import {
+  TRUSTED_DEVICE_REPOSITORY,
+  type TrustedDeviceRepositoryPort,
+} from "../../../trusted-device/domain/ports/trusted-device.repository.port";
 import { hashToken } from "../../../email-token/domain/email-token";
 import {
   EMAIL_TOKEN_REPOSITORY,
@@ -34,6 +38,7 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
     @Inject(EMAIL_TOKEN_REPOSITORY) private readonly tokens: EmailTokenRepositoryPort,
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -61,6 +66,8 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
       user.resetPassword(passwordHash);
       await this.users.saveWithTx(tx, user);
       await this.sessions.closeAllForUserWithTx(tx, user.id);
+      // specs/040: a recovered password forgets every remembered device.
+      await this.devices.deleteAllForUserWithTx(tx, user.id);
       return user.id;
     });
     return { result: undefined, events: [new AccountSecurityEvent(userId, "PASSWORD_RESET", now)] };

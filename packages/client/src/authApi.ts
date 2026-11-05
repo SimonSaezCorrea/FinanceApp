@@ -25,8 +25,16 @@ export const authApi = {
 
   logout: () => apiFetch<void>("/auth/logout", { method: "POST" }),
 
-  startMfaEnrollment: () =>
-    apiFetch<auth.StartMfaEnrollmentResponse>("/auth/me/mfa/enroll", { method: "POST" }),
+  /** Second-factor resend while signing in (specs/040, email method). */
+  resendMfaLoginCode: () =>
+    apiFetch<auth.MfaCodeSentResponse>("/auth/login/mfa-resend", { method: "POST" }),
+
+  /** Without MFA: activates the method. With MFA: changes it (needs a recent step-up). */
+  startMfaEnrollment: (body: auth.StartMfaEnrollmentRequest = {}) =>
+    apiFetch<auth.StartMfaEnrollmentResponse>("/auth/me/mfa/enroll", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   confirmMfaEnrollment: (body: auth.ConfirmMfaEnrollmentRequest) =>
     apiFetch<auth.ConfirmMfaEnrollmentResponse>("/auth/me/mfa/confirm", {
@@ -39,6 +47,22 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  /** 10 new recovery codes (specs/040); needs, and spends, a recent step-up. */
+  regenerateRecoveryCodes: () =>
+    apiFetch<auth.RegenerateRecoveryCodesResponse>("/auth/me/mfa/recovery-codes", {
+      method: "POST",
+    }),
+
+  listTrustedDevices: () =>
+    apiFetch<auth.ListTrustedDevicesResponse>("/auth/me/mfa/trusted-devices"),
+
+  removeTrustedDevice: (id: string) =>
+    apiFetch<void>(`/auth/me/mfa/trusted-devices/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  /** Sends a step-up code to the confirmed email (specs/040, email method). */
+  sendStepUpEmailCode: () =>
+    apiFetch<auth.MfaCodeSentResponse>("/auth/sessions/step-up/email-code", { method: "POST" }),
 
   // Account emails (specs/032). verifyEmail/forgotPassword/resetPassword are public (the site).
   verifyEmail: (body: auth.VerifyEmailRequest) =>

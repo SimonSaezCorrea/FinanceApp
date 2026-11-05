@@ -11,7 +11,10 @@ export type SecurityNoticeKind =
   | "PASSKEY_ADDED"
   | "PASSKEY_REMOVED"
   | "EMAIL_CHANGED"
-  | "ACCOUNT_DELETED";
+  | "ACCOUNT_DELETED"
+  | "RECOVERY_CODES_REGENERATED"
+  | "TRUSTED_DEVICE_ADDED"
+  | "MFA_METHOD_CHANGED";
 
 export interface SecurityNoticeInput {
   locale: EmailLocale;

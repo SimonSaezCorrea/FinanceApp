@@ -25,6 +25,8 @@ export interface PersonalData {
   consents: auth.ConsentRecord[];
   sessions: auth.Session[];
   passkeys: auth.Passkey[];
+  /** Browsers that skip the second factor (specs/040). */
+  trustedDevices: auth.TrustedDevice[];
   wallet: wallet.WalletItem[];
   /** Movement templates (specs/037). */
   movementTemplates: movementTemplates.MovementTemplate[];
@@ -37,13 +39,14 @@ export type PersonalDataFormat = "xlsx" | "json";
 export const PERSONAL_DATA_JSON_VERSION = 1;
 
 export async function loadPersonalData(categories: reference.Category[]): Promise<PersonalData> {
-  const [user, emails, consents, sessions, passkeys, walletItems, templates, financial] =
+  const [user, emails, consents, sessions, passkeys, devices, walletItems, templates, financial] =
     await Promise.all([
       authApi.me(),
       authApi.listEmails(),
       consentsApi.list(),
       sessionsApi.list(),
       passkeyApi.list(),
+      authApi.listTrustedDevices(),
       walletApi.list(),
       movementTemplatesApi.list(),
       loadExistingData(categories),
@@ -54,6 +57,7 @@ export async function loadPersonalData(categories: reference.Category[]): Promis
     consents,
     sessions,
     passkeys,
+    trustedDevices: devices.items,
     wallet: walletItems,
     movementTemplates: templates,
     financial,
@@ -79,6 +83,7 @@ export function personalDataJson(data: PersonalData, exportedAt: Date): string {
       consents: data.consents,
       sessions: data.sessions,
       passkeys: data.passkeys,
+      trustedDevices: data.trustedDevices,
       accounts: f.accounts,
       creditStatements: f.statements,
       transactions: f.transactions,
@@ -244,6 +249,23 @@ export function personalSheets(data: PersonalData, t: TFunction) {
         t("profile.export.columns.lastUsedAt"),
       ],
       data.passkeys.map((p) => [p.name, date(p.createdAt), date(p.lastUsedAt)]),
+    );
+
+    addTable(
+      workbook,
+      t("profile.export.sheets.trustedDevices"),
+      [
+        t("profile.export.columns.device"),
+        t("profile.export.columns.createdAt"),
+        t("profile.export.columns.expiresAt"),
+        t("profile.export.columns.lastUsedAt"),
+      ],
+      data.trustedDevices.map((d) => [
+        d.deviceLabel,
+        date(d.createdAt),
+        date(d.expiresAt),
+        date(d.lastUsedAt),
+      ]),
     );
   };
 }

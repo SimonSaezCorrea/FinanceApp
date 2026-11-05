@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { AccountDisabledError } from "../../../../../src/domains/user/domain/errors";
+import {
+  AccountDisabledError,
+  MfaAlreadyEnabledError,
+  MfaNotPendingError,
+  MfaSameMethodError,
+} from "../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../src/domains/user/domain/user.aggregate";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
@@ -181,5 +186,70 @@ describe("User.markReleaseNotesSeen (spec 038)", () => {
     const user = User.fromPersistence({ ...baseProps(), releaseNotesSeenVersion: "2026-11-01-x" });
     expect(user.markReleaseNotesSeen("1.1")).toBe(true);
     expect(user.releaseNotesSeenVersion).toBe("1.1");
+  });
+});
+
+describe("User — second-factor method (specs/040)", () => {
+  it("reads a pre-040 row with MFA on and no method as TOTP, and null without MFA", () => {
+    expect(User.fromPersistence(baseProps({ mfaEnabled: true })).mfaMethodOrDefault()).toBe("TOTP");
+    expect(User.fromPersistence(baseProps({ mfaEnabled: false })).mfaMethodOrDefault()).toBeNull();
+    expect(User.fromPersistence(baseProps({ mfaEnabled: true })).toContract().mfaMethod).toBe(
+      "totp",
+    );
+  });
+
+  it("activates email codes without keeping a TOTP secret", () => {
+    const user = User.fromPersistence(baseProps());
+    user.startMfaEnrollment("EMAIL");
+    expect(user.confirmMfaEnrollment()).toBe("ACTIVATED");
+    expect(user.mfaMethodOrDefault()).toBe("EMAIL");
+    expect(user.mfaSecret).toBeNull();
+  });
+
+  it("changes TOTP → EMAIL, dropping the secret, and EMAIL → TOTP with a new one", () => {
+    const user = User.fromPersistence(
+      baseProps({ mfaEnabled: true, mfaMethod: "TOTP", mfaSecret: "OLDSECRET" }),
+    );
+    user.startMfaEnrollment("EMAIL");
+    // Until confirmed, the authenticator app keeps working.
+    expect(user.mfaMethodOrDefault()).toBe("TOTP");
+    expect(user.mfaSecret).toBe("OLDSECRET");
+    expect(user.confirmMfaEnrollment()).toBe("CHANGED");
+    expect(user.mfaSecret).toBeNull();
+
+    user.startMfaEnrollment("TOTP", "NEWSECRET");
+    expect(user.mfaMethodOrDefault()).toBe("EMAIL");
+    expect(user.confirmMfaEnrollment()).toBe("CHANGED");
+    expect(user.mfaMethodOrDefault()).toBe("TOTP");
+    expect(user.mfaSecret).toBe("NEWSECRET");
+  });
+
+  it("refuses changing to the method already in use", () => {
+    const user = User.fromPersistence(baseProps({ mfaEnabled: true, mfaMethod: "EMAIL" }));
+    expect(() => user.startMfaEnrollment("EMAIL")).toThrow(MfaSameMethodError);
+  });
+
+  it("refuses to confirm with nothing pending", () => {
+    expect(() => User.fromPersistence(baseProps()).confirmMfaEnrollment()).toThrow(
+      MfaNotPendingError,
+    );
+    expect(() =>
+      User.fromPersistence(
+        baseProps({ mfaEnabled: true, mfaMethod: "TOTP" }),
+      ).confirmMfaEnrollment(),
+    ).toThrow(MfaAlreadyEnabledError);
+  });
+
+  it("still confirms a pending TOTP secret started before the method column existed", () => {
+    const user = User.fromPersistence(baseProps({ mfaSecret: "LEGACY" }));
+    expect(user.confirmMfaEnrollment()).toBe("ACTIVATED");
+    expect(user.mfaMethodOrDefault()).toBe("TOTP");
+  });
+
+  it("forgets the method when MFA is disabled", () => {
+    const user = User.fromPersistence(baseProps({ mfaEnabled: true, mfaMethod: "EMAIL" }));
+    user.disableMfa();
+    expect(user.mfaMethodOrDefault()).toBeNull();
+    expect(user.toContract().mfaMethod).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 export const EMAIL_SENDER = Symbol("EMAIL_SENDER");
 
 export type EmailLocale = "es" | "en";
-export type EmailKind = "verify-email" | "reset-password" | "security-notice";
+export type EmailKind = "verify-email" | "reset-password" | "security-notice" | "mfa-code";
 
 /** A fully rendered email, ready to hand to a sender (specs/032). */
 export interface OutgoingEmail {

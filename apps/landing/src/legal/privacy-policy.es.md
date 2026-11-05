@@ -1,4 +1,4 @@
-**Última actualización:** 2 de noviembre de 2026
+**Última actualización:** 5 de noviembre de 2026
 
 Esta política explica qué datos personales trata _fik_, para qué, con quién los comparte, cuánto tiempo los guarda y cómo ejerces tus derechos, conforme a la Ley 19.628 y la Ley 21.719 sobre protección de datos personales.
 
@@ -14,7 +14,7 @@ Si más adelante se constituye una sociedad, esta política se actualizará con 
 
 - **Identidad y contacto:** nombre, correo electrónico, RUT y fecha de nacimiento; y, si los completas, teléfono, dirección y país.
 - **Datos financieros:** las cuentas que registras, saldos, movimientos de ingreso y gasto, categorías, tarjetas (solo los últimos 4 dígitos, nunca el número completo), deudas, compras en cuotas, gastos fijos, metas de ahorro y facturación de tarjetas de crédito.
-- **Seguridad de la sesión:** dirección IP, tipo de dispositivo y navegador, y el país aproximado desde donde inicias sesión.
+- **Seguridad de la sesión:** dirección IP, tipo de dispositivo y navegador, y el país aproximado desde donde inicias sesión. Si eliges «Recordar este dispositivo» al verificar en dos pasos, guardamos además el navegador y sistema (por ejemplo, «Chrome · Windows»), cuándo lo recordaste y su último uso, y tu navegador guarda una cookie técnica (`mfa_trusted`) que no sirve para nada más ni se comparte. Si eliges recibir el segundo factor por correo, te enviamos códigos de un solo uso a tu correo confirmado.
 - **Correos:** si abriste los correos que te enviamos (ver sección 4).
 - **Visitas al sitio público** (mifik.cl, no la app): estadísticas agregadas de qué páginas se visitan, desde qué sitio llegaste, país, tipo de dispositivo y navegador, y qué tan rápido cargó la página. No usan cookies ni sirven para identificarte (ver sección 4).
 
@@ -67,6 +67,7 @@ Además:
 
 - **Copias de respaldo:** la base de datos guarda respaldos automáticos de las últimas 24 horas, así que un dato eliminado desaparece también de los respaldos dentro de ese plazo.
 - **Sesiones:** las sesiones cerradas se borran a los 3 días, y el país asociado a cada IP se olvida a los 60 días, aunque tu cuenta siga activa.
+- **Verificación en dos pasos:** un dispositivo recordado se olvida a los 30 días (antes si lo quitas, cambias o recuperas tu contraseña, o cambias o desactivas la verificación), y los códigos enviados por correo vencen a los 10 minutos y se borran a los 7 días.
 - **Proveedores:** cada proveedor (sección 4) borra lo que trató por nuestra cuenta según su propio acuerdo. Por ejemplo, el registro de los correos enviados queda en Resend según sus plazos.
 
 ## 6. Tus derechos
@@ -75,7 +76,7 @@ Puedes pedir **acceso, rectificación, supresión, oposición, portabilidad y bl
 
 - **Desde la app:**
   - corregir tus datos personales (Perfil → Información personal);
-  - **descargar una copia de todos tus datos** (Perfil → Datos y privacidad → Descargar mis datos), en el formato que elijas: una planilla **Excel**, que además puedes volver a importar en _fik_, o un archivo **JSON** para llevarlos a otro programa. Incluye tus datos de perfil, correos, consentimientos, sesiones y llaves de acceso, y tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos. No incluye tu contraseña ni los secretos de tus métodos de acceso, que nunca salen de nuestros servidores;
+  - **descargar una copia de todos tus datos** (Perfil → Datos y privacidad → Descargar mis datos), en el formato que elijas: una planilla **Excel**, que además puedes volver a importar en _fik_, o un archivo **JSON** para llevarlos a otro programa. Incluye tus datos de perfil, correos, consentimientos, sesiones, llaves de acceso y dispositivos recordados, y tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos. No incluye tu contraseña ni los secretos de tus métodos de acceso, que nunca salen de nuestros servidores;
   - eliminar tu cuenta (sección 5).
 - **Por correo, a contacto@mifik.cl:** cualquier otra solicitud.
 
@@ -92,7 +93,7 @@ Todos los datos los entregas tú al usar la app. No obtenemos datos tuyos de otr
 ## 9. Seguridad
 
 - Las contraseñas se guardan con un hash irreversible (bcrypt); nunca las vemos.
-- Puedes activar un segundo factor (código de una app de autenticación) y llaves de acceso (passkeys).
+- Puedes activar un segundo factor (código de una app de autenticación o enviado a tu correo) y llaves de acceso (passkeys). Los códigos por correo se guardan solo como un código cifrado irreversible.
 - Cada sesión se puede cerrar desde Perfil → Seguridad, con efecto inmediato.
 - Toda conexión va cifrada (HTTPS, TLS 1.2 o superior), y la base de datos y los discos están cifrados.
 - La base de datos solo acepta conexiones de nuestro servidor y de equipos de administración autorizados, con usuarios de permisos mínimos.

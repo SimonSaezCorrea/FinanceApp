@@ -20,12 +20,25 @@ import {
  */
 interface AccessContextValue {
   user: auth.CurrentUser | null;
-  login: (identifierValue: string, password: string) => Promise<{ mfaRequired: boolean }>;
-  verifyMfa: (code: string) => Promise<void>;
+  /** With MFA: which method to ask for and, for email, whether the code went out (specs/040). */
+  login: (identifierValue: string, password: string) => Promise<LoginOutcome>;
+  /** Sends a new emailed code for the pending sign-in. */
+  resendMfaCode: () => Promise<void>;
+  /** `rememberDevice`: skip the second factor in this browser for 30 days (specs/040). */
+  verifyMfa: (code: string, rememberDevice?: boolean) => Promise<void>;
   loginWithPasskey: (identifierValue?: string) => Promise<void>;
   tryConditionalPasskeyLogin: (signal: AbortSignal) => Promise<void>;
   register: (input: auth.RegisterRequest) => Promise<void>;
 }
+
+export type LoginOutcome =
+  | { mfaRequired: false }
+  | {
+      mfaRequired: true;
+      mfaMethod: auth.MfaMethod;
+      codeSent?: boolean;
+      retryAfterSeconds?: number;
+    };
 
 const AccessContext = createContext<AccessContextValue | null>(null);
 
@@ -40,13 +53,25 @@ export function AccessProvider({
       user,
       login: async (identifierValue, password) => {
         const result = await authApi.login({ identifierValue, password });
-        if (result.mfaRequired) return { mfaRequired: true };
+        if (result.mfaRequired) {
+          return {
+            mfaRequired: true,
+            mfaMethod: result.mfaMethod ?? "totp",
+            codeSent: result.codeSent,
+            retryAfterSeconds: result.retryAfterSeconds,
+          };
+        }
         resetAuthRefresh();
         setUser(result.user);
         return { mfaRequired: false };
       },
-      verifyMfa: async (code) => {
-        const { user: next } = await authApi.verifyMfaLogin({ code });
+      resendMfaCode: async () => {
+        await authApi.resendMfaLoginCode();
+      },
+      verifyMfa: async (code, rememberDevice = false) => {
+        const { user: next } = await authApi.verifyMfaLogin(
+          rememberDevice ? { code, rememberDevice } : { code },
+        );
         resetAuthRefresh();
         setUser(next);
       },

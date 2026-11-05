@@ -76,6 +76,16 @@ function sample(): PersonalData {
     passkeys: [
       { id: ID(5), name: "Mi notebook", createdAt: "2026-10-02T11:00:00.000Z", lastUsedAt: null },
     ],
+    trustedDevices: [
+      {
+        id: ID(11),
+        deviceLabel: "Firefox · Linux",
+        createdAt: "2026-10-03T11:00:00.000Z",
+        expiresAt: "2026-11-02T11:00:00.000Z",
+        lastUsedAt: null,
+        isCurrent: false,
+      },
+    ],
     wallet: [],
     movementTemplates: [],
     financial: {
@@ -108,6 +118,7 @@ describe("personalDataJson", () => {
     expect(json.consents[0].policyVersion).toBe("2026-10-14");
     expect(json.sessions[0].deviceLabel).toBe("Chrome · Windows");
     expect(json.passkeys[0].name).toBe("Mi notebook");
+    expect(json.trustedDevices[0].deviceLabel).toBe("Firefox · Linux");
     expect(json.transactions).toHaveLength(1);
     for (const key of [
       "accounts",
@@ -137,14 +148,14 @@ describe("exportFileDate", () => {
 });
 
 describe("personalSheets", () => {
-  it("adds the profile, emails, consents, sessions and passkeys sheets, labelled", async () => {
+  it("adds the profile, emails, consents, sessions, passkeys and remembered-devices sheets, labelled", async () => {
     const { default: ExcelJS } = await import("exceljs");
     const workbook = new ExcelJS.Workbook();
     personalSheets(sample(), i18n.t)(workbook);
 
     const names = workbook.worksheets.map((s) => s.name);
     expect(names).toEqual(
-      ["profile", "emails", "consents", "sessions", "passkeys"].map((k) =>
+      ["profile", "emails", "consents", "sessions", "passkeys", "trustedDevices"].map((k) =>
         i18n.t(`profile.export.sheets.${k}`),
       ),
     );

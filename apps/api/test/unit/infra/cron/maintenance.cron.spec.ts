@@ -7,6 +7,8 @@ import { PurgeExpiredCacheCommand } from "../../../../src/domains/ip-geolocation
 import { CloseExpiredSessionsCommand } from "../../../../src/domains/user/application/commands/close-expired-sessions.command";
 import { PurgeClosedSessionsCommand } from "../../../../src/domains/user/application/commands/purge-closed-sessions.command";
 import { PurgeStaleEmailTokensCommand } from "../../../../src/domains/user/application/commands/purge-stale-email-tokens.command";
+import { PurgeStaleMfaCodesCommand } from "../../../../src/domains/user/application/commands/purge-stale-mfa-codes.command";
+import { PurgeExpiredTrustedDevicesCommand } from "../../../../src/domains/user/application/commands/purge-expired-trusted-devices.command";
 import type { CronSwitch } from "../../../../src/infra/config/cron.config";
 import { MaintenanceCron } from "../../../../src/infra/cron/maintenance.cron";
 
@@ -30,7 +32,7 @@ function busRunning(behaviour: (command: unknown) => Promise<number>): {
 describe("MaintenanceCron", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("runs the four sweeps, closing expired sessions before purging them", async () => {
+  it("runs the six sweeps, closing expired sessions before purging them", async () => {
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
     const { bus, ran } = busRunning(() => Promise.resolve(0));
 
@@ -42,6 +44,8 @@ describe("MaintenanceCron", () => {
       PurgeClosedSessionsCommand.name,
       PurgeExpiredCacheCommand.name,
       PurgeStaleEmailTokensCommand.name,
+      PurgeExpiredTrustedDevicesCommand.name,
+      PurgeStaleMfaCodesCommand.name,
     ]);
   });
 
@@ -59,6 +63,7 @@ describe("MaintenanceCron", () => {
     expect(ran).toContain(PurgeExpiredCacheCommand.name);
     expect(ran).toContain(PurgeClosedSessionsCommand.name);
     expect(ran).toContain(PurgeStaleEmailTokensCommand.name);
+    expect(ran).toContain(PurgeExpiredTrustedDevicesCommand.name);
     expect(error).toHaveBeenCalledWith(expect.stringContaining("idempotency records failed"));
   });
 

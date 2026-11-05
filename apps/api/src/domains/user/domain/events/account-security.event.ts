@@ -8,7 +8,10 @@ export type AccountSecurityKind =
   | "PASSKEY_ADDED"
   | "PASSKEY_REMOVED"
   | "EMAIL_CHANGED"
-  | "ACCOUNT_DELETED";
+  | "ACCOUNT_DELETED"
+  | "RECOVERY_CODES_REGENERATED"
+  | "TRUSTED_DEVICE_ADDED"
+  | "MFA_METHOD_CHANGED";
 
 /**
  * Something sensitive changed on an account (specs/032 US3). Published by the handlers AFTER

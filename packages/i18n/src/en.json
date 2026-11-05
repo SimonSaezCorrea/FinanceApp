@@ -2114,7 +2114,18 @@
       "verify": "Verify",
       "back": "Back",
       "verifying": "Verifying…",
-      "codeLabel": "Code"
+      "codeLabel": "Code",
+      "rememberDevice": "Remember this device for 30 days",
+      "rememberDeviceHint": "We won't ask for the code in this browser. Use it only on your own device; you can forget it from Profile → Security.",
+      "email": {
+        "hint": "We sent a 6-digit code to your email. You can also use one of your recovery codes.",
+        "noCode": "Didn't get it?",
+        "resend": "Resend code",
+        "resending": "Sending…",
+        "resendIn": "Resend in {{seconds}} s",
+        "resent": "We sent you a new code.",
+        "notSent": "We couldn't send the code right now. Try again in a moment or use a recovery code."
+      }
     },
     "passkey": {
       "signIn": "Continue with a passkey",
@@ -2264,7 +2275,7 @@
       },
       "twoFactor": {
         "label": "Two-factor verification",
-        "hint": "Protect your account with an authenticator app."
+        "hint": "Protect your account with an authenticator app or a code by email."
       },
       "mfa": {
         "enabledHint": "Active · {{count}} recovery code(s) available",
@@ -2283,7 +2294,61 @@
         "disableTitle": "Disable two-factor verification",
         "disableHint": "Enter your current password to confirm.",
         "disableConfirm": "Disable",
-        "disablePasswordLabel": "Current password"
+        "disablePasswordLabel": "Current password",
+        "download": "Download .txt",
+        "codesFileName": "fik-recovery-codes.txt",
+        "recovery": {
+          "label": "Recovery codes",
+          "remaining_one": "{{count}} unused left",
+          "remaining_other": "{{count}} unused left",
+          "regenerate": "Generate new",
+          "confirmTitle": "Generate new codes?",
+          "confirmBody": "The codes you have now will stop working right away, and the devices you remembered will ask for the code again.",
+          "confirm": "Generate codes",
+          "stepUpHint": "To generate new codes, confirm it's you.",
+          "doneTitle": "Your new codes",
+          "doneHint": "Save them now: they won't be shown again. The previous ones no longer work."
+        },
+        "devices": {
+          "title": "Remembered devices",
+          "hint": "These browsers don't ask for the code for 30 days after you remembered them.",
+          "loading": "Loading devices…",
+          "empty": "You haven't remembered any device. When signing in you can tick «Remember this device».",
+          "current": "This device",
+          "rememberedOn": "Remembered on {{date}}",
+          "lastUsed": "last used {{date}}",
+          "remove": "Remove",
+          "removeTitle": "Forget this device?",
+          "removeBody": "Next time you sign in from {{device}} we'll ask for the code.",
+          "removed": "Device forgotten"
+        },
+        "activeWith": "On · {{method}}",
+        "chooseHint": "Choose how you want to get the code we'll ask for when you sign in with your password.",
+        "continue": "Continue",
+        "emailSentTo": "We sent a 6-digit code to {{email}}. Type it to confirm.",
+        "noCode": "Didn't get it?",
+        "resend": "Resend code",
+        "resent": "We sent you a new code.",
+        "methods": {
+          "totp": {
+            "title": "Authenticator app",
+            "hint": "A code that changes every 30 seconds in an app like Google Authenticator or 1Password."
+          },
+          "email": {
+            "title": "Code by email",
+            "hint": "We send a 6-digit code to your confirmed email every time you sign in.",
+            "lessSecure": "An authenticator app or a passkey are safer: whoever gets into your email could receive the code.",
+            "needsVerified": "To get codes by email, confirm your email first.",
+            "verifyLink": "Go confirm it"
+          }
+        },
+        "change": {
+          "label": "Verification method",
+          "button": "Change method",
+          "title": "Switch to {{method}}",
+          "stepUpHint": "To change the verification method, confirm it's you.",
+          "done": "Done: you now use {{method}}. Your recovery codes still work."
+        }
       },
       "passkey": {
         "label": "Passkey",
@@ -2342,7 +2407,11 @@
         "codeLabel": "Code from your authenticator app",
         "usePasskey": "Use a passkey",
         "confirm": "Verify",
-        "passkeyFailed": "Couldn't verify with your passkey. Try again."
+        "passkeyFailed": "Couldn't verify with your passkey. Try again.",
+        "sendEmailCode": "Send a code to my email",
+        "resendEmailCode": "Resend code",
+        "emailSent": "We sent a code to {{email}}.",
+        "emailCodeLabel": "Code from the email"
       }
     },
     "preferences": {
@@ -2404,7 +2473,7 @@
           },
           "twoFactor": {
             "title": "Two-step verification",
-            "hint": "A code from your authenticator app, on top of your password."
+            "hint": "A code from your authenticator app or your email, on top of your password."
           }
         },
         "done": "Done",
@@ -2548,7 +2617,8 @@
         "emails": "Emails",
         "consents": "Consents",
         "sessions": "Sessions",
-        "passkeys": "Passkeys"
+        "passkeys": "Passkeys",
+        "trustedDevices": "Remembered devices"
       },
       "columns": {
         "field": "Field",
@@ -2569,7 +2639,8 @@
         "city": "City",
         "lastUsedAt": "Last used",
         "closedAt": "Closed on",
-        "name": "Name"
+        "name": "Name",
+        "expiresAt": "Expires on"
       },
       "fields": {
         "name": "Name",
@@ -2741,7 +2812,12 @@
     "PRIMARY_CARD_HAS_HISTORY": "This card has movements or instalment purchases. Deactivate it instead to keep its history.",
     "CARD_NOT_PRIMARY": "That card is no longer the account’s primary card.",
     "CREDIT_POOL_CURRENCY_NOT_FOUND": "The account has no credit in that currency.",
-    "CREDIT_POOL_IN_USE": "You can’t remove that credit line: it has used credit, unpaid statements or additional-card limits."
+    "CREDIT_POOL_IN_USE": "You can’t remove that credit line: it has used credit, unpaid statements or additional-card limits.",
+    "MFA_NOT_ENABLED": "Two-step verification isn't on.",
+    "MFA_EMAIL_NOT_VERIFIED": "Confirm your email first: codes only go to a confirmed address.",
+    "MFA_SAME_METHOD": "You already use that method.",
+    "MFA_CODE_RATE_LIMITED": "We just sent you a code. Wait a moment before asking for another.",
+    "TRUSTED_DEVICE_NOT_FOUND": "That device is no longer remembered."
   },
   "exchangeRates": {
     "title": "Exchange rates",

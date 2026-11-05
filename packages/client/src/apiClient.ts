@@ -17,6 +17,8 @@ export class ApiRequestError extends Error {
     public readonly code: string,
     public readonly status: number,
     public readonly field?: string,
+    /** Extra facts some errors carry, e.g. `retryAfterSeconds` on `MFA_CODE_RATE_LIMITED`. */
+    public readonly details?: Record<string, unknown>,
   ) {
     super(code);
     this.name = "ApiRequestError";
@@ -63,14 +65,16 @@ async function parseResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let code = "INTERNAL_ERROR";
     let field: string | undefined;
+    let details: Record<string, unknown> | undefined;
     try {
       const body = (await res.json()) as ApiError;
       code = body.error?.code ?? code;
       field = body.error?.field;
+      details = body.error?.details;
     } catch {
       // non-JSON error body — keep defaults
     }
-    throw new ApiRequestError(code, res.status, field);
+    throw new ApiRequestError(code, res.status, field, details);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

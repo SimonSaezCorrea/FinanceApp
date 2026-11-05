@@ -304,6 +304,10 @@ matching its `@@map`) and **exactly one adapter may query it** — 22 table-doma
 `installments` each split into their goal/plan + entry/payment tables; `auth` → `user`,
 `wallet` → `wallet-item-dashboard`, `transactions` → `transaction`, and the remaining plurals became
 singular. `etf-price-cache` has a folder even though its feature is deferred.
+Later features kept adding table-domains the same way; the current list lives in `CLAUDE.md`. The
+latest two (specs/040, 2026-11-05) are `trusted-device` (browsers that skip the second factor) and
+`mfa-code` (6-digit codes sent through a channel, today email), both `domain/` + `infrastructure/`
+leaves composed by `user`.
 
 Three rules make that split work without weakening the aggregates:
 

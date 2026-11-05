@@ -24,6 +24,7 @@ import {
 } from "../../../../../../src/domains/user/domain/errors";
 import type { AccountSecurityEvent } from "../../../../../../src/domains/user/domain/events/account-security.event";
 import type { UserEmailProps } from "../../../../../../src/domains/user-email/domain/user-email.entity";
+import { fakeTrustedDevices } from "../../../../support/fake-ports";
 
 const TOKEN = "A".repeat(43);
 
@@ -320,6 +321,7 @@ describe("ResetPasswordHandler", () => {
       { consumeWithTx: vi.fn().mockResolvedValue(consumed ? { userId: "u1" } : null) } as never,
       sessions as never,
       prisma,
+      fakeTrustedDevices(),
     );
     return { handler, u, sessions, users, publish };
   }

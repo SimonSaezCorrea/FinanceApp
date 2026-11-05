@@ -18,15 +18,23 @@ import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expen
 import { SavingsEntryDataModule } from "../savings-entry/savings-entry.data.module";
 import { SavingsGoalDataModule } from "../savings-goal/savings-goal.data.module";
 import { SessionDataModule } from "../session/session.data.module";
+import { TrustedDeviceDataModule } from "../trusted-device/trusted-device.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { EmailTokenDataModule } from "../email-token/email-token.data.module";
 import { UserEmailDataModule } from "../user-email/user-email.data.module";
 import { AccountEmailService } from "./application/account-emails";
+import { MfaCodeService } from "./application/mfa-code-service";
+import { EmailMfaCodeSender, MFA_CODE_SENDER } from "./application/mfa-code-sender";
+import { ResendMfaLoginCodeHandler } from "./application/commands/resend-mfa-login-code.handler";
+import { SendStepUpEmailCodeHandler } from "./application/commands/send-step-up-email-code.handler";
+import { PurgeStaleMfaCodesHandler } from "./application/commands/purge-stale-mfa-codes.handler";
+import { MfaCodeDataModule } from "../mfa-code/mfa-code.data.module";
 import { ForgotPasswordHandler } from "./application/commands/forgot-password.handler";
 import { RemoveUserEmailHandler } from "./application/commands/remove-user-email.handler";
 import { RequestEmailChangeHandler } from "./application/commands/request-email-change.handler";
 import { ResendVerificationHandler } from "./application/commands/resend-verification.handler";
 import { PurgeStaleEmailTokensHandler } from "./application/commands/purge-stale-email-tokens.handler";
+import { PurgeExpiredTrustedDevicesHandler } from "./application/commands/purge-expired-trusted-devices.handler";
 import { ResetPasswordHandler } from "./application/commands/reset-password.handler";
 import { VerifyEmailHandler } from "./application/commands/verify-email.handler";
 import { SendSecurityNoticeListener } from "./application/listeners/send-security-notice.listener";
@@ -44,6 +52,9 @@ import { LoginHandler } from "./application/commands/login.handler";
 import { LogoutHandler } from "./application/commands/logout.handler";
 import { RefreshTokenHandler } from "./application/commands/refresh-token.handler";
 import { RegisterHandler } from "./application/commands/register.handler";
+import { RegenerateRecoveryCodesHandler } from "./application/commands/regenerate-recovery-codes.handler";
+import { RemoveTrustedDeviceHandler } from "./application/commands/remove-trusted-device.handler";
+import { ListTrustedDevicesQueryHandler } from "./application/queries/list-trusted-devices.handler";
 import { PurgeClosedSessionsHandler } from "./application/commands/purge-closed-sessions.handler";
 import { RemovePasskeyHandler } from "./application/commands/remove-passkey.handler";
 import { RenamePasskeyHandler } from "./application/commands/rename-passkey.handler";
@@ -73,6 +84,8 @@ import { AuthController } from "./presentation/auth.controller";
 
 const commandHandlers = [
   RegisterHandler,
+  RegenerateRecoveryCodesHandler,
+  RemoveTrustedDeviceHandler,
   LoginHandler,
   LogoutHandler,
   RefreshTokenHandler,
@@ -104,11 +117,16 @@ const commandHandlers = [
   ForgotPasswordHandler,
   ResetPasswordHandler,
   PurgeStaleEmailTokensHandler,
+  PurgeExpiredTrustedDevicesHandler,
+  PurgeStaleMfaCodesHandler,
+  ResendMfaLoginCodeHandler,
+  SendStepUpEmailCodeHandler,
   CloseOnboardingHandler,
   MarkReleaseNotesSeenHandler,
 ];
 
 const queryHandlers = [
+  ListTrustedDevicesQueryHandler,
   GetMeQueryHandler,
   GetSessionStatusQueryHandler,
   ListPasskeysQueryHandler,
@@ -124,6 +142,8 @@ const queryHandlers = [
     CqrsModule,
     JwtModule.register({}),
     CountryDataModule,
+    TrustedDeviceDataModule,
+    MfaCodeDataModule,
     BankAccountDataModule,
     TransactionDataModule,
     InstallmentPlanDataModule,
@@ -151,6 +171,8 @@ const queryHandlers = [
     GeoIpLookup,
     SessionIssuer,
     AccountEmailService,
+    MfaCodeService,
+    { provide: MFA_CODE_SENDER, useClass: EmailMfaCodeSender },
     SendSecurityNoticeListener,
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
     JwtAuthGuard,

@@ -2114,7 +2114,18 @@
       "verify": "Verificar",
       "back": "Volver",
       "verifying": "Verificando…",
-      "codeLabel": "Código"
+      "codeLabel": "Código",
+      "rememberDevice": "Recordar este dispositivo por 30 días",
+      "rememberDeviceHint": "No te pediremos el código en este navegador. Úsalo solo en un dispositivo tuyo; puedes olvidarlo desde Perfil → Seguridad.",
+      "email": {
+        "hint": "Te enviamos un código de 6 dígitos a tu correo. También puedes usar uno de tus códigos de recuperación.",
+        "noCode": "¿No te llegó?",
+        "resend": "Reenviar código",
+        "resending": "Enviando…",
+        "resendIn": "Reenviar en {{seconds}} s",
+        "resent": "Te enviamos un código nuevo.",
+        "notSent": "No pudimos enviar el código ahora. Reintenta en un momento o usa un código de recuperación."
+      }
     },
     "passkey": {
       "signIn": "Continuar con llave de acceso",
@@ -2264,7 +2275,7 @@
       },
       "twoFactor": {
         "label": "Verificación en dos pasos",
-        "hint": "Protege tu cuenta con una app autenticadora."
+        "hint": "Protege tu cuenta con una app autenticadora o un código por correo."
       },
       "mfa": {
         "enabledHint": "Activa · {{count}} código(s) de recuperación disponibles",
@@ -2283,7 +2294,61 @@
         "disableTitle": "Desactivar verificación en dos pasos",
         "disableHint": "Ingresa tu contraseña actual para confirmar.",
         "disableConfirm": "Desactivar",
-        "disablePasswordLabel": "Contraseña actual"
+        "disablePasswordLabel": "Contraseña actual",
+        "download": "Descargar .txt",
+        "codesFileName": "fik-codigos-de-recuperacion.txt",
+        "recovery": {
+          "label": "Códigos de recuperación",
+          "remaining_one": "Te queda {{count}} sin usar",
+          "remaining_other": "Te quedan {{count}} sin usar",
+          "regenerate": "Generar nuevos",
+          "confirmTitle": "¿Generar códigos nuevos?",
+          "confirmBody": "Los códigos que tienes ahora dejarán de servir en ese momento, y los dispositivos que recordaste volverán a pedir el código.",
+          "confirm": "Generar códigos",
+          "stepUpHint": "Para generar códigos nuevos, confirma que eres tú.",
+          "doneTitle": "Tus códigos nuevos",
+          "doneHint": "Guárdalos ahora: no se volverán a mostrar. Los anteriores ya no sirven."
+        },
+        "devices": {
+          "title": "Dispositivos recordados",
+          "hint": "En estos navegadores no te pedimos el código por 30 días desde que los recordaste.",
+          "loading": "Cargando dispositivos…",
+          "empty": "No recordaste ningún dispositivo. Al ingresar puedes marcar «Recordar este dispositivo».",
+          "current": "Este dispositivo",
+          "rememberedOn": "Recordado el {{date}}",
+          "lastUsed": "último uso {{date}}",
+          "remove": "Quitar",
+          "removeTitle": "¿Olvidar este dispositivo?",
+          "removeBody": "La próxima vez que ingreses desde {{device}} te pediremos el código.",
+          "removed": "Dispositivo olvidado"
+        },
+        "activeWith": "Activa · {{method}}",
+        "chooseHint": "Elige cómo quieres recibir el código que te pediremos al entrar con contraseña.",
+        "continue": "Continuar",
+        "emailSentTo": "Te enviamos un código de 6 dígitos a {{email}}. Escríbelo para confirmar.",
+        "noCode": "¿No te llegó?",
+        "resend": "Reenviar código",
+        "resent": "Te enviamos un código nuevo.",
+        "methods": {
+          "totp": {
+            "title": "App autenticadora",
+            "hint": "Un código que cambia cada 30 segundos en una app como Google Authenticator o 1Password."
+          },
+          "email": {
+            "title": "Código por correo",
+            "hint": "Te enviamos un código de 6 dígitos a tu correo confirmado cada vez que entras.",
+            "lessSecure": "La app autenticadora o una llave de acceso son más seguras: quien entre a tu correo podría recibir el código.",
+            "needsVerified": "Para recibir códigos por correo, primero confirma tu correo.",
+            "verifyLink": "Ir a confirmar"
+          }
+        },
+        "change": {
+          "label": "Método de verificación",
+          "button": "Cambiar método",
+          "title": "Cambiar a {{method}}",
+          "stepUpHint": "Para cambiar el método de verificación, confirma que eres tú.",
+          "done": "Listo: ahora usas {{method}}. Tus códigos de recuperación siguen sirviendo."
+        }
       },
       "passkey": {
         "label": "Llave de acceso (passkey)",
@@ -2342,7 +2407,11 @@
         "codeLabel": "Código de tu app de autenticación",
         "usePasskey": "Usar llave de acceso",
         "confirm": "Verificar",
-        "passkeyFailed": "No se pudo verificar con la llave de acceso. Inténtalo de nuevo."
+        "passkeyFailed": "No se pudo verificar con la llave de acceso. Inténtalo de nuevo.",
+        "sendEmailCode": "Enviar código a mi correo",
+        "resendEmailCode": "Reenviar código",
+        "emailSent": "Te enviamos un código a {{email}}.",
+        "emailCodeLabel": "Código del correo"
       }
     },
     "preferences": {
@@ -2404,7 +2473,7 @@
           },
           "twoFactor": {
             "title": "Verificación en dos pasos",
-            "hint": "Un código de tu app autenticadora, además de la contraseña."
+            "hint": "Un código de tu app autenticadora o de tu correo, además de la contraseña."
           }
         },
         "done": "Lista",
@@ -2548,7 +2617,8 @@
         "emails": "Correos",
         "consents": "Consentimientos",
         "sessions": "Sesiones",
-        "passkeys": "Llaves de acceso"
+        "passkeys": "Llaves de acceso",
+        "trustedDevices": "Dispositivos recordados"
       },
       "columns": {
         "field": "Dato",
@@ -2569,7 +2639,8 @@
         "city": "Ciudad",
         "lastUsedAt": "Último uso",
         "closedAt": "Cerrada el",
-        "name": "Nombre"
+        "name": "Nombre",
+        "expiresAt": "Vence el"
       },
       "fields": {
         "name": "Nombre",
@@ -2741,7 +2812,12 @@
     "PRIMARY_CARD_HAS_HISTORY": "Esta tarjeta tiene movimientos o compras en cuotas. Desactívala en su lugar: así conservas su historia.",
     "CARD_NOT_PRIMARY": "Esa tarjeta ya no es la principal de la cuenta.",
     "CREDIT_POOL_CURRENCY_NOT_FOUND": "La cuenta no tiene cupo en esa moneda.",
-    "CREDIT_POOL_IN_USE": "No puedes quitar ese cupo: tiene saldo usado, facturaciones sin pagar o topes de tarjetas adicionales."
+    "CREDIT_POOL_IN_USE": "No puedes quitar ese cupo: tiene saldo usado, facturaciones sin pagar o topes de tarjetas adicionales.",
+    "MFA_NOT_ENABLED": "La verificación en dos pasos no está activa.",
+    "MFA_EMAIL_NOT_VERIFIED": "Primero confirma tu correo: el código se envía solo a un correo confirmado.",
+    "MFA_SAME_METHOD": "Ya usas ese método.",
+    "MFA_CODE_RATE_LIMITED": "Ya te enviamos un código hace poco. Espera un momento para pedir otro.",
+    "TRUSTED_DEVICE_NOT_FOUND": "Ese dispositivo ya no está recordado."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

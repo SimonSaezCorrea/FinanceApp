@@ -9,6 +9,7 @@ const login = vi.fn();
 const verifyMfaLogin = vi.fn();
 const register = vi.fn();
 const forgotPassword = vi.fn();
+const resendMfaLoginCode = vi.fn();
 vi.mock("@finance/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
@@ -16,6 +17,7 @@ vi.mock("@finance/client", async (importOriginal) => ({
     verifyMfaLogin: (...args: unknown[]) => verifyMfaLogin(...args),
     register: (...args: unknown[]) => register(...args),
     forgotPassword: (...args: unknown[]) => forgotPassword(...args),
+    resendMfaLoginCode: (...args: unknown[]) => resendMfaLoginCode(...args),
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
     logout: vi.fn(),
   },
@@ -159,6 +161,59 @@ describe("LoginForm", () => {
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.mfa.verify") }));
 
     await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledWith({ code: "123456" }));
+  });
+
+  it("remembers this device only when asked (specs/040)", async () => {
+    login.mockResolvedValue({ mfaRequired: true });
+    verifyMfaLogin.mockResolvedValue({
+      user: { id: "u1", email: "a@b.com", mfaEnabled: true, mfaRecoveryCodesRemaining: 9 },
+    });
+    renderLogin();
+    await submitCredentials();
+    await screen.findByText(i18n.t("auth.mfa.hint"));
+
+    const remember = screen.getByRole("checkbox", { name: i18n.t("auth.mfa.rememberDevice") });
+    expect((remember as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(remember);
+    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.mfa.placeholder")), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.mfa.verify") }));
+
+    await waitFor(() =>
+      expect(verifyMfaLogin).toHaveBeenCalledWith({ code: "123456", rememberDevice: true }),
+    );
+  });
+
+  it("asks for the emailed code and waits as long as the API said before a resend (specs/040)", async () => {
+    login.mockResolvedValue({
+      mfaRequired: true,
+      mfaMethod: "email",
+      codeSent: false,
+      retryAfterSeconds: 42,
+    });
+    renderLogin();
+    await submitCredentials();
+    await screen.findByText(i18n.t("auth.mfa.email.hint"));
+    const waiting = screen.getByRole("button", {
+      name: i18n.t("auth.mfa.email.resendIn", { seconds: 42 }),
+    });
+    expect((waiting as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("resends the emailed code when no wait is left", async () => {
+    login.mockResolvedValue({
+      mfaRequired: true,
+      mfaMethod: "email",
+      codeSent: true,
+      retryAfterSeconds: 0,
+    });
+    resendMfaLoginCode.mockResolvedValue({ codeSent: true });
+    renderLogin();
+    await submitCredentials();
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("auth.mfa.email.resend") }));
+    await waitFor(() => expect(resendMfaLoginCode).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(i18n.t("auth.mfa.email.resent"))).toBeDefined();
   });
 
   it("without MFA, logs in directly with no second step", async () => {

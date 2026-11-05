@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import * as OTPAuth from "otpauth";
+import { fakeMfaCodes, fakeTrustedDevices } from "../../../../support/fake-ports";
 
 import { ConfirmMfaEnrollmentHandler } from "../../../../../../src/domains/user/application/commands/confirm-mfa-enrollment.handler";
 import { ConfirmMfaEnrollmentCommand } from "../../../../../../src/domains/user/application/commands/confirm-mfa-enrollment.command";
@@ -99,6 +100,8 @@ describe("ConfirmMfaEnrollmentHandler", () => {
       repo,
       recoveryCodes,
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     const result = await handler.execute(
@@ -124,6 +127,8 @@ describe("ConfirmMfaEnrollmentHandler", () => {
       repo,
       fakeRecoveryCodeRepo(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -141,6 +146,8 @@ describe("ConfirmMfaEnrollmentHandler", () => {
       repo,
       fakeRecoveryCodeRepo(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -161,11 +168,67 @@ describe("ConfirmMfaEnrollmentHandler", () => {
       repo,
       fakeRecoveryCodeRepo(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
       handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" })),
     ).rejects.toThrow(MfaAlreadyEnabledError);
     expect(repo.saveWithTx).not.toHaveBeenCalled();
+  });
+});
+
+describe("ConfirmMfaEnrollmentHandler - email and method change (specs/040 US3)", () => {
+  function setup(props: UserProps, codeOk: boolean) {
+    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(props)) });
+    const recoveryCodes = fakeRecoveryCodeRepo();
+    const devices = fakeTrustedDevices();
+    const mfaCodes = fakeMfaCodes({ verifyWithTx: vi.fn().mockResolvedValue(codeOk) });
+    const publish = vi.fn();
+    const handler = new ConfirmMfaEnrollmentHandler(
+      { publish } as never,
+      repo,
+      recoveryCodes,
+      fakePrisma(),
+      devices,
+      mfaCodes,
+    );
+    return { handler, repo, recoveryCodes, devices, publish };
+  }
+
+  it("activates email codes with the ENROLL code, issuing recovery codes", async () => {
+    const { handler, recoveryCodes } = setup(baseProps({ mfaPendingMethod: "EMAIL" }), true);
+    const result = await handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }));
+    expect(result.recoveryCodes).toHaveLength(10);
+    expect(recoveryCodes.createManyWithTx).toHaveBeenCalled();
+  });
+
+  it("a wrong ENROLL code activates nothing", async () => {
+    const { handler, repo } = setup(baseProps({ mfaPendingMethod: "EMAIL" }), false);
+    await expect(
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" })),
+    ).rejects.toThrow(InvalidMfaCodeError);
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
+  });
+
+  it("a method change keeps the recovery codes, drops the TOTP secret, forgets devices and notifies", async () => {
+    const { handler, repo, recoveryCodes, devices, publish } = setup(
+      baseProps({
+        mfaEnabled: true,
+        mfaMethod: "TOTP",
+        mfaSecret: SECRET,
+        mfaPendingMethod: "EMAIL",
+      }),
+      true,
+    );
+    const result = await handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }));
+    expect(result.recoveryCodes).toBeNull();
+    expect(recoveryCodes.createManyWithTx).not.toHaveBeenCalled();
+    expect(devices.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
+    const saved = (repo.saveWithTx as ReturnType<typeof vi.fn>).mock.calls[0]![1] as User;
+    expect(saved.mfaMethodOrDefault()).toBe("EMAIL");
+    expect(saved.mfaSecret).toBeNull();
+    expect(publish).toHaveBeenCalledWith(expect.objectContaining({ kind: "MFA_METHOD_CHANGED" }));
   });
 });

@@ -29,6 +29,29 @@ export const es = {
       "Al cambiarla se cerrarán todas tus sesiones abiertas. Si tienes la verificación en dos pasos, te la seguiremos pidiendo.",
     ignore: "Si no lo pediste, ignora este correo: tu contraseña no cambia.",
   },
+  mfaCode: {
+    preheader: "Tu código vence en 10 minutos.",
+    expires: "Vence en 10 minutos y sirve una sola vez.",
+    neverAsk: "Nadie de fik te pedirá este código: no lo compartas con nadie.",
+    ignore: "Si no fuiste tú, ignora este correo y cambia tu contraseña.",
+    purposes: {
+      LOGIN: {
+        subject: "Tu código para entrar a fik",
+        title: "Código para entrar",
+        body: "Alguien ingresó tu contraseña de fik. Para terminar de entrar, escribe este código:",
+      },
+      ENROLL: {
+        subject: "Tu código para activar la verificación por correo en fik",
+        title: "Confirma la verificación por correo",
+        body: "Para que tu cuenta de fik pida un código enviado a este correo al entrar, escribe este código en tu perfil:",
+      },
+      STEP_UP: {
+        subject: "Tu código para confirmar que eres tú en fik",
+        title: "Confirma que eres tú",
+        body: "Para continuar con un cambio de seguridad en tu cuenta de fik, escribe este código:",
+      },
+    },
+  },
   securityNotice: {
     when: "Cuándo: {date} (hora de Chile).",
     notYou:
@@ -47,7 +70,7 @@ export const es = {
       MFA_ENABLED: {
         subject: "Activaste la verificación en dos pasos en fik",
         title: "Verificación en dos pasos activada",
-        body: "Desde ahora, entrar a tu cuenta de fik con contraseña también pide un código de tu app de autenticación.",
+        body: "Desde ahora, entrar a tu cuenta de fik con contraseña también pide un código: el de tu app de autenticación o uno enviado a tu correo, según el método que elegiste.",
       },
       MFA_DISABLED: {
         subject: "Se desactivó la verificación en dos pasos en fik",
@@ -68,6 +91,21 @@ export const es = {
         subject: "Cambió el correo de tu cuenta de fik",
         title: "Tu correo cambió",
         body: "El correo de tu cuenta de fik ahora es {detail}. Esta dirección dejó de recibir nuestros correos y ya no sirve para recuperar la cuenta.",
+      },
+      RECOVERY_CODES_REGENERATED: {
+        subject: "Generaste códigos de recuperación nuevos en fik",
+        title: "Códigos de recuperación nuevos",
+        body: "Se generaron 10 códigos de recuperación nuevos para tu cuenta de fik. Los anteriores ya no sirven. Los dispositivos que habías recordado volverán a pedir el código.",
+      },
+      TRUSTED_DEVICE_ADDED: {
+        subject: "Recordaste un dispositivo en fik",
+        title: "Dispositivo recordado",
+        body: "En «{detail}» no se volverá a pedir el código de verificación por 30 días al entrar con tu contraseña. Puedes quitarlo en Perfil → Seguridad.",
+      },
+      MFA_METHOD_CHANGED: {
+        subject: "Cambiaste tu verificación en dos pasos en fik",
+        title: "Método de verificación cambiado",
+        body: "Se cambió el método con que tu cuenta de fik pide el segundo paso al entrar. Los dispositivos que habías recordado volverán a pedir el código.",
       },
       ACCOUNT_DELETED: {
         subject: "Eliminaste tu cuenta de fik",

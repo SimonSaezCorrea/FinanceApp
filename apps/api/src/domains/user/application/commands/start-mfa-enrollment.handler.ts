@@ -7,7 +7,18 @@ import type { auth } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { User } from "../../domain/user.aggregate";
-import { UnauthorizedError } from "../../domain/errors";
+import {
+  MfaEmailNotVerifiedError,
+  MfaSameMethodError,
+  StepUpRequiredError,
+  UnauthorizedError,
+} from "../../domain/errors";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
+import { MfaCodeService } from "../mfa-code-service";
+import { assertRecentStepUp } from "../step-up";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { StartMfaEnrollmentCommand } from "./start-mfa-enrollment.command";
 
@@ -23,6 +34,8 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
+    private readonly mfaCodes: MfaCodeService,
   ) {
     super(eventBus);
   }
@@ -37,9 +50,33 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
     command: StartMfaEnrollmentCommand,
     user: User,
   ): Promise<HandleResult<auth.StartMfaEnrollmentResponse>> {
+    const method = command.input.method === "email" ? "EMAIL" : "TOTP";
+    if (user.mfaEnabled) {
+      if (user.mfaMethodOrDefault() === method) throw new MfaSameMethodError();
+      // A CHANGE of method (specs/040 R12): a stolen session must not be able to move the second
+      // factor somewhere the attacker controls.
+      if (!command.sessionId) throw new StepUpRequiredError();
+      await assertRecentStepUp(this.stepUp, user.id, command.sessionId);
+    }
+
+    if (method === "EMAIL") {
+      if (!user.email || !user.emailVerified) throw new MfaEmailNotVerifiedError();
+      user.startMfaEnrollment("EMAIL");
+      // Sent before the pending method is saved: if it can't go out, nothing changes.
+      await this.mfaCodes.issueAndSendOrThrow(
+        {
+          userId: user.id,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          locale: user.locale,
+        },
+        "ENROLL",
+      );
+      return { result: { method: "email", codeSent: true }, events: [] };
+    }
+
     const secret = new OTPAuth.Secret({ size: 20 });
-    // Throws MfaAlreadyEnabledError if MFA is already active — no "replace device" path.
-    user.startMfaEnrollment(secret.base32);
+    user.startMfaEnrollment("TOTP", secret.base32);
     const totp = new OTPAuth.TOTP({
       issuer: ISSUER,
       label: user.email ?? user.id,
@@ -49,7 +86,7 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
       secret,
     });
     const qrCodeDataUrl = await QRCode.toDataURL(totp.toString());
-    return { result: { qrCodeDataUrl, secret: secret.base32 }, events: [] };
+    return { result: { method: "totp", qrCodeDataUrl, secret: secret.base32 }, events: [] };
   }
 
   protected override async persist(user: User): Promise<void> {

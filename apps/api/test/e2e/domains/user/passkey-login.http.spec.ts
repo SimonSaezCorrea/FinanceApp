@@ -165,7 +165,7 @@ describe("Passkey login HTTP (e2e)", () => {
     const passwordLogin = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password });
-    expect(passwordLogin.body).toEqual({ mfaRequired: true });
+    expect(passwordLogin.body).toEqual({ mfaRequired: true, mfaMethod: "totp" });
 
     // Passkey login still goes straight through — no TOTP prompt, ever.
     const options = await request(app.getHttpServer())

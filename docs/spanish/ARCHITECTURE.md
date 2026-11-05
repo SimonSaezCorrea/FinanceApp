@@ -310,6 +310,10 @@ igual que su `@@map`) y **solo un adapter puede consultarla** — 22 dominios-ta
 se partieron en su tabla de meta/plan y la de aporte/cuota; `auth` → `user`,
 `wallet` → `wallet-item-dashboard`, `transactions` → `transaction`, y los demás plurales pasaron a
 singular. `etf-price-cache` tiene carpeta aunque su feature esté diferida.
+Las features posteriores siguieron agregando dominios-tabla igual; la lista vigente está en
+`CLAUDE.md`. Los dos últimos (specs/040, 2026-11-05) son `trusted-device` (navegadores que se saltan
+el segundo factor) y `mfa-code` (códigos de 6 dígitos enviados por un canal, hoy el correo), ambos
+hojas `domain/` + `infrastructure/` compuestas por `user`.
 
 Tres reglas hacen que la división no debilite los aggregates:
 

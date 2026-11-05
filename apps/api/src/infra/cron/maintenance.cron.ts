@@ -9,6 +9,8 @@ import { PurgeExpiredCacheCommand } from "../../domains/ip-geolocation-cache/app
 import { CloseExpiredSessionsCommand } from "../../domains/user/application/commands/close-expired-sessions.command";
 import { PurgeClosedSessionsCommand } from "../../domains/user/application/commands/purge-closed-sessions.command";
 import { PurgeStaleEmailTokensCommand } from "../../domains/user/application/commands/purge-stale-email-tokens.command";
+import { PurgeExpiredTrustedDevicesCommand } from "../../domains/user/application/commands/purge-expired-trusted-devices.command";
+import { PurgeStaleMfaCodesCommand } from "../../domains/user/application/commands/purge-stale-mfa-codes.command";
 
 /**
  * Daily housekeeping at 03:00 Chile time — one trigger for what used to be three crons (3, 4 and
@@ -20,6 +22,8 @@ import { PurgeStaleEmailTokensCommand } from "../../domains/user/application/com
  *    3-day retention — in this order, so one that just expired starts its retention today.
  * 3. IP→country cache rows past their 60-day TTL (specs/026).
  * 4. Email links expired or used more than 7 days ago (specs/032).
+ * 5. Remembered devices whose 30 days ran out (specs/040).
+ * 6. Second-factor codes used or expired more than 7 days ago (specs/040).
  *
  * Each step runs on its own: one failing is logged and never stops the others.
  */
@@ -59,6 +63,18 @@ export class MaintenanceCron {
     await this.step("email links", async () => {
       const deleted = await this.commandBus.execute<PurgeStaleEmailTokensCommand, number>(
         new PurgeStaleEmailTokensCommand(),
+      );
+      return `purged ${deleted} expired or used`;
+    });
+    await this.step("remembered devices", async () => {
+      const deleted = await this.commandBus.execute<PurgeExpiredTrustedDevicesCommand, number>(
+        new PurgeExpiredTrustedDevicesCommand(),
+      );
+      return `purged ${deleted} expired`;
+    });
+    await this.step("second-factor codes", async () => {
+      const deleted = await this.commandBus.execute<PurgeStaleMfaCodesCommand, number>(
+        new PurgeStaleMfaCodesCommand(),
       );
       return `purged ${deleted} expired or used`;
     });

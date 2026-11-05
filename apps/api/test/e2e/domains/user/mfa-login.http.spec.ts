@@ -65,7 +65,7 @@ describe("MFA login HTTP (e2e)", () => {
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ mfaRequired: true });
+    expect(res.body).toEqual({ mfaRequired: true, mfaMethod: "totp" });
     const cookies = res.get("Set-Cookie") ?? [];
     const pending = cookies.find((c) => c.startsWith("mfa_pending_token="));
     expect(pending).toBeDefined();

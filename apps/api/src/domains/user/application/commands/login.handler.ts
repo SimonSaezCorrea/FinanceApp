@@ -14,6 +14,13 @@ import { SessionIssuer } from "../session-issuer";
 import { TokenIssuer } from "../token-issuer";
 import type { AuthResult } from "./register.handler";
 import { LoginCommand } from "./login.command";
+import {
+  TRUSTED_DEVICE_REPOSITORY,
+  type TrustedDeviceRepositoryPort,
+} from "../../../trusted-device/domain/ports/trusted-device.repository.port";
+import { trustedDeviceIsValidFor } from "../../../trusted-device/domain/trusted-device.entity";
+import { hashTrustedDeviceToken } from "../trusted-device-cookie";
+import { MfaCodeService } from "../mfa-code-service";
 
 /**
  * A user without MFA gets a real session, exactly as before. A user WITH MFA active gets
@@ -22,7 +29,17 @@ import { LoginCommand } from "./login.command";
  * completes the second factor (specs/021).
  */
 export type LoginResult =
-  ({ mfaRequired: false } & AuthResult) | { mfaRequired: true; mfaPendingToken: string };
+  | ({ mfaRequired: false } & AuthResult)
+  | {
+      mfaRequired: true;
+      mfaPendingToken: string;
+      /** Which second factor to ask for (specs/040). */
+      mfaMethod: auth.MfaMethod;
+      /** `email` only: whether a code went out now. */
+      codeSent?: boolean;
+      /** `email` only, when the resend limit held it back. */
+      retryAfterSeconds?: number;
+    };
 
 type Outcome = { kind: "invalid" } | { kind: "locked" } | { kind: "success"; user: User };
 
@@ -56,6 +73,8 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     private readonly tokenIssuer: TokenIssuer,
     private readonly sessionIssuer: SessionIssuer,
     private readonly prisma: PrismaService,
+    @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
+    private readonly mfaCodes: MfaCodeService,
   ) {
     super(eventBus);
   }
@@ -93,10 +112,37 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     const user = outcome.user;
     // ACCOUNT_DISABLED — rejected even with otherwise-valid credentials.
     user.assertActive();
-    if (user.mfaEnabled) {
+    if (user.mfaEnabled && (await this.isRememberedDevice(user.id, command.trustedDeviceToken))) {
+      this.logger.log(`user logged in on a remembered device: ${user.id}`);
+    } else if (user.mfaEnabled) {
       this.logger.log(`password verified, awaiting MFA: ${user.id}`);
       const mfaPendingToken = this.tokenIssuer.issueMfaPending(user.id);
-      return { result: { mfaRequired: true, mfaPendingToken }, events: [] };
+      if (user.mfaMethodOrDefault() === "EMAIL") {
+        // Sent after the password check committed; a failed send never fails the login (the
+        // screen offers "Reenviar código" and the recovery codes).
+        const sent = await this.mfaCodes.issueAndSend(
+          {
+            userId: user.id,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            locale: user.locale,
+          },
+          "LOGIN",
+        );
+        return {
+          result: {
+            mfaRequired: true,
+            mfaPendingToken,
+            mfaMethod: "email",
+            codeSent: sent.sent,
+            ...(!sent.sent && sent.reason === "rate-limited"
+              ? { retryAfterSeconds: sent.retryAfterSeconds }
+              : {}),
+          },
+          events: [],
+        };
+      }
+      return { result: { mfaRequired: true, mfaPendingToken, mfaMethod: "totp" }, events: [] };
     }
     this.logger.log(`user logged in: ${user.id}`);
     const tokens = await this.sessionIssuer.establish(
@@ -104,6 +150,16 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
       { userAgent: command.device?.userAgent, ip: command.device?.ip },
     );
     return { result: { mfaRequired: false, tokens, user: user.toContract() }, events: [] };
+  }
+
+  /** A remembered browser of THIS account, not expired (specs/040). Touched when it is used. */
+  private async isRememberedDevice(userId: string, token: string | undefined): Promise<boolean> {
+    if (!token) return false;
+    const now = new Date();
+    const device = await this.devices.findValidByTokenHash(hashTrustedDeviceToken(token), now);
+    if (!device || !trustedDeviceIsValidFor(device, userId, now)) return false;
+    await this.devices.touch(device.id, now);
+    return true;
   }
 
   private async checkPasswordLocked(

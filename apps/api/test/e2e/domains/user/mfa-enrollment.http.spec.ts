@@ -108,11 +108,19 @@ describe("MFA enrollment HTTP (e2e)", () => {
     expect(me.body.recoveryCodes).toBeUndefined();
   });
 
-  it("rejects a second enroll/confirm while MFA is already active", async () => {
+  it("rejects enrolling the active method again, and a confirm with nothing pending", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);
     expect(res.status).toBe(409);
-    expect(res.body.error.code).toBe("MFA_ALREADY_ENABLED");
+    // specs/040: with MFA on, enrolling is a method CHANGE; the same method is refused as such.
+    expect(res.body.error.code).toBe("MFA_SAME_METHOD");
+
+    const confirm = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/confirm")
+      .set("Cookie", cookies)
+      .send({ code: "123456" });
+    expect(confirm.status).toBe(409);
+    expect(confirm.body.error.code).toBe("MFA_ALREADY_ENABLED");
   });
 });

@@ -13,6 +13,7 @@ import { User, type UserProps } from "../../../../../../src/domains/user/domain/
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { fakeMfaCodes, fakeTrustedDevices } from "../../../../support/fake-ports";
 
 const SECRET = "JBSWY3DPEHPK3PXP";
 
@@ -110,6 +111,8 @@ describe("VerifyMfaLoginHandler", () => {
       fakeRecoveryCodeRepo(),
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     const result = await handler.execute(
@@ -131,6 +134,8 @@ describe("VerifyMfaLoginHandler", () => {
       fakeRecoveryCodeRepo(),
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -152,6 +157,8 @@ describe("VerifyMfaLoginHandler", () => {
       fakeRecoveryCodeRepo(),
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -175,6 +182,8 @@ describe("VerifyMfaLoginHandler", () => {
       fakeRecoveryCodeRepo(),
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -199,6 +208,8 @@ describe("VerifyMfaLoginHandler", () => {
       recoveryCodes,
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     const result = await handler.execute(new VerifyMfaLoginCommand("u1", { code: "AB3D-9F2K" }));
@@ -223,6 +234,8 @@ describe("VerifyMfaLoginHandler", () => {
       recoveryCodes,
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -241,6 +254,8 @@ describe("VerifyMfaLoginHandler", () => {
       recoveryCodes,
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
@@ -257,10 +272,107 @@ describe("VerifyMfaLoginHandler", () => {
       fakeRecoveryCodeRepo(),
       fakeSessionIssuer(),
       fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
     );
 
     await expect(
       handler.execute(new VerifyMfaLoginCommand("gone", { code: "000000" })),
     ).rejects.toThrow(UnauthorizedError);
+  });
+});
+
+describe("VerifyMfaLoginHandler — remember this device (specs/040 US2)", () => {
+  function setup(remember: boolean, code: string) {
+    const user = User.fromPersistence(baseProps());
+    const repo = fakeRepo({
+      findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user),
+      saveWithTx: vi.fn().mockResolvedValue(undefined),
+    });
+    const devices = fakeTrustedDevices();
+    const publish = vi.fn();
+    const handler = new VerifyMfaLoginHandler(
+      { publish } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+      fakeSessionIssuer(),
+      fakePrisma(),
+      devices,
+      fakeMfaCodes(),
+    );
+    const command = new VerifyMfaLoginCommand(
+      "u1",
+      { code, rememberDevice: remember },
+      { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36" },
+    );
+    return { handler, devices, publish, command };
+  }
+
+  it("remembers the browser: stores only the token's hash, returns the token, sends a notice", async () => {
+    const { handler, devices, publish, command } = setup(true, validCodeFor(SECRET));
+    const result = await handler.execute(command);
+
+    expect(result.trustedDeviceToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const plan = (devices.rememberWithTx as ReturnType<typeof vi.fn>).mock.calls[0]![1];
+    expect(plan.tokenHash).not.toBe(result.trustedDeviceToken);
+    expect(plan.deviceLabel).toBe("Chrome · Windows");
+    const days = (plan.expiresAt.getTime() - plan.createdAt.getTime()) / 86_400_000;
+    expect(days).toBe(30);
+    expect(publish.mock.calls[0]![0].kind).toBe("TRUSTED_DEVICE_ADDED");
+  });
+
+  it("remembers nothing when not asked, nor when the code is wrong", async () => {
+    const plain = setup(false, validCodeFor(SECRET));
+    const result = await plain.handler.execute(plain.command);
+    expect(result.trustedDeviceToken).toBeUndefined();
+    expect(plain.devices.rememberWithTx).not.toHaveBeenCalled();
+
+    const wrong = setup(true, "000000");
+    await expect(wrong.handler.execute(wrong.command)).rejects.toThrow(InvalidMfaCodeError);
+    expect(wrong.devices.rememberWithTx).not.toHaveBeenCalled();
+  });
+});
+
+describe("VerifyMfaLoginHandler — email method (specs/040 US3)", () => {
+  function setup(verified: boolean) {
+    const user = User.fromPersistence(
+      baseProps({ mfaMethod: "EMAIL", mfaSecret: null, mfaFailedAttempts: 0 }),
+    );
+    const repo = fakeRepo({
+      findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user),
+      saveWithTx: vi.fn().mockResolvedValue(undefined),
+    });
+    const mfaCodes = fakeMfaCodes({ verifyWithTx: vi.fn().mockResolvedValue(verified) });
+    const handler = new VerifyMfaLoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+      fakeSessionIssuer(),
+      fakePrisma(),
+      fakeTrustedDevices(),
+      mfaCodes,
+    );
+    return { handler, user, mfaCodes };
+  }
+
+  it("checks the emailed LOGIN code, not a TOTP", async () => {
+    const { handler, mfaCodes } = setup(true);
+    const result = await handler.execute(new VerifyMfaLoginCommand("u1", { code: "123456" }));
+    expect(result.tokens).toBeDefined();
+    expect(mfaCodes.verifyWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "LOGIN",
+      "123456",
+      expect.any(Date),
+    );
+  });
+
+  it("counts a wrong emailed code as a failed attempt", async () => {
+    const { handler, user } = setup(false);
+    await expect(
+      handler.execute(new VerifyMfaLoginCommand("u1", { code: "000000" })),
+    ).rejects.toThrow(InvalidMfaCodeError);
+    expect(user.mfaFailedAttempts).toBe(1);
   });
 });

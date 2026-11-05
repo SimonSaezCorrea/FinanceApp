@@ -1,5 +1,6 @@
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { MFA_CODE_RESEND_SECONDS } from "@finance/contracts/auth-rules";
 import { useTranslation } from "react-i18next";
 
 import { ApiRequestError, authApi, failureCode } from "@finance/client";
@@ -8,10 +9,14 @@ import { withBrand } from "@finance/ui/src/shared/lib/brand";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { FormNotice } from "@finance/ui/src/shared/ui/form/FormNotice";
 import { useAuth } from "../hooks/useAuth";
+import { CheckCard } from "./CheckCard";
 import { validateRequired, validateRut } from "../lib/validation";
 import { UnderlineField } from "./UnderlineField";
 
 export type LoginStep = "credentials" | "mfa";
+
+/** One emailed code a minute (the API's `MFA_CODE_RESEND_SECONDS`). */
+const RESEND_SECONDS = MFA_CODE_RESEND_SECONDS;
 
 interface LoginFormProps {
   /** Called once a session exists — by password (+MFA), by the passkey button, or by the
@@ -35,12 +40,20 @@ export function LoginForm({
   onIdentifierValueChange,
 }: Readonly<LoginFormProps>) {
   const { t } = useTranslation();
-  const { login, verifyMfa, loginWithPasskey, tryConditionalPasskeyLogin, user } = useAuth();
+  const { login, verifyMfa, resendMfaCode, loginWithPasskey, tryConditionalPasskeyLogin, user } =
+    useAuth();
   const [localRut, setLocalRut] = useState("");
   const identifierValue = controlledRut ?? localRut;
   const setIdentifierValue = onIdentifierValueChange ?? setLocalRut;
   const [password, setPassword] = useState("");
   const [mfaCode, setMfaCode] = useState("");
+  /** Off by default: remembering a browser is a choice (specs/040). */
+  const [rememberDevice, setRememberDevice] = useState(false);
+  /** The second factor this account asks for (specs/040): the app's code, or one by email. */
+  const [mfaMethod, setMfaMethod] = useState<"totp" | "email">("totp");
+  /** Seconds until "Reenviar código" works again (email only). */
+  const [resendIn, setResendIn] = useState(0);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
   const [step, setStepState] = useState<LoginStep>("credentials");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -136,11 +149,20 @@ export function LoginForm({
     setBusy(true);
     try {
       if (step === "credentials") {
-        const { mfaRequired } = await login(identifierValue, password);
-        if (mfaRequired) setStep("mfa");
-        else reportSuccess();
+        const outcome = await login(identifierValue, password);
+        if (outcome.mfaRequired) {
+          setMfaMethod(outcome.mfaMethod);
+          setResendState("idle");
+          if (outcome.mfaMethod === "email") {
+            setResendIn(outcome.retryAfterSeconds ?? RESEND_SECONDS);
+            if (outcome.codeSent === false && outcome.retryAfterSeconds === undefined) {
+              setError(t("auth.mfa.email.notSent"));
+            }
+          }
+          setStep("mfa");
+        } else reportSuccess();
       } else {
-        await verifyMfa(mfaCode);
+        await verifyMfa(mfaCode, rememberDevice);
         reportSuccess();
       }
     } catch (err) {
@@ -183,10 +205,30 @@ export function LoginForm({
     }
   }
 
+  async function onResend() {
+    setError(null);
+    setResendState("sending");
+    try {
+      await resendMfaCode();
+      setResendState("sent");
+      setResendIn(RESEND_SECONDS);
+    } catch (err) {
+      setResendState("idle");
+      const wait = err instanceof ApiRequestError ? err.details?.retryAfterSeconds : undefined;
+      if (typeof wait === "number") setResendIn(wait);
+      setError(errorText(err));
+    }
+  }
+
   if (step === "mfa") {
+    const byEmail = mfaMethod === "email";
     return (
       <form className="flex flex-col gap-6" onSubmit={onSubmit} noValidate>
-        <Hero icon={ShieldCheck} title={t("auth.mfa.title")} subtitle={t("auth.mfa.hint")} />
+        <Hero
+          icon={byEmail ? Mail : ShieldCheck}
+          title={t("auth.mfa.title")}
+          subtitle={byEmail ? t("auth.mfa.email.hint") : t("auth.mfa.hint")}
+        />
         <UnderlineField
           label={t("auth.mfa.codeLabel")}
           value={mfaCode}
@@ -196,6 +238,22 @@ export function LoginForm({
           autoComplete="one-time-code"
           numeric
         />
+        {byEmail ? (
+          <ResendCode
+            seconds={resendIn}
+            onTick={setResendIn}
+            sending={resendState === "sending"}
+            sent={resendState === "sent"}
+            onResend={() => void onResend()}
+          />
+        ) : null}
+        <CheckCard
+          title={t("auth.mfa.rememberDevice")}
+          checked={rememberDevice}
+          onChange={setRememberDevice}
+        >
+          {t("auth.mfa.rememberDeviceHint")}
+        </CheckCard>
         {error ? (
           <p role="alert" className="-mt-2 text-sm text-destructive">
             {error ? withBrand(error) : null}
@@ -212,6 +270,7 @@ export function LoginForm({
             onClick={() => {
               setStep("credentials");
               setMfaCode("");
+              setRememberDevice(false);
               setError(null);
             }}
           >
@@ -331,6 +390,47 @@ function Hero({
       </span>
       <h2 className="mt-2 text-2xl font-bold tracking-tight">{title}</h2>
       <p className="max-w-[36ch] text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+    </div>
+  );
+}
+
+/** "Reenviar código" with the wait the API asked for, counted down each second. */
+function ResendCode({
+  seconds,
+  onTick,
+  sending,
+  sent,
+  onResend,
+}: Readonly<{
+  seconds: number;
+  onTick: (next: number) => void;
+  sending: boolean;
+  sent: boolean;
+  onResend: () => void;
+}>) {
+  const { t } = useTranslation();
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const id = setTimeout(() => onTick(seconds - 1), 1000);
+    return () => clearTimeout(id);
+  }, [seconds, onTick]);
+  return (
+    <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="text-muted-foreground" aria-live="polite">
+        {sent ? t("auth.mfa.email.resent") : t("auth.mfa.email.noCode")}
+      </span>
+      <button
+        type="button"
+        className="font-medium text-primary underline-offset-4 hover:underline disabled:text-muted-foreground disabled:no-underline"
+        disabled={seconds > 0 || sending}
+        onClick={onResend}
+      >
+        {seconds > 0
+          ? t("auth.mfa.email.resendIn", { seconds })
+          : sending
+            ? t("auth.mfa.email.resending")
+            : t("auth.mfa.email.resend")}
+      </button>
     </div>
   );
 }

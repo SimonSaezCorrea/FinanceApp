@@ -1,4 +1,4 @@
-**Last updated:** November 2, 2026
+**Last updated:** November 5, 2026
 
 _This is a translation for convenience. The [Spanish version](/es/privacy-policy/) is the one that legally applies._
 
@@ -16,7 +16,7 @@ If a company is incorporated later, this policy will be updated with its legal n
 
 - **Identity and contact:** name, email address, RUT and date of birth; and, if you fill them in, phone, address and country.
 - **Financial data:** the accounts you register, balances, income and expense movements, categories, cards (only the last 4 digits, never the full number), debts, instalment purchases, fixed expenses, savings goals and credit card statements.
-- **Session security:** IP address, device and browser type, and the approximate country you sign in from.
+- **Session security:** IP address, device and browser type, and the approximate country you sign in from. If you choose "Remember this device" during two-step verification, we also keep the browser and system (for example, "Chrome · Windows"), when you remembered it and its last use, and your browser keeps a technical cookie (`mfa_trusted`) that serves nothing else and is never shared. If you choose to get the second factor by email, we send one-time codes to your confirmed email.
 - **Emails:** whether you opened the emails we send you (see section 4).
 - **Visits to the public site** (mifik.cl, not the app): aggregated statistics of which pages are visited, which site you came from, country, device and browser type, and how fast the page loaded. They use no cookies and cannot identify you (see section 4).
 
@@ -69,6 +69,7 @@ Also:
 
 - **Backups:** the database keeps automatic backups of the last 24 hours, so deleted data also leaves the backups within that time.
 - **Sessions:** closed sessions are deleted after 3 days, and the country linked to each IP is forgotten after 60 days, even while your account is active.
+- **Two-step verification:** a remembered device is forgotten after 30 days (sooner if you remove it, change or recover your password, or change or turn off verification), and emailed codes expire after 10 minutes and are deleted after 7 days.
 - **Providers:** each provider (section 4) deletes what it processed for us under its own agreement. For example, the log of sent emails stays at Resend for its own retention period.
 
 ## 6. Your rights
@@ -77,7 +78,7 @@ You can ask for **access, rectification, erasure, objection, portability and blo
 
 - **In the app:**
   - correct your personal details (Profile → Personal information);
-  - **download a copy of all your data** (Profile → Data and privacy → Download my data), in the format you choose: an **Excel** spreadsheet you can also import into _fik_ again, or a **JSON** file to take it to another program. It includes your profile details, emails, consents, sessions and passkeys, and your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments. It doesn't include your password or the secrets of your sign-in methods, which never leave our servers;
+  - **download a copy of all your data** (Profile → Data and privacy → Download my data), in the format you choose: an **Excel** spreadsheet you can also import into _fik_ again, or a **JSON** file to take it to another program. It includes your profile details, emails, consents, sessions, passkeys and remembered devices, and your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments. It doesn't include your password or the secrets of your sign-in methods, which never leave our servers;
   - delete your account (section 5).
 - **By email, to contacto@mifik.cl:** any other request.
 
@@ -94,7 +95,7 @@ You provide all the data yourself by using the app. We do not obtain data about 
 ## 9. Security
 
 - Passwords are stored with an irreversible hash (bcrypt); we never see them.
-- You can turn on a second factor (a code from an authenticator app) and passkeys.
+- You can turn on a second factor (a code from an authenticator app or sent to your email) and passkeys. Emailed codes are stored only as an irreversible encrypted code.
 - Each session can be closed from Profile → Security, with immediate effect.
 - Every connection is encrypted (HTTPS, TLS 1.2 or higher), and the database and disks are encrypted.
 - The database only accepts connections from our server and from authorized administration machines, with least-privilege users.

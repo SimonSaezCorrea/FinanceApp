@@ -43,6 +43,15 @@ export class PrismaSessionRepository
     return row?.stepUpAt ?? null;
   }
 
+  async consumeWithTx(tx: unknown, userId: string, sessionId: string, at: Date): Promise<boolean> {
+    const client = tx as PrismaService;
+    const result = await client.session.updateMany({
+      where: { id: sessionId, userId, stepUpAt: at },
+      data: { stepUpAt: null },
+    });
+    return result.count === 1;
+  }
+
   async create(plan: SessionPlan): Promise<SessionProps> {
     const row = await this.prisma.session.create({
       data: {

@@ -21,3 +21,11 @@ export function calculateAgeFromBirthDate(birthDate: Date, now = new Date()): nu
  * the statute's own text for this specific threshold; treat as a working assumption pending
  * legal review, same caveat every compliance-cl-generated document in this repo carries. */
 export const MINOR_GUARDIAN_THRESHOLD_AGE = 18;
+
+/** How many minutes an emailed code is valid, and the resend limits (specs/040). Zod-free, so the public site can read them. */
+export const MFA_CODE_TTL_MINUTES = 10;
+export const MFA_CODE_RESEND_SECONDS = 60;
+export const MFA_CODE_MAX_PER_HOUR = 5;
+/** How long a remembered device skips the second factor, and how many an account may keep. */
+export const TRUSTED_DEVICE_DAYS = 30;
+export const TRUSTED_DEVICE_MAX = 10;
