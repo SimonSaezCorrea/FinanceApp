@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { Passkey as PasskeyRow } from "@prisma/client";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import type { PasskeyPlan, PasskeyProps } from "../domain/passkey.entity";
+import type { MarkedPasskey, PasskeyPlan, PasskeyProps } from "../domain/passkey.entity";
 import type { PasskeyRepositoryPort } from "../domain/ports/passkey.repository.port";
 
 function rowToProps(row: PasskeyRow): PasskeyProps {
@@ -16,6 +16,11 @@ function rowToProps(row: PasskeyRow): PasskeyProps {
     transports: row.transports,
     createdAt: row.createdAt.toISOString(),
     lastUsedAt: row.lastUsedAt ? row.lastUsedAt.toISOString() : null,
+    aaguid: row.aaguid,
+    authenticatorName: row.authenticatorName,
+    verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
+    compromisedAt: row.compromisedAt ? row.compromisedAt.toISOString() : null,
+    compromisedReason: row.compromisedReason,
   };
 }
 
@@ -73,5 +78,27 @@ export class PrismaPasskeyRepository implements PasskeyRepositoryPort {
   async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
     const client = tx as PrismaService;
     await client.passkey.deleteMany({ where: { userId } });
+  }
+
+  countUsable(userId: string): Promise<number> {
+    return this.prisma.passkey.count({ where: { userId, compromisedAt: null } });
+  }
+
+  async markCompromisedWithTx(
+    tx: unknown,
+    reasonByAaguid: ReadonlyMap<string, string>,
+    now: Date,
+  ): Promise<MarkedPasskey[]> {
+    const client = tx as PrismaService;
+    const marked: MarkedPasskey[] = [];
+    for (const [aaguid, reason] of reasonByAaguid) {
+      // Conditional on still being unmarked: a concurrent or repeated review marks nothing twice.
+      const rows = await client.$queryRaw<MarkedPasskey[]>`
+        UPDATE "passkey" SET "compromisedAt" = ${now}, "compromisedReason" = ${reason}
+        WHERE "aaguid" = ${aaguid} AND "verifiedAt" IS NOT NULL AND "compromisedAt" IS NULL
+        RETURNING "id", "userId", "name"`;
+      marked.push(...rows);
+    }
+    return marked;
   }
 }

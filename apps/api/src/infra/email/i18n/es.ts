@@ -53,6 +53,7 @@ export const es = {
     },
   },
   securityNotice: {
+    verifiedModel: "Modelo verificado con el catálogo de la FIDO Alliance: {model}.",
     when: "Cuándo: {date} (hora de Chile).",
     notYou:
       "¿No fuiste tú? Recupera tu contraseña desde el acceso de fik ({site}) y escríbenos a {contact}.",
@@ -101,6 +102,11 @@ export const es = {
         subject: "Recordaste un dispositivo en fik",
         title: "Dispositivo recordado",
         body: "En «{detail}» no se volverá a pedir el código de verificación por 30 días al entrar con tu contraseña. Puedes quitarlo en Perfil → Seguridad.",
+      },
+      PASSKEY_COMPROMISED: {
+        subject: "Una de tus llaves de acceso de fik ya no es segura",
+        title: "Llave de acceso comprometida",
+        body: "El modelo de tu llave de acceso «{detail}» fue declarado comprometido por su fabricante o la FIDO Alliance. Desde ahora ya no sirve para entrar ni para confirmar tu identidad, y cerramos las sesiones que se abrieron con ella. Quítala desde Perfil → Seguridad y, si quieres, agrega otra.",
       },
       MFA_METHOD_CHANGED: {
         subject: "Cambiaste tu verificación en dos pasos en fik",

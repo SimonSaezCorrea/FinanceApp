@@ -11,7 +11,8 @@ export type AccountSecurityKind =
   | "ACCOUNT_DELETED"
   | "RECOVERY_CODES_REGENERATED"
   | "TRUSTED_DEVICE_ADDED"
-  | "MFA_METHOD_CHANGED";
+  | "MFA_METHOD_CHANGED"
+  | "PASSKEY_COMPROMISED";
 
 /**
  * Something sensitive changed on an account (specs/032 US3). Published by the handlers AFTER
@@ -29,5 +30,7 @@ export class AccountSecurityEvent {
     public readonly occurredAt: Date,
     public readonly detail?: string,
     public readonly recipient?: { address: string; locale: string; verified: boolean },
+    /** The verified authenticator model of a passkey (specs/041), named in PASSKEY_ADDED. */
+    public readonly model?: string,
   ) {}
 }

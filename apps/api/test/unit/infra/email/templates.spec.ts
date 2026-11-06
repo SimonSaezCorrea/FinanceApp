@@ -28,6 +28,7 @@ const KINDS: SecurityNoticeKind[] = [
   "RECOVERY_CODES_REGENERATED",
   "TRUSTED_DEVICE_ADDED",
   "MFA_METHOD_CHANGED",
+  "PASSKEY_COMPROMISED",
 ];
 
 describe("email templates", () => {
@@ -106,5 +107,25 @@ describe("email templates", () => {
     expect(es_.text).toContain("Nadie de fik te pedirá este código");
     const en_ = renderMfaCode({ ...base, locale: "en", purpose: "STEP_UP", code: "111111" });
     expect(en_.subject).toContain("confirm");
+  });
+
+  it("names a verified passkey model in PASSKEY_ADDED", () => {
+    const out = renderSecurityNotice({
+      ...base,
+      locale: "es",
+      kind: "PASSKEY_ADDED",
+      occurredAt: new Date(),
+      detail: "Llave del trabajo",
+      model: "YubiKey 5 Series with NFC",
+    });
+    expect(out.text).toContain("YubiKey 5 Series with NFC");
+    const plain = renderSecurityNotice({
+      ...base,
+      locale: "es",
+      kind: "PASSKEY_ADDED",
+      occurredAt: new Date(),
+      detail: "x",
+    });
+    expect(plain.text).not.toContain("FIDO");
   });
 });

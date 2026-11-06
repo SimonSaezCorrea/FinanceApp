@@ -44,6 +44,9 @@ export interface SessionRepositoryPort {
   /** Closes EVERY open session of a user, inside the caller's transaction (specs/032): a
    * password recovered by email has no "current" session to keep. Returns how many. */
   closeAllForUserWithTx(tx: unknown, userId: string): Promise<number>;
+  /** Closes the OPEN sessions opened with any of these passkeys, inside the caller's
+   * transaction (specs/041: their authenticator was declared compromised). Returns how many. */
+  closeByPasskeysWithTx(tx: unknown, passkeyIds: readonly string[], now: Date): Promise<number>;
   /** Best-effort close by id alone (no ownership check — used by `logout`, which
    * already trusts a cryptographically-verified refresh token for the id/user pairing
    * and must never fail just because there was nothing left to close). */

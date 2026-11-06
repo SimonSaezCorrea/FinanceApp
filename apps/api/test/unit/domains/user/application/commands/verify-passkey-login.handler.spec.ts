@@ -10,7 +10,10 @@ import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { VerifyPasskeyLoginHandler } from "../../../../../../src/domains/user/application/commands/verify-passkey-login.handler";
 import { VerifyPasskeyLoginCommand } from "../../../../../../src/domains/user/application/commands/verify-passkey-login.command";
 import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
-import { InvalidCredentialsError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  InvalidCredentialsError,
+  PasskeyCompromisedError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { PasskeyRepositoryPort } from "../../../../../../src/domains/passkey/domain/ports/passkey.repository.port";
@@ -76,6 +79,11 @@ const STORED_PASSKEY = {
   transports: [],
   createdAt: "2024-01-01T00:00:00Z",
   lastUsedAt: null,
+  aaguid: null,
+  authenticatorName: null,
+  verifiedAt: null,
+  compromisedAt: null as string | null,
+  compromisedReason: null,
 };
 
 function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRepositoryPort {
@@ -87,6 +95,8 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
     updateCounterAndLastUsedWithTx: vi.fn().mockResolvedValue(undefined),
     deleteOwned: vi.fn(),
     deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
+    countUsable: vi.fn().mockResolvedValue(0),
+    markCompromisedWithTx: vi.fn().mockResolvedValue([]),
     renameOwned: vi.fn(),
     ...overrides,
   };
@@ -276,5 +286,50 @@ describe("VerifyPasskeyLoginHandler", () => {
     await expect(
       handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false)),
     ).rejects.toThrow(InvalidCredentialsError);
+  });
+
+  it("records the passkey on the new session (specs/041)", async () => {
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 6 },
+    } as never);
+    const sessionIssuer = fakeSessionIssuer();
+    const handler = new VerifyPasskeyLoginHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo(),
+      fakePasskeys(),
+      sessionIssuer,
+      config(),
+      fakePrisma(),
+    );
+    await handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false));
+    expect(sessionIssuer.establish).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ passkeyId: "p1" }),
+    );
+  });
+
+  it("refuses a passkey whose model was declared compromised, with its own code (specs/041)", async () => {
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 6 },
+    } as never);
+    const sessionIssuer = fakeSessionIssuer();
+    const handler = new VerifyPasskeyLoginHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo(),
+      fakePasskeys({
+        findByCredentialId: vi
+          .fn()
+          .mockResolvedValue({ ...STORED_PASSKEY, compromisedAt: "2026-11-05T00:00:00Z" }),
+      }),
+      sessionIssuer,
+      config(),
+      fakePrisma(),
+    );
+    await expect(
+      handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false)),
+    ).rejects.toThrow(PasskeyCompromisedError);
+    expect(sessionIssuer.establish).not.toHaveBeenCalled();
   });
 });

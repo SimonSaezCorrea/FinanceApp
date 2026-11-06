@@ -9,70 +9,70 @@ datasource db {
 }
 
 model User {
-  id                   String          @id @default(uuid(7))
-  name                 String?
+  id                      String          @id @default(uuid(7))
+  name                    String?
   /// Mirror of the PRIMARY `UserEmail.address` (specs/032), kept in the same transaction.
-  email                String?         @unique
+  email                   String?         @unique
   /// Mirror of the PRIMARY `UserEmail.verifiedAt` (specs/032); null = unconfirmed.
-  emailVerified        DateTime?
+  emailVerified           DateTime?
   /// When the first-steps guide was finished or closed (2026-10-11); null = still shown.
-  onboardingClosedAt   DateTime?
+  onboardingClosedAt      DateTime?
   /// Newest Novedades version the person saw (spec 038, `1.2`); null = none. Only moves forward.
-  releaseNotesSeenVersion   String?
-  image                String?
-  passwordHash         String?
-  preferredCurrency    String          @default("CLP")
-  locale               String          @default("es")
-  theme                String          @default("dark")
-  status               UserStatus      @default(ACTIVE)
-  createdAt            DateTime        @default(now())
+  releaseNotesSeenVersion String?
+  image                   String?
+  passwordHash            String?
+  preferredCurrency       String          @default("CLP")
+  locale                  String          @default("es")
+  theme                   String          @default("dark")
+  status                  UserStatus      @default(ACTIVE)
+  createdAt               DateTime        @default(now())
   /// When set, this account was deleted (Ley 21.719 Art. 11 supresión) — every PII field above
   /// was scrubbed to null and every security artifact (sessions/passkeys/recovery codes) was
   /// hard-deleted in the same transaction. Financial rows (BankAccount, Transaction, Debt, …)
   /// are DELIBERATELY kept, still scoped to this same `userId` — anonymized historical data,
   /// not personal data anymore once this row carries no identifying field. `status` flips to
   /// DISABLED at the same time (an anonymized account can never log in again).
-  deletedAt            DateTime?
+  deletedAt               DateTime?
   /// Optional link to the user's country of residence (reuses the reference `Country` table).
-  countryId            String?
-  addressStreet        String?
-  addressCity          String?
-  addressRegion        String?
-  addressPostalCode    String?
-  birthDate            DateTime?
+  countryId               String?
+  addressStreet           String?
+  addressCity             String?
+  addressRegion           String?
+  addressPostalCode       String?
+  birthDate               DateTime?
   /// National identity document type (RUT is Chile-specific; DNI/PASSPORT/OTHER cover other countries).
-  identifierType       IdentifierType?
+  identifierType          IdentifierType?
   /// The identifier's value — normalized (no dots/dash, uppercase K) before storage. Format is
   /// only validated when identifierType is RUT (Chilean check digit). Mandatory at registration
   /// (MVP is Chile-only: always a RUT) and, since it's also the LOGIN credential, globally
   /// unique — null again once an account is hard-deleted or anonymized, same as `email`
   /// (Postgres treats multiple NULLs as distinct under a unique constraint).
-  identifierValue      String?         @unique
-  phone                String?
+  identifierValue         String?         @unique
+  phone                   String?
   /// Masks monetary amounts on the Panel, an account's own balance and Ahorros when true
   /// (specs/020) — never Movimientos, Deudas, Recurrentes or Cuotas/Facturación.
-  hideBalances         Boolean         @default(false)
+  hideBalances            Boolean         @default(false)
   /// Extra currencies the user wants tracked, on top of preferredCurrency — also the universe
   /// offered by every "pick a currency for a new record" selector in the app (specs/020).
   /// Selection only — no live FX conversion. A currency can't be removed while any of the
   /// user's own records still use it (`CURRENCY_IN_USE`).
-  extraCurrencies      String[]        @default([])
+  extraCurrencies         String[]        @default([])
   /// % of a monthly budget target at which to warn the user. Stored for the Notifications UI;
   /// no real alert is sent yet (the budget target itself was removed in specs/020 — this
   /// column is a separate, still-unimplemented Notifications setting, not related to it).
-  budgetAlertThreshold Int?            @default(80)
+  budgetAlertThreshold    Int?            @default(80)
 
   /// Single source of truth for "does login require a second factor?" (specs/021). A non-null
   /// mfaSecretEncrypted with mfaEnabled=false means an enrollment was started but never
   /// confirmed — nothing protects the account in that state.
-  mfaEnabled          Boolean   @default(false)
+  mfaEnabled          Boolean    @default(false)
   /// AES-256-GCM ciphertext of the TOTP secret, format "iv:authTag:ciphertext" (hex). Encrypted
   /// (not hashed) because validating a code requires recomputing the expected HOTP from the
   /// plaintext secret — encryption/decryption happen ONLY in PrismaUserRepository, never in the
   /// domain layer (mirrors the existing Prisma.Decimal<->string boundary conversion for money).
   mfaSecretEncrypted  String?
   /// Consecutive invalid second-factor attempts since the last valid one. Reset to 0 on success.
-  mfaFailedAttempts   Int       @default(0)
+  mfaFailedAttempts   Int        @default(0)
   /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
   /// the future is rejected without even evaluating the code (defense against timing attacks).
   mfaLockedUntil      DateTime?
@@ -84,7 +84,7 @@ model User {
   /// Consecutive wrong passwords at login (by RUT) since the last correct one. Reset to 0 on
   /// success. Same mechanism and limits as the second factor's counter, kept separate so a
   /// wrong password never eats into the TOTP attempts or vice versa.
-  loginFailedAttempts Int       @default(0)
+  loginFailedAttempts Int        @default(0)
   /// Set once loginFailedAttempts reaches the lockout threshold; every login while this is in
   /// the future is rejected without comparing the password.
   loginLockedUntil    DateTime?
@@ -158,12 +158,17 @@ model Session {
   /// within `STEP_UP_WINDOW_MINUTES` (2026-09-25). Bound to the session, not the user, so a
   /// verification on one device never unlocks another.
   stepUpAt   DateTime?
+  /// The passkey this session was opened with (specs/041), null for any other login. When the
+  /// passkey's authenticator model is declared compromised, its sessions are closed.
+  passkeyId  String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passkey Passkey? @relation(fields: [passkeyId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([expiresAt])
   @@index([closedAt])
+  @@index([passkeyId])
   @@map("session")
 }
 
@@ -210,10 +215,46 @@ model Passkey {
   /// null = never used to log in yet.
   lastUsedAt   DateTime?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// specs/041 — set only when the registration's attestation was verified against the FIDO
+  /// catalog (`authenticator-model`): the authenticator's AAGUID, its model name then, and when.
+  aaguid            String?
+  authenticatorName String?
+  verifiedAt        DateTime?
+  /// When the catalog declared this authenticator's model compromised. Never cleared by the
+  /// catalog (a security block doesn't lift itself); the passkey stops working.
+  compromisedAt     DateTime?
+  /// The catalog status that marked it (REVOKED, ATTESTATION_KEY_COMPROMISE, …).
+  compromisedReason String?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions Session[]
 
   @@index([userId])
+  @@index([aaguid])
   @@map("passkey")
+}
+
+/// The FIDO Alliance Metadata Service catalog (specs/041): one row per authenticator model
+/// (AAGUID), global reference data with no `userId`, replaced as a whole when a newer signed
+/// catalog is downloaded. Loaded into `@simplewebauthn/server`'s MetadataService to verify a
+/// registration's attestation chain, and read to know which models are compromised.
+model AuthenticatorModel {
+  id                String    @id @default(uuid(7))
+  /// The authenticator model's AAGUID — a BUSINESS identifier, never the PK.
+  aaguid            String    @unique
+  /// The model's name per the catalog ("YubiKey 5 Series with NFC").
+  description       String
+  /// The catalog's metadata statement, as published (attestation roots, supported types…).
+  statement         Json
+  /// The latest status report when it is a compromise status, else null.
+  compromisedStatus String?
+  statusDate        DateTime?
+  /// `no` and `nextUpdate` of the signed catalog this row came from.
+  catalogNumber     Int
+  catalogNextUpdate DateTime
+  updatedAt         DateTime  @default(now())
+
+  @@map("authenticator-model")
 }
 
 /// The email addresses an account has had or asked to have (specs/032). Exactly one `PRIMARY`

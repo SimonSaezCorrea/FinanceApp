@@ -51,6 +51,7 @@ export const en: EmailCatalog = {
     },
   },
   securityNotice: {
+    verifiedModel: "Model verified against the FIDO Alliance catalog: {model}.",
     when: "When: {date} (Chile time).",
     notYou:
       "Wasn't you? Recover your password from fik's sign-in ({site}) and write to us at {contact}.",
@@ -99,6 +100,11 @@ export const en: EmailCatalog = {
         subject: "You remembered a device in fik",
         title: "Device remembered",
         body: "“{detail}” won't be asked for the verification code for 30 days when signing in with your password. You can remove it in Profile → Security.",
+      },
+      PASSKEY_COMPROMISED: {
+        subject: "One of your fik passkeys is no longer safe",
+        title: "Passkey compromised",
+        body: "The model of your passkey \u00ab{detail}\u00bb was declared compromised by its maker or the FIDO Alliance. It no longer signs you in nor confirms your identity, and we closed the sessions opened with it. Remove it from Profile → Security and add another one if you like.",
       },
       MFA_METHOD_CHANGED: {
         subject: "You changed your two-step verification in fik",

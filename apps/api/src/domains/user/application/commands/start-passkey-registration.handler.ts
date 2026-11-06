@@ -51,7 +51,9 @@ export class StartPasskeyRegistrationHandler extends BaseCommandHandler<
       rpID: getPasskeyRpId(this.config),
       userName: user.email ?? user.id,
       userID: new TextEncoder().encode(user.id),
-      attestationType: "none",
+      // specs/041: ask for the maker's attestation, never require it — synced passkeys answer
+      // "none" and register exactly as before.
+      attestationType: "direct",
       excludeCredentials: existing.map((p) => ({
         id: p.credentialId,
         transports: p.transports as AuthenticatorTransportFuture[],

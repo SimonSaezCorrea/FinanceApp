@@ -67,6 +67,8 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
     updateCounterAndLastUsedWithTx: vi.fn(),
     deleteOwned: vi.fn(),
     deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
+    countUsable: vi.fn().mockResolvedValue(0),
+    markCompromisedWithTx: vi.fn().mockResolvedValue([]),
     renameOwned: vi.fn(),
     ...overrides,
   };
@@ -106,9 +108,15 @@ describe("StartPasskeyRegistrationHandler", () => {
     const result = await handler.execute(new StartPasskeyRegistrationCommand("u1"));
 
     expect(result.options).toBeDefined();
-    const options = result.options as { excludeCredentials?: { id: string }[]; rp: { id: string } };
+    const options = result.options as {
+      excludeCredentials?: { id: string }[];
+      rp: { id: string };
+      attestation?: string;
+    };
     expect(options.excludeCredentials?.[0]?.id).toBe("cred1");
     expect(options.rp.id).toBe("localhost");
+    // specs/041: asks for the maker's attestation (never requires it).
+    expect(options.attestation).toBe("direct");
   });
 
   it("throws UNAUTHORIZED when the user no longer exists", async () => {

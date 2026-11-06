@@ -15,6 +15,9 @@ import { ConfirmPasskeyRegistrationCommand } from "../../../../../src/domains/us
 import { buildUserRepo } from "../../../support/repositories";
 import { PrismaPasskeyRepository } from "../../../../../src/domains/passkey/infrastructure/prisma-passkey.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+import { AuthenticatorCatalog } from "../../../../../src/domains/user/application/authenticator-catalog";
+import { PasskeyAttestation } from "../../../../../src/domains/user/application/passkey-attestation";
+import { PrismaAuthenticatorModelRepository } from "../../../../../src/domains/authenticator-model/infrastructure/prisma-authenticator-model.repository";
 
 /**
  * Real-test-DB integration test. The WebAuthn cryptographic verification itself
@@ -59,11 +62,14 @@ describe("Passkey registration (integration)", () => {
       },
     } as never);
 
+    const catalog = new AuthenticatorCatalog(new PrismaAuthenticatorModelRepository(prisma));
     const handler = new ConfirmPasskeyRegistrationHandler(
       { publish: () => {} } as never,
       passkeyRepo,
       new ConfigService({ CORS_ORIGIN: "http://localhost:5173" }),
       prisma,
+      new PasskeyAttestation(catalog),
+      catalog,
     );
 
     const created = await handler.execute(
@@ -75,5 +81,8 @@ describe("Passkey registration (integration)", () => {
     expect(row.name).toBe("Integration Test Device");
     expect(row.counter).toBe(0);
     expect(row.lastUsedAt).toBeNull();
+    // No attestation → unverified, exactly as before specs/041.
+    expect(row.verifiedAt).toBeNull();
+    expect(created.status).toBe("unverified");
   });
 });

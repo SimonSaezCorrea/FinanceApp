@@ -61,6 +61,7 @@ export class PrismaSessionRepository
         country: plan.country,
         city: plan.city,
         expiresAt: new Date(plan.expiresAt),
+        passkeyId: plan.passkeyId ?? null,
       },
     });
     return rowToProps(row);
@@ -135,6 +136,20 @@ export class PrismaSessionRepository
     const result = await client.session.updateMany({
       where: { userId, closedAt: null },
       data: { closedAt: new Date() },
+    });
+    return result.count;
+  }
+
+  async closeByPasskeysWithTx(
+    tx: unknown,
+    passkeyIds: readonly string[],
+    now: Date,
+  ): Promise<number> {
+    if (passkeyIds.length === 0) return 0;
+    const client = tx as PrismaService;
+    const result = await client.session.updateMany({
+      where: { passkeyId: { in: [...passkeyIds] }, closedAt: null },
+      data: { closedAt: now },
     });
     return result.count;
   }

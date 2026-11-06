@@ -10,6 +10,7 @@ import {
 } from "../../../passkey/domain/ports/passkey.repository.port";
 import { PasskeyNotFoundError } from "../../domain/errors";
 import { RenamePasskeyCommand } from "./rename-passkey.command";
+import { passkeyToContract } from "../passkey-dto";
 
 @Injectable()
 @CommandHandler(RenamePasskeyCommand)
@@ -37,12 +38,8 @@ export class RenamePasskeyHandler extends BaseCommandHandler<
     );
     if (!renamed) throw new PasskeyNotFoundError();
     return {
-      result: {
-        id: renamed.id,
-        name: renamed.name,
-        createdAt: renamed.createdAt,
-        lastUsedAt: renamed.lastUsedAt,
-      },
+      // Only the name changes; model and status stay as the verification left them (FR-015).
+      result: passkeyToContract(renamed),
       events: [],
     };
   }

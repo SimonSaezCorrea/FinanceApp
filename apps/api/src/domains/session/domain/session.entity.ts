@@ -30,4 +30,7 @@ export interface SessionProps {
  * already embedded in the tokens just issued), so unlike most `*Plan` types this one
  * DOES carry `id` up front rather than leaving it to Prisma's own default. Always
  * created open (`closedAt` isn't part of the plan — Prisma's own default is `null`). */
-export type SessionPlan = Omit<SessionProps, "createdAt" | "lastUsedAt" | "closedAt">;
+export type SessionPlan = Omit<SessionProps, "createdAt" | "lastUsedAt" | "closedAt"> & {
+  /** The passkey this login used (specs/041), so its sessions close if it turns compromised. */
+  passkeyId?: string | null;
+};

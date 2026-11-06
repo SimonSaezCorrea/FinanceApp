@@ -58,7 +58,8 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
   protected async loadContext(command: VerifyStepUpCommand): Promise<User> {
     const user = await this.users.findById(command.userId);
     if (!user) throw new UnauthorizedError();
-    const passkeyCount = (await this.passkeys.findByUserId(user.id)).length;
+    // specs/041: a compromised passkey no longer counts as a way to confirm identity.
+    const passkeyCount = await this.passkeys.countUsable(user.id);
     const method = user.mfaMethodOrDefault();
     const allowed = auth.stepUpMethodsFor({
       mfaMethod: method === "EMAIL" ? "email" : method === "TOTP" ? "totp" : null,

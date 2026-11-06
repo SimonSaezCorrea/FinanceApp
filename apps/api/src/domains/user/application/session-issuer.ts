@@ -21,6 +21,8 @@ export interface EstablishSessionOptions extends DeviceContext {
   /** Reuse an existing session's id (a refresh rotating its tokens, research.md R6) —
    * omitted, a brand new `Session` row is created (a fresh login/registration). */
   reuseSessionId?: string;
+  /** The passkey a new session is opened with (specs/041). */
+  passkeyId?: string;
 }
 
 /**
@@ -64,6 +66,7 @@ export class SessionIssuer {
       country: location.country,
       city: location.city,
       expiresAt: tokens.sessionExpiresAt.toISOString(),
+      passkeyId: opts.passkeyId ?? null,
     });
     return tokens;
   }

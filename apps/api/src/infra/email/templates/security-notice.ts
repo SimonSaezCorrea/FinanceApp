@@ -14,7 +14,8 @@ export type SecurityNoticeKind =
   | "ACCOUNT_DELETED"
   | "RECOVERY_CODES_REGENERATED"
   | "TRUSTED_DEVICE_ADDED"
-  | "MFA_METHOD_CHANGED";
+  | "MFA_METHOD_CHANGED"
+  | "PASSKEY_COMPROMISED";
 
 export interface SecurityNoticeInput {
   locale: EmailLocale;
@@ -24,6 +25,8 @@ export interface SecurityNoticeInput {
   occurredAt: Date;
   /** The passkey's name, or the new address for EMAIL_CHANGED. */
   detail?: string;
+  /** A passkey's authenticator model verified against the FIDO catalog (specs/041). */
+  model?: string;
 }
 
 /** When it happened, in Chile's time zone and the account's language. */
@@ -49,6 +52,7 @@ export function renderSecurityNotice(input: SecurityNoticeInput): RenderedEmail 
     title: kind.title,
     paragraphs: [
       fill(kind.body, { detail: input.detail ?? "" }, false),
+      ...(input.model ? [fill(t.verifiedModel, { model: input.model }, false)] : []),
       fill(t.when, { date: formatNoticeDate(input.occurredAt, input.locale) }, false),
     ],
     notes: [fill(t.notYou, { site: input.siteUrl, contact: input.contact }, false)],

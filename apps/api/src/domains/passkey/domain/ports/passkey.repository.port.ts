@@ -1,4 +1,4 @@
-import type { PasskeyPlan, PasskeyProps } from "../passkey.entity";
+import type { MarkedPasskey, PasskeyPlan, PasskeyProps } from "../passkey.entity";
 
 export const PASSKEY_REPOSITORY = Symbol("PASSKEY_REPOSITORY");
 
@@ -26,4 +26,13 @@ export interface PasskeyRepositoryPort {
   /** Hard-deletes every passkey of a user — used only by account deletion, where the
    * credential itself must stop being a way back in. */
   deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
+  /** How many of the user's passkeys can still be used (not compromised) — specs/041. */
+  countUsable(userId: string): Promise<number>;
+  /** specs/041: marks every VERIFIED, not yet marked passkey whose AAGUID is in `reasonByAaguid`,
+   * inside `tx`, and returns exactly the rows this call marked (a repeat marks nothing). */
+  markCompromisedWithTx(
+    tx: unknown,
+    reasonByAaguid: ReadonlyMap<string, string>,
+    now: Date,
+  ): Promise<MarkedPasskey[]>;
 }

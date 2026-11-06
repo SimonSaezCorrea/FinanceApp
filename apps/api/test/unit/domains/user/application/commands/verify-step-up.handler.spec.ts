@@ -68,6 +68,7 @@ function setup(userProps: UserProps, passkeyCount = 0, mfaCodes = fakeMfaCodes()
   };
   const passkeys = {
     findByUserId: vi.fn().mockResolvedValue(Array.from({ length: passkeyCount }, () => ({}))),
+    countUsable: vi.fn().mockResolvedValue(passkeyCount),
   } as unknown as PasskeyRepositoryPort;
   const stepUp: SessionStepUpPort = {
     markSteppedUp: vi.fn(),

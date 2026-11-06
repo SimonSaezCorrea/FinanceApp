@@ -9,5 +9,6 @@
  * account always deletes everything; the "keep an anonymized history" option is gone) →
  * "2026-10-15" ("Descargar mis datos": a copy of ALL the data, Excel or JSON, from the app) →
  * "2026-11-02" (Sentry receives the app's browser error reports) → "2026-11-05" (two-step
- * verification by email codes and "remember this device", specs/040). */
+ * verification by email codes and "remember this device", specs/040; and a passkey's model checked
+ * against the FIDO Alliance catalog, specs/041 — both before either was published). */
 export const CURRENT_PRIVACY_POLICY_VERSION = "2026-11-05";

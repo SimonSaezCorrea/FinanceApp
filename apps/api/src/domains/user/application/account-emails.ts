@@ -80,6 +80,7 @@ export class AccountEmailService {
     kind: SecurityNoticeKind;
     occurredAt: Date;
     detail?: string;
+    model?: string;
   }): Promise<void> {
     const locale = emailLocale(input.locale);
     const rendered = renderSecurityNotice({
@@ -89,6 +90,7 @@ export class AccountEmailService {
       kind: input.kind,
       occurredAt: input.occurredAt,
       detail: input.detail,
+      model: input.model,
     });
     await this.deliver({
       id: generateRowId(),

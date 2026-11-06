@@ -73,6 +73,7 @@ import { passkeyIdParamsSchema } from "./dto/passkey-id.params";
 import { sessionIdParamsSchema } from "./dto/session-id.params";
 import { RemoveTrustedDeviceCommand } from "../application/commands/remove-trusted-device.command";
 import { ListTrustedDevicesQuery } from "../application/queries/list-trusted-devices.query";
+import { SuggestPasskeyNameQuery } from "../application/queries/suggest-passkey-name.query";
 import type { VerifyMfaLoginResult } from "../application/commands/verify-mfa-login.handler";
 import {
   TRUSTED_DEVICE_COOKIE,
@@ -380,6 +381,18 @@ export class AuthController {
       { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
     );
     return { options };
+  }
+
+  /** A name for the passkey being registered, from its model (specs/041). Reads only. */
+  @Post("me/passkeys/register-suggestion")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  suggestPasskeyName(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.passkeyRegistrationSuggestionRequestSchema))
+    body: auth.PasskeyRegistrationSuggestionRequest,
+  ): Promise<auth.PasskeyRegistrationSuggestionResponse> {
+    return this.queryBus.execute(new SuggestPasskeyNameQuery(user.id, body.response));
   }
 
   @Post("me/passkeys/register-verify")

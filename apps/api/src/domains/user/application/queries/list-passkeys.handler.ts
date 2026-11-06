@@ -9,6 +9,7 @@ import {
   type PasskeyRepositoryPort,
 } from "../../../passkey/domain/ports/passkey.repository.port";
 import { ListPasskeysQuery } from "./list-passkeys.query";
+import { passkeyToContract } from "../passkey-dto";
 
 @Injectable()
 @QueryHandler(ListPasskeysQuery)
@@ -27,11 +28,6 @@ export class ListPasskeysQueryHandler extends BaseQueryHandler<
 
   protected async handle(query: ListPasskeysQuery): Promise<auth.ListPasskeysResponse> {
     const rows = await this.passkeys.findByUserId(query.userId);
-    return rows.map((p) => ({
-      id: p.id,
-      name: p.name,
-      createdAt: p.createdAt,
-      lastUsedAt: p.lastUsedAt,
-    }));
+    return rows.map(passkeyToContract);
   }
 }

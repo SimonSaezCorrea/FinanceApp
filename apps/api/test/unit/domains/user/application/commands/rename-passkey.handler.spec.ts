@@ -14,6 +14,8 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
     updateCounterAndLastUsedWithTx: vi.fn(),
     deleteOwned: vi.fn(),
     deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
+    countUsable: vi.fn().mockResolvedValue(0),
+    markCompromisedWithTx: vi.fn().mockResolvedValue([]),
     renameOwned: vi.fn(),
     ...overrides,
   };
@@ -32,6 +34,11 @@ describe("RenamePasskeyHandler", () => {
         transports: [],
         createdAt: "2026-01-01T00:00:00Z",
         lastUsedAt: "2026-01-02T00:00:00Z",
+        aaguid: "a-1",
+        authenticatorName: "YubiKey 5",
+        verifiedAt: "2026-01-01T00:00:00Z",
+        compromisedAt: null,
+        compromisedReason: null,
       }),
     });
     const handler = new RenamePasskeyHandler({ publish: vi.fn() } as never, passkeys);
@@ -39,11 +46,15 @@ describe("RenamePasskeyHandler", () => {
     const result = await handler.execute(new RenamePasskeyCommand("u1", "p1", "MacBook de Ana"));
 
     expect(passkeys.renameOwned).toHaveBeenCalledWith("u1", "p1", "MacBook de Ana");
+    // Only the name changes: the model and status stay as the verification left them (FR-015).
     expect(result).toEqual({
       id: "p1",
       name: "MacBook de Ana",
       createdAt: "2026-01-01T00:00:00Z",
       lastUsedAt: "2026-01-02T00:00:00Z",
+      status: "verified",
+      authenticatorName: "YubiKey 5",
+      compromisedAt: null,
     });
   });
 

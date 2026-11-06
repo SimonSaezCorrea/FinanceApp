@@ -27,6 +27,7 @@ function fakeSessionRepo(overrides: Partial<SessionRepositoryPort> = {}): Sessio
     closeAllExceptForUser: vi.fn(),
     closeAllExceptForUserWithTx: vi.fn(),
     closeAllForUserWithTx: vi.fn().mockResolvedValue(0),
+    closeByPasskeysWithTx: vi.fn().mockResolvedValue(0),
     closeById: vi.fn(),
     markExpiredAsClosed: vi.fn(),
     purgeClosedBefore: vi.fn(),

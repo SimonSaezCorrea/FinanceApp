@@ -38,6 +38,7 @@ export class SendSecurityNoticeListener implements IEventHandler<AccountSecurity
       kind: event.kind,
       occurredAt: event.occurredAt,
       detail: event.detail,
+      model: event.model,
     });
   }
 

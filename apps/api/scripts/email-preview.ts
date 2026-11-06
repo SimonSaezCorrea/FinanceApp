@@ -37,6 +37,7 @@ const NOTICES: SecurityNoticeKind[] = [
   "RECOVERY_CODES_REGENERATED",
   "TRUSTED_DEVICE_ADDED",
   "MFA_METHOD_CHANGED",
+  "PASSKEY_COMPROMISED",
 ];
 /** What a notice names, when it names something (the passkey, the new address). */
 const DETAIL: Partial<Record<SecurityNoticeKind, string>> = {
@@ -44,12 +45,14 @@ const DETAIL: Partial<Record<SecurityNoticeKind, string>> = {
   PASSKEY_REMOVED: "iPhone de Ana",
   EMAIL_CHANGED: "ana.nueva@ejemplo.cl",
   TRUSTED_DEVICE_ADDED: "Chrome · Windows",
+  PASSKEY_COMPROMISED: "YubiKey del trabajo",
 };
 const DETAIL_MEANING: Partial<Record<SecurityNoticeKind, string>> = {
   PASSKEY_ADDED: "Nombre de la llave de acceso",
   PASSKEY_REMOVED: "Nombre de la llave de acceso",
   EMAIL_CHANGED: "Dirección nueva de la cuenta",
   TRUSTED_DEVICE_ADDED: "Navegador y sistema del dispositivo",
+  PASSKEY_COMPROMISED: "Nombre de la llave de acceso",
 };
 
 const site = "https://mifik.cl";
@@ -142,6 +145,7 @@ const NOTICE_NAMES: Record<SecurityNoticeKind, string> = {
   RECOVERY_CODES_REGENERATED: "Códigos de recuperación nuevos",
   TRUSTED_DEVICE_ADDED: "Dispositivo recordado",
   MFA_METHOD_CHANGED: "Método de verificación cambiado",
+  PASSKEY_COMPROMISED: "Llave de acceso comprometida",
 };
 
 function variablesOf(names: VariableName[], detailMeaning?: string): Variable[] {

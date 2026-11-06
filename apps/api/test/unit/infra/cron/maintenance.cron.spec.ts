@@ -7,6 +7,8 @@ import { PurgeExpiredCacheCommand } from "../../../../src/domains/ip-geolocation
 import { CloseExpiredSessionsCommand } from "../../../../src/domains/user/application/commands/close-expired-sessions.command";
 import { PurgeClosedSessionsCommand } from "../../../../src/domains/user/application/commands/purge-closed-sessions.command";
 import { PurgeStaleEmailTokensCommand } from "../../../../src/domains/user/application/commands/purge-stale-email-tokens.command";
+import { RefreshAuthenticatorCatalogCommand } from "../../../../src/domains/user/application/commands/refresh-authenticator-catalog.command";
+import { ReviewCompromisedPasskeysCommand } from "../../../../src/domains/user/application/commands/review-compromised-passkeys.command";
 import { PurgeStaleMfaCodesCommand } from "../../../../src/domains/user/application/commands/purge-stale-mfa-codes.command";
 import { PurgeExpiredTrustedDevicesCommand } from "../../../../src/domains/user/application/commands/purge-expired-trusted-devices.command";
 import type { CronSwitch } from "../../../../src/infra/config/cron.config";
@@ -32,7 +34,7 @@ function busRunning(behaviour: (command: unknown) => Promise<number>): {
 describe("MaintenanceCron", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("runs the six sweeps, closing expired sessions before purging them", async () => {
+  it("runs the six sweeps and the FIDO catalog, closing expired sessions before purging them", async () => {
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
     const { bus, ran } = busRunning(() => Promise.resolve(0));
 
@@ -46,6 +48,8 @@ describe("MaintenanceCron", () => {
       PurgeStaleEmailTokensCommand.name,
       PurgeExpiredTrustedDevicesCommand.name,
       PurgeStaleMfaCodesCommand.name,
+      RefreshAuthenticatorCatalogCommand.name,
+      ReviewCompromisedPasskeysCommand.name,
     ]);
   });
 
@@ -73,5 +77,24 @@ describe("MaintenanceCron", () => {
     await new MaintenanceCron(bus, OFF).run();
 
     expect(ran).toEqual([]);
+  });
+
+  it("at boot, fetches the FIDO catalog only if none is stored, then reviews", async () => {
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+    const commands: unknown[] = [];
+    const bus = {
+      execute: vi.fn((command: unknown) => {
+        commands.push(command);
+        return Promise.resolve({ replaced: false, reason: "skipped", marked: 0 });
+      }),
+    } as unknown as CommandBus;
+    new MaintenanceCron(bus, ON).onApplicationBootstrap();
+    await vi.waitFor(() => expect(commands).toHaveLength(2));
+    expect((commands[0] as RefreshAuthenticatorCatalogCommand).onlyIfEmpty).toBe(true);
+    expect(commands[1]).toBeInstanceOf(ReviewCompromisedPasskeysCommand);
+
+    const idle = { execute: vi.fn() } as unknown as CommandBus;
+    new MaintenanceCron(idle, OFF).onApplicationBootstrap();
+    expect(idle.execute).not.toHaveBeenCalled();
   });
 });

@@ -29,6 +29,11 @@ import { ResendMfaLoginCodeHandler } from "./application/commands/resend-mfa-log
 import { SendStepUpEmailCodeHandler } from "./application/commands/send-step-up-email-code.handler";
 import { PurgeStaleMfaCodesHandler } from "./application/commands/purge-stale-mfa-codes.handler";
 import { MfaCodeDataModule } from "../mfa-code/mfa-code.data.module";
+import { AuthenticatorModelDataModule } from "../authenticator-model/authenticator-model.data.module";
+import { AuthenticatorCatalog } from "./application/authenticator-catalog";
+import { PasskeyAttestation } from "./application/passkey-attestation";
+import { RefreshAuthenticatorCatalogHandler } from "./application/commands/refresh-authenticator-catalog.handler";
+import { ReviewCompromisedPasskeysHandler } from "./application/commands/review-compromised-passkeys.handler";
 import { ForgotPasswordHandler } from "./application/commands/forgot-password.handler";
 import { RemoveUserEmailHandler } from "./application/commands/remove-user-email.handler";
 import { RequestEmailChangeHandler } from "./application/commands/request-email-change.handler";
@@ -55,6 +60,7 @@ import { RegisterHandler } from "./application/commands/register.handler";
 import { RegenerateRecoveryCodesHandler } from "./application/commands/regenerate-recovery-codes.handler";
 import { RemoveTrustedDeviceHandler } from "./application/commands/remove-trusted-device.handler";
 import { ListTrustedDevicesQueryHandler } from "./application/queries/list-trusted-devices.handler";
+import { SuggestPasskeyNameHandler } from "./application/queries/suggest-passkey-name.handler";
 import { PurgeClosedSessionsHandler } from "./application/commands/purge-closed-sessions.handler";
 import { RemovePasskeyHandler } from "./application/commands/remove-passkey.handler";
 import { RenamePasskeyHandler } from "./application/commands/rename-passkey.handler";
@@ -119,6 +125,8 @@ const commandHandlers = [
   PurgeStaleEmailTokensHandler,
   PurgeExpiredTrustedDevicesHandler,
   PurgeStaleMfaCodesHandler,
+  RefreshAuthenticatorCatalogHandler,
+  ReviewCompromisedPasskeysHandler,
   ResendMfaLoginCodeHandler,
   SendStepUpEmailCodeHandler,
   CloseOnboardingHandler,
@@ -127,6 +135,7 @@ const commandHandlers = [
 
 const queryHandlers = [
   ListTrustedDevicesQueryHandler,
+  SuggestPasskeyNameHandler,
   GetMeQueryHandler,
   GetSessionStatusQueryHandler,
   ListPasskeysQueryHandler,
@@ -144,6 +153,7 @@ const queryHandlers = [
     CountryDataModule,
     TrustedDeviceDataModule,
     MfaCodeDataModule,
+    AuthenticatorModelDataModule,
     BankAccountDataModule,
     TransactionDataModule,
     InstallmentPlanDataModule,
@@ -172,6 +182,8 @@ const queryHandlers = [
     SessionIssuer,
     AccountEmailService,
     MfaCodeService,
+    AuthenticatorCatalog,
+    PasskeyAttestation,
     { provide: MFA_CODE_SENDER, useClass: EmailMfaCodeSender },
     SendSecurityNoticeListener,
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },

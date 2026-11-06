@@ -12,7 +12,7 @@ import {
   PASSKEY_REPOSITORY,
   type PasskeyRepositoryPort,
 } from "../../../passkey/domain/ports/passkey.repository.port";
-import { InvalidCredentialsError } from "../../domain/errors";
+import { PasskeyCompromisedError, InvalidCredentialsError } from "../../domain/errors";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { SessionIssuer } from "../session-issuer";
 import type { AuthResult } from "./register.handler";
@@ -77,6 +77,9 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
       throw new InvalidCredentialsError();
     }
     if (!verification.verified) throw new InvalidCredentialsError();
+    // specs/041: its model was declared compromised — said plainly, after the signature proved
+    // the caller holds this very key (nothing to enumerate).
+    if (stored.compromisedAt) throw new PasskeyCompromisedError();
 
     const user = await this.userRepo.findById(resolvedUserId);
     if (!user) throw new InvalidCredentialsError();
@@ -91,7 +94,8 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
     this.logger.log(`passkey login: ${user.id}`);
     const tokens = await this.sessionIssuer.establish(
       { id: user.id, email: user.email },
-      { userAgent: command.device?.userAgent, ip: command.device?.ip },
+      // The session remembers its passkey: if the model turns compromised, it is closed (041).
+      { userAgent: command.device?.userAgent, ip: command.device?.ip, passkeyId: stored.id },
     );
     // Never routes through mfa_pending_token / VerifyMfaLoginCommand, even if user.mfaEnabled —
     // the passkey is its own strong authentication (specs/022 FR-007).

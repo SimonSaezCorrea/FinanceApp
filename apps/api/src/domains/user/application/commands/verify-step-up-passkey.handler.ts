@@ -18,7 +18,11 @@ import {
   SESSION_STEP_UP,
   type SessionStepUpPort,
 } from "../../../session/domain/ports/session-step-up.port";
-import { InvalidCredentialsError, PasskeyChallengeInvalidError } from "../../domain/errors";
+import {
+  InvalidCredentialsError,
+  PasskeyChallengeInvalidError,
+  PasskeyCompromisedError,
+} from "../../domain/errors";
 import { stepUpExpiry } from "../step-up";
 import { VerifyStepUpPasskeyCommand } from "./verify-step-up-passkey.command";
 
@@ -78,6 +82,7 @@ export class VerifyStepUpPasskeyHandler extends BaseCommandHandler<
       throw new InvalidCredentialsError();
     }
     if (!verification.verified) throw new InvalidCredentialsError();
+    if (stored.compromisedAt) throw new PasskeyCompromisedError();
 
     const now = new Date();
     await this.passkeys.updateCounterAndLastUsedWithTx(

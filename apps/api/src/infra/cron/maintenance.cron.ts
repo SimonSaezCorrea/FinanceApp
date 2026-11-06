@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { Cron } from "@nestjs/schedule";
 
@@ -11,6 +11,10 @@ import { PurgeClosedSessionsCommand } from "../../domains/user/application/comma
 import { PurgeStaleEmailTokensCommand } from "../../domains/user/application/commands/purge-stale-email-tokens.command";
 import { PurgeExpiredTrustedDevicesCommand } from "../../domains/user/application/commands/purge-expired-trusted-devices.command";
 import { PurgeStaleMfaCodesCommand } from "../../domains/user/application/commands/purge-stale-mfa-codes.command";
+import { RefreshAuthenticatorCatalogCommand } from "../../domains/user/application/commands/refresh-authenticator-catalog.command";
+import { ReviewCompromisedPasskeysCommand } from "../../domains/user/application/commands/review-compromised-passkeys.command";
+import type { CatalogRefreshOutcome } from "../../domains/user/application/authenticator-catalog";
+import type { ReviewOutcome } from "../../domains/user/application/commands/review-compromised-passkeys.handler";
 
 /**
  * Daily housekeeping at 03:00 Chile time — one trigger for what used to be three crons (3, 4 and
@@ -24,17 +28,25 @@ import { PurgeStaleMfaCodesCommand } from "../../domains/user/application/comman
  * 4. Email links expired or used more than 7 days ago (specs/032).
  * 5. Remembered devices whose 30 days ran out (specs/040).
  * 6. Second-factor codes used or expired more than 7 days ago (specs/040).
+ * 7. The FIDO catalog (specs/041): download a newer signed one, then review passkeys of models it
+ *    declares compromised (also at boot when no catalog is stored yet).
  *
  * Each step runs on its own: one failing is logged and never stops the others.
  */
 @Injectable()
-export class MaintenanceCron {
+export class MaintenanceCron implements OnApplicationBootstrap {
   private readonly logger = new Logger(MaintenanceCron.name);
 
   constructor(
     private readonly commandBus: CommandBus,
     private readonly crons: CronSwitch,
   ) {}
+
+  /** A fresh install gets its FIDO catalog at start-up instead of at the next 03:00. */
+  onApplicationBootstrap(): void {
+    if (!this.crons.enabled) return;
+    void this.fidoCatalog(true);
+  }
 
   @Cron("0 3 * * *", { timeZone: "America/Santiago" })
   async run(): Promise<void> {
@@ -77,6 +89,29 @@ export class MaintenanceCron {
         new PurgeStaleMfaCodesCommand(),
       );
       return `purged ${deleted} expired or used`;
+    });
+    await this.fidoCatalog(false);
+  }
+
+  /** The catalog first; the review runs on whatever is stored even if the download failed. */
+  private async fidoCatalog(onlyIfEmpty: boolean): Promise<void> {
+    await this.step("FIDO catalog", async () => {
+      const outcome = await this.commandBus.execute<
+        RefreshAuthenticatorCatalogCommand,
+        CatalogRefreshOutcome
+      >(new RefreshAuthenticatorCatalogCommand(onlyIfEmpty));
+      return outcome.replaced
+        ? `replaced ${outcome.models} models (catalog #${outcome.number})`
+        : `kept the stored catalog (${outcome.reason})`;
+    });
+    await this.step("compromised passkeys", async () => {
+      const outcome = await this.commandBus.execute<
+        ReviewCompromisedPasskeysCommand,
+        ReviewOutcome
+      >(new ReviewCompromisedPasskeysCommand());
+      return outcome.skipped
+        ? `skipped (${outcome.skipped})`
+        : `marked ${outcome.marked}, closed ${outcome.sessionsClosed} sessions`;
     });
   }
 

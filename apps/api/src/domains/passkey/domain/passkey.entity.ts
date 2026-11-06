@@ -14,7 +14,41 @@ export interface PasskeyProps {
   transports: string[];
   createdAt: string;
   lastUsedAt: string | null;
+  /** specs/041 — only for a passkey whose attestation was verified against the FIDO catalog. */
+  aaguid: string | null;
+  authenticatorName: string | null;
+  verifiedAt: string | null;
+  /** When its model was declared compromised: it no longer signs in nor confirms identity. */
+  compromisedAt: string | null;
+  compromisedReason: string | null;
 }
 
-/** A row about to be inserted (no id/createdAt yet — Prisma's own defaults). */
-export type PasskeyPlan = Omit<PasskeyProps, "id" | "createdAt" | "lastUsedAt">;
+/** A row about to be inserted (no id/createdAt yet — Prisma's own defaults). The attestation
+ * fields are set only for a verified registration. */
+export type PasskeyPlan = Omit<
+  PasskeyProps,
+  | "id"
+  | "createdAt"
+  | "lastUsedAt"
+  | "aaguid"
+  | "authenticatorName"
+  | "verifiedAt"
+  | "compromisedAt"
+  | "compromisedReason"
+> & {
+  aaguid?: string | null;
+  authenticatorName?: string | null;
+  verifiedAt?: Date | null;
+};
+
+/** A passkey that can still sign in and confirm identity. */
+export function isPasskeyCompromised(passkey: Pick<PasskeyProps, "compromisedAt">): boolean {
+  return passkey.compromisedAt !== null;
+}
+
+/** What the review marked: enough to notify the owner. */
+export interface MarkedPasskey {
+  id: string;
+  userId: string;
+  name: string;
+}

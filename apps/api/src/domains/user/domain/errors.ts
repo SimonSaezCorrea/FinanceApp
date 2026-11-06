@@ -250,3 +250,19 @@ export class TrustedDeviceNotFoundError extends DomainError {
     super("TRUSTED_DEVICE_NOT_FOUND", 404);
   }
 }
+
+/** specs/041: the authenticator's verified model is declared compromised in the FIDO catalog —
+ * nothing is registered. */
+export class PasskeyAuthenticatorCompromisedError extends DomainError {
+  constructor() {
+    super("PASSKEY_AUTHENTICATOR_COMPROMISED", 409);
+  }
+}
+
+/** specs/041: this passkey's authenticator model was declared compromised; it no longer signs in
+ * nor confirms identity. Saying so leaks nothing: whoever presents it holds it. */
+export class PasskeyCompromisedError extends DomainError {
+  constructor() {
+    super("PASSKEY_COMPROMISED", 403);
+  }
+}
