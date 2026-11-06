@@ -1,3 +1,4 @@
+import { auth } from "@finance/contracts";
 import { useTranslation } from "react-i18next";
 
 import { isPasskeySupported } from "@finance/client";
@@ -20,7 +21,7 @@ export function useProfileStatuses(): SectionStatuses | null {
   return sectionStatuses(
     {
       user,
-      passkeyCount: passkeys.data ? passkeys.data.length : null,
+      passkeyCount: passkeys.data ? passkeys.data.filter(auth.isPasskeyUsable).length : null,
       passkeysSupported: isPasskeySupported(),
       openSessions: sessions.data ? sessions.data.filter((s) => s.closedAt === null).length : null,
       activeConsents: consents.data ? consents.data.filter((c) => !c.revokedAt).length : null,

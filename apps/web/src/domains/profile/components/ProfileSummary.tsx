@@ -1,3 +1,4 @@
+import { auth } from "@finance/contracts";
 import { Check, Laptop, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,7 +31,9 @@ export function ProfileSummary({
 
   const stages = protectionStages({
     mfaEnabled: user.mfaEnabled,
-    passkeyCount: passkeys.isError ? null : (passkeys.data?.length ?? null),
+    passkeyCount: passkeys.isError
+      ? null
+      : (passkeys.data?.filter(auth.isPasskeyUsable).length ?? null),
     passkeysSupported: isPasskeySupported(),
   });
 

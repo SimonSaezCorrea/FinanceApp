@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report — 2026-11-05 (amendment 2.11.0)
+- Version change: 2.10.0 → 2.11.0 (MINOR: a table is added; no principle text changes meaning).
+- AMENDED Principle VI title and Principle VIII: 37 → 38 tables — `authenticator-model` (specs/041):
+  the FIDO Alliance metadata catalog, global reference data with no `userId` (like `exchange-rate`),
+  one row per AAGUID; the AAGUID is a business identifier in its own unique column, never the PK.
+- RECORDED (Principle VII): replacing the catalog is form (b) (only a strictly greater catalog
+  number replaces it, under a table lock); marking compromised passkeys is form (a) (conditional
+  `compromisedAt IS NULL`; sessions closed and notices sent only for what a run marked).
+- RECORDED (Principle II): `session.passkeyId` is written by the server from a passkey already
+  verified as the caller's own; never from a request body.
+- Templates: none changed.
+
 Sync Impact Report — 2026-11-05 (amendment 2.10.0)
 - Version change: 2.9.2 → 2.10.0 (MINOR: two tables are added; no principle text changes meaning).
 - AMENDED Principle VI title and Principle VIII: 35 → 37 tables — `trusted-device` (browsers that
@@ -2015,7 +2027,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 37 tables)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 38 tables)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -2095,7 +2107,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 37 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 38 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -2404,4 +2416,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.10.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-05
+**Version**: 2.11.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-05

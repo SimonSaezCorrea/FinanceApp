@@ -313,7 +313,10 @@ singular. `etf-price-cache` tiene carpeta aunque su feature esté diferida.
 Las features posteriores siguieron agregando dominios-tabla igual; la lista vigente está en
 `CLAUDE.md`. Los dos últimos (specs/040, 2026-11-05) son `trusted-device` (navegadores que se saltan
 el segundo factor) y `mfa-code` (códigos de 6 dígitos enviados por un canal, hoy el correo), ambos
-hojas `domain/` + `infrastructure/` compuestas por `user`.
+hojas `domain/` + `infrastructure/` compuestas por `user`. specs/041 (2026-11-05) suma
+`authenticator-model`, el catálogo de metadatos de la FIDO Alliance: datos globales de referencia (sin
+`userId`, como `exchange-rate`), reemplazados completos por el paso diario de mantención y cargados en la
+librería WebAuthn para verificar la attestation de una llave de acceso.
 
 Tres reglas hacen que la división no debilite los aggregates:
 

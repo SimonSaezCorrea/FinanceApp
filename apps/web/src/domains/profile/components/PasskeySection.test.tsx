@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiRequestError } from "@finance/client";
 import { Providers } from "../../../app/providers";
 import i18n from "../../../i18n";
 import { PasskeySection } from "./PasskeySection";
@@ -10,6 +11,7 @@ const confirmRegistration = vi.fn();
 const remove = vi.fn();
 const rename = vi.fn();
 const list = vi.fn().mockResolvedValue([]);
+const registrationSuggestion = vi.fn().mockResolvedValue({ suggestedName: null });
 vi.mock("@finance/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@finance/client")>()),
   passkeyApi: {
@@ -18,6 +20,7 @@ vi.mock("@finance/client", async (importOriginal) => ({
     remove: (...args: unknown[]) => remove(...args),
     rename: (...args: unknown[]) => rename(...args),
     list: (...args: unknown[]) => list(...args),
+    registrationSuggestion: (...args: unknown[]) => registrationSuggestion(...args),
   },
   authApi: {
     me: vi.fn().mockResolvedValue({
@@ -195,5 +198,83 @@ describe("PasskeySection", () => {
 
     expect(rename).not.toHaveBeenCalled();
     expect(await screen.findByText("Old Name")).toBeDefined();
+  });
+
+  it("prefills the name with the authenticator's model, still editable (specs/041)", async () => {
+    startRegistration.mockResolvedValue({ options: fakeOptions });
+    (navigator.credentials.create as ReturnType<typeof vi.fn>).mockResolvedValue(fakeCredential);
+    registrationSuggestion.mockResolvedValue({ suggestedName: "YubiKey 5 NFC" });
+    confirmRegistration.mockResolvedValue({
+      id: "p1",
+      name: "Mía",
+      createdAt: "x",
+      lastUsedAt: null,
+    });
+
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.security.passkey.add") }),
+    );
+    const nameInput = (await screen.findByLabelText(
+      i18n.t("profile.security.passkey.nameLabel"),
+    )) as HTMLInputElement;
+    await waitFor(() => expect(nameInput.value).toBe("YubiKey 5 NFC"));
+    fireEvent.change(nameInput, { target: { value: "Mía" } });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.passkey.save") }));
+    await waitFor(() =>
+      expect(confirmRegistration).toHaveBeenCalledWith(expect.objectContaining({ name: "Mía" })),
+    );
+  });
+
+  it("says why a compromised model can't be registered", async () => {
+    startRegistration.mockResolvedValue({ options: fakeOptions });
+    (navigator.credentials.create as ReturnType<typeof vi.fn>).mockResolvedValue(fakeCredential);
+    confirmRegistration.mockRejectedValue(
+      new ApiRequestError("PASSKEY_AUTHENTICATOR_COMPROMISED", 409),
+    );
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.security.passkey.add") }),
+    );
+    fireEvent.change(await screen.findByLabelText(i18n.t("profile.security.passkey.nameLabel")), {
+      target: { value: "Llave" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.passkey.save") }));
+    expect(
+      await screen.findByText(i18n.t("errors.PASSKEY_AUTHENTICATOR_COMPROMISED")),
+    ).toBeDefined();
+  });
+
+  it("shows each passkey's model and status", async () => {
+    list.mockResolvedValue([
+      {
+        id: "p1",
+        name: "Trabajo",
+        createdAt: "2026-01-01T00:00:00Z",
+        lastUsedAt: null,
+        status: "verified",
+        authenticatorName: "YubiKey 5 NFC",
+        compromisedAt: null,
+      },
+      {
+        id: "p2",
+        name: "Vieja",
+        createdAt: "2026-01-01T00:00:00Z",
+        lastUsedAt: null,
+        status: "compromised",
+        authenticatorName: "Llave X",
+        compromisedAt: "2026-11-05T00:00:00Z",
+      },
+      { id: "p3", name: "iPhone", createdAt: "2026-01-01T00:00:00Z", lastUsedAt: null },
+    ]);
+    renderPanel();
+    expect(
+      await screen.findByText(i18n.t("profile.security.passkey.status.verified")),
+    ).toBeDefined();
+    expect(
+      screen.getByText(i18n.t("profile.security.passkey.model", { model: "YubiKey 5 NFC" })),
+    ).toBeDefined();
+    expect(screen.getByText(i18n.t("profile.security.passkey.status.compromised"))).toBeDefined();
+    expect(screen.getByText(i18n.t("profile.security.passkey.compromisedHint"))).toBeDefined();
   });
 });

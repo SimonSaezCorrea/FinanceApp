@@ -49,12 +49,14 @@ diseño completo.
 
 Lo que queda **explícitamente pendiente**:
 
-- **Verificación de "attestation" del fabricante**: se acepta cualquier autenticador compatible con
-  el estándar (`attestationType: "none"`), sin verificar contra un catálogo de fabricantes
-  conocidos (MDS de la FIDO Alliance). Cualquier llave/biométrico que el navegador exponga vía
-  WebAuthn funciona, sin lista blanca. Descartado explícitamente de specs/025 por ser una
-  integración pesada (descargar/parsear/verificar el BLOB firmado de metadatos FIDO, decidir qué
-  fabricantes permitir) de valor dudoso para una app de finanzas personales.
+- **Verificación de "attestation" del fabricante**: hecha en specs/041 (2026-11-05) con la política
+  elegida por el dueño del producto: **informativa + bloquear comprometidos**. Se pide attestation
+  `direct` sin exigirla; el catálogo FIDO MDS3 se baja y verifica a diario (`verifyMDSBlob` de
+  `@simplewebauthn/server/helpers`) y se guarda en `authenticator-model`; una llave verificada muestra
+  su modelo, un modelo comprometido no se registra y, si pasa a comprometido después, sus llaves dejan
+  de servir, se cierran sus sesiones y se avisa por correo. Sin listas blancas propias. Queda
+  pendiente, a propósito: **reconocer el gestor de una passkey sincronizada** (iCloud, Google, 1Password)
+  por su AAGUID sin attestation, que no es una prueba del modelo y por eso no entra en "verificada".
 
 ### 3b. Verificación en dos pasos — completa desde specs/040 (2026-11-05)
 

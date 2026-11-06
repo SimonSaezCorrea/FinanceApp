@@ -370,13 +370,43 @@ export type ListTrustedDevicesResponse = z.infer<typeof listTrustedDevicesRespon
 
 // ---- Passkeys / WebAuthn (specs/022) ----
 
+/** What the FIDO catalog says about a passkey's authenticator (specs/041): `verified` when its
+ * attestation was verified against the catalog, `compromised` when that model was later (or
+ * already) declared compromised — it no longer works —, `unverified` for every other passkey
+ * (synced passkeys, no attestation, registered before). */
+export const passkeyStatusSchema = z.enum(["unverified", "verified", "compromised"]);
+export type PasskeyStatus = z.infer<typeof passkeyStatusSchema>;
+
 /** Never exposes `credentialId`/`publicKey` — those are verification details, not UI data. */
 export const passkeySchema = z.object({
   id: rowId,
   name: z.string(),
   createdAt: z.string(),
   lastUsedAt: z.string().nullable(),
+  /** Absent from an API before specs/041: read as `unverified`. */
+  status: passkeyStatusSchema.optional(),
+  /** The authenticator model per the FIDO catalog, only for a verified (or compromised) passkey. */
+  authenticatorName: z.string().nullable().optional(),
+  compromisedAt: z.string().nullable().optional(),
 });
+
+/** A passkey that can still sign in and confirm identity (specs/041). */
+export function isPasskeyUsable(passkey: Pick<z.infer<typeof passkeySchema>, "status">): boolean {
+  return passkey.status !== "compromised";
+}
+
+/** `POST /auth/me/passkeys/register-suggestion` (specs/041): the browser's registration response,
+ * read only to suggest a name from the authenticator's model. Nothing is verified or saved. */
+export const passkeyRegistrationSuggestionRequestSchema = z.object({ response: z.unknown() });
+export type PasskeyRegistrationSuggestionRequest = z.infer<
+  typeof passkeyRegistrationSuggestionRequestSchema
+>;
+export const passkeyRegistrationSuggestionResponseSchema = z.object({
+  suggestedName: z.string().nullable(),
+});
+export type PasskeyRegistrationSuggestionResponse = z.infer<
+  typeof passkeyRegistrationSuggestionResponseSchema
+>;
 export type Passkey = z.infer<typeof passkeySchema>;
 
 /** The options object is whatever `@simplewebauthn/server` generates — its exact shape is fixed

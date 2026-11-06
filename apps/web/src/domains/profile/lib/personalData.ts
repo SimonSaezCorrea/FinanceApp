@@ -247,8 +247,16 @@ export function personalSheets(data: PersonalData, t: TFunction) {
         t("profile.export.columns.name"),
         t("profile.export.columns.createdAt"),
         t("profile.export.columns.lastUsedAt"),
+        t("profile.export.columns.authenticatorModel"),
+        t("profile.export.columns.status"),
       ],
-      data.passkeys.map((p) => [p.name, date(p.createdAt), date(p.lastUsedAt)]),
+      data.passkeys.map((p) => [
+        p.name,
+        date(p.createdAt),
+        date(p.lastUsedAt),
+        p.authenticatorName ?? null,
+        t(`profile.security.passkey.statusExport.${p.status ?? "unverified"}`),
+      ]),
     );
 
     addTable(

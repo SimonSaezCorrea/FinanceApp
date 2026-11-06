@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Info, KeyRound, Pencil, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, Info, KeyRound, Pencil, ShieldCheck, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ApiRequestError } from "@finance/client";
 import { serializeCreateResponse, toCreateOptions } from "@finance/client";
 import { Button } from "@finance/ui/src/shared/ui/button";
+import { Badge } from "../../../shared/ui/badge";
 import { ConfirmModal, SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { FormTextField } from "../../../shared/ui/form";
 import { SectionLabel } from "../../../shared/ui/section-label";
@@ -30,8 +31,13 @@ export function PasskeySection({
 }: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void }>) {
   const { t } = useTranslation();
   const { data: passkeys, isLoading } = usePasskeysQuery();
-  const { startPasskeyRegistration, confirmPasskeyRegistration, removePasskey, renamePasskey } =
-    useProfileMutations();
+  const {
+    startPasskeyRegistration,
+    confirmPasskeyRegistration,
+    removePasskey,
+    renamePasskey,
+    suggestPasskeyName,
+  } = useProfileMutations();
   const [pendingResponse, setPendingResponse] = useState<unknown>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +51,16 @@ export function PasskeySection({
       const { options } = await startPasskeyRegistration.mutateAsync();
       const credential = await navigator.credentials.create(toCreateOptions(options));
       if (!credential) return; // user cancelled
-      setPendingResponse(serializeCreateResponse(credential));
+      const response = serializeCreateResponse(credential);
+      setPendingResponse(response);
       setName("");
+      // specs/041: prefill the name with the authenticator's model when the catalog knows it.
+      // Only a suggestion (editable); a failure just leaves the field empty.
+      suggestPasskeyName.mutate(response, {
+        onSuccess: ({ suggestedName }) => {
+          if (suggestedName) setName((current) => current || suggestedName);
+        },
+      });
     } catch {
       // The browser itself throws when the user cancels/dismisses the device prompt.
       setError(t("profile.security.passkey.ceremonyFailed"));
@@ -234,7 +248,30 @@ export function PasskeySection({
                     ) : (
                       <>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{p.name}</div>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm font-medium">{p.name}</span>
+                            {p.status === "verified" ? (
+                              <Badge variant="success" className="shrink-0 gap-1">
+                                <ShieldCheck className="h-3 w-3" aria-hidden />
+                                {t("profile.security.passkey.status.verified")}
+                              </Badge>
+                            ) : p.status === "compromised" ? (
+                              <Badge variant="danger" className="shrink-0 gap-1">
+                                <AlertTriangle className="h-3 w-3" aria-hidden />
+                                {t("profile.security.passkey.status.compromised")}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          {p.authenticatorName ? (
+                            <div className="truncate text-xs text-muted-foreground">
+                              {t("profile.security.passkey.model", { model: p.authenticatorName })}
+                            </div>
+                          ) : null}
+                          {p.status === "compromised" ? (
+                            <p className="mt-1 text-xs text-destructive">
+                              {t("profile.security.passkey.compromisedHint")}
+                            </p>
+                          ) : null}
                           <div className="text-xs text-muted-foreground">
                             {t("profile.security.passkey.created", {
                               date: new Date(p.createdAt).toLocaleDateString(),

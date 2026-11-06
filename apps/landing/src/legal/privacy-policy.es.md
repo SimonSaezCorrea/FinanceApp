@@ -93,7 +93,7 @@ Todos los datos los entregas tú al usar la app. No obtenemos datos tuyos de otr
 ## 9. Seguridad
 
 - Las contraseñas se guardan con un hash irreversible (bcrypt); nunca las vemos.
-- Puedes activar un segundo factor (código de una app de autenticación o enviado a tu correo) y llaves de acceso (passkeys). Los códigos por correo se guardan solo como un código cifrado irreversible.
+- Puedes activar un segundo factor (código de una app de autenticación o enviado a tu correo) y llaves de acceso (passkeys). Los códigos por correo se guardan solo como un código cifrado irreversible. Si tu llave de acceso informa su modelo (por ejemplo, una llave física), lo verificamos contra el catálogo público de la FIDO Alliance, que descargamos sin enviarle ningún dato tuyo, y guardamos el modelo para mostrártelo y para dejar de aceptar la llave si ese modelo es declarado inseguro.
 - Cada sesión se puede cerrar desde Perfil → Seguridad, con efecto inmediato.
 - Toda conexión va cifrada (HTTPS, TLS 1.2 o superior), y la base de datos y los discos están cifrados.
 - La base de datos solo acepta conexiones de nuestro servidor y de equipos de administración autorizados, con usuarios de permisos mínimos.

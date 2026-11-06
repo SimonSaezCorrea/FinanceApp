@@ -45,7 +45,8 @@ export function StepUpPanel({
   const methods = auth.stepUpMethodsFor({
     mfaMethod: user?.mfaMethod ?? null,
     mfaEnabled: user?.mfaEnabled ?? false,
-    passkeyCount: passkeys?.length ?? 0,
+    // specs/041: a compromised passkey no longer confirms identity.
+    passkeyCount: passkeys?.filter(auth.isPasskeyUsable).length ?? 0,
   });
   const hasTotp = methods.includes("totp");
   const hasEmail = methods.includes("email");

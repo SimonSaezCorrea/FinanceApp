@@ -95,7 +95,7 @@ You provide all the data yourself by using the app. We do not obtain data about 
 ## 9. Security
 
 - Passwords are stored with an irreversible hash (bcrypt); we never see them.
-- You can turn on a second factor (a code from an authenticator app or sent to your email) and passkeys. Emailed codes are stored only as an irreversible encrypted code.
+- You can turn on a second factor (a code from an authenticator app or sent to your email) and passkeys. Emailed codes are stored only as an irreversible encrypted code. If your passkey reports its model (a physical security key, for example), we check it against the FIDO Alliance public catalog, which we download without sending it any of your data, and keep the model to show it to you and to stop accepting the key if that model is declared unsafe.
 - Each session can be closed from Profile → Security, with immediate effect.
 - Every connection is encrypted (HTTPS, TLS 1.2 or higher), and the database and disks are encrypted.
 - The database only accepts connections from our server and from authorized administration machines, with least-privilege users.

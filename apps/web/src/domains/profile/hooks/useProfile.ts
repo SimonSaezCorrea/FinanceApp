@@ -120,6 +120,10 @@ export function useProfileMutations() {
     startPasskeyRegistration: useMutation({
       mutationFn: () => passkeyApi.startRegistration(),
     }),
+    // specs/041: suggests the passkey's name from its authenticator model; saves nothing.
+    suggestPasskeyName: useMutation({
+      mutationFn: (response: unknown) => passkeyApi.registrationSuggestion({ response }),
+    }),
     confirmPasskeyRegistration: useMutation({
       mutationFn: (body: auth.ConfirmPasskeyRegistrationRequest) =>
         passkeyApi.confirmRegistration(body),

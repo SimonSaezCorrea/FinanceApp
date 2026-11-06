@@ -233,6 +233,19 @@ describe("LoginForm", () => {
     expect(screen.queryByText(i18n.t("auth.mfa.hint"))).toBeNull();
   });
 
+  it("a passkey whose model was declared compromised says so (specs/041)", async () => {
+    vi.stubGlobal("navigator", { ...navigator, credentials: { get: vi.fn(), create: vi.fn() } });
+    startLogin.mockResolvedValue({ options: fakeOptions });
+    (navigator.credentials.get as ReturnType<typeof vi.fn>).mockResolvedValue(fakeAssertion);
+    verifyLogin.mockRejectedValue(new ApiRequestError("PASSKEY_COMPROMISED", 403));
+
+    renderLogin();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
+
+    expect(await screen.findByText(i18n.t("errors.PASSKEY_COMPROMISED"))).toBeDefined();
+    vi.unstubAllGlobals();
+  });
+
   it("passkey button works with no email typed — discoverable/usernameless login", async () => {
     vi.stubGlobal("navigator", { ...navigator, credentials: { get: vi.fn(), create: vi.fn() } });
     startLogin.mockResolvedValue({ options: fakeOptions });

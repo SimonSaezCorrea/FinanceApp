@@ -14,6 +14,13 @@ export const passkeyApi = {
       body: JSON.stringify(body),
     }),
 
+  /** A name for the passkey being registered, from its model (specs/041). Saves nothing. */
+  registrationSuggestion: (body: auth.PasskeyRegistrationSuggestionRequest) =>
+    apiFetch<auth.PasskeyRegistrationSuggestionResponse>("/auth/me/passkeys/register-suggestion", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   list: () => apiFetch<auth.ListPasskeysResponse>("/auth/me/passkeys"),
 
   remove: (id: string) => apiFetch<void>(`/auth/me/passkeys/${id}`, { method: "DELETE" }),

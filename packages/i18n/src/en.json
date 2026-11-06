@@ -2382,6 +2382,17 @@
           "button": "Rename passkey",
           "save": "Save name",
           "cancel": "Cancel rename"
+        },
+        "status": {
+          "verified": "Verified",
+          "compromised": "Compromised"
+        },
+        "model": "Model: {{model}}",
+        "compromisedHint": "Its maker or the FIDO Alliance declared this model unsafe. It no longer signs you in nor confirms your identity: remove it and add another.",
+        "statusExport": {
+          "unverified": "Unverified",
+          "verified": "Verified",
+          "compromised": "Compromised"
         }
       },
       "sessions": {
@@ -2640,7 +2651,8 @@
         "lastUsedAt": "Last used",
         "closedAt": "Closed on",
         "name": "Name",
-        "expiresAt": "Expires on"
+        "expiresAt": "Expires on",
+        "authenticatorModel": "Model"
       },
       "fields": {
         "name": "Name",
@@ -2817,7 +2829,9 @@
     "MFA_EMAIL_NOT_VERIFIED": "Confirm your email first: codes only go to a confirmed address.",
     "MFA_SAME_METHOD": "You already use that method.",
     "MFA_CODE_RATE_LIMITED": "We just sent you a code. Wait a moment before asking for another.",
-    "TRUSTED_DEVICE_NOT_FOUND": "That device is no longer remembered."
+    "TRUSTED_DEVICE_NOT_FOUND": "That device is no longer remembered.",
+    "PASSKEY_AUTHENTICATOR_COMPROMISED": "That key model was declared unsafe by its maker or the FIDO Alliance, so we can't register it. Use another key or a passkey from your phone or password manager.",
+    "PASSKEY_COMPROMISED": "This passkey is no longer safe: its model was declared compromised. Sign in with your RUT and password and remove it from Profile → Security."
   },
   "exchangeRates": {
     "title": "Exchange rates",

@@ -307,7 +307,9 @@ singular. `etf-price-cache` has a folder even though its feature is deferred.
 Later features kept adding table-domains the same way; the current list lives in `CLAUDE.md`. The
 latest two (specs/040, 2026-11-05) are `trusted-device` (browsers that skip the second factor) and
 `mfa-code` (6-digit codes sent through a channel, today email), both `domain/` + `infrastructure/`
-leaves composed by `user`.
+leaves composed by `user`. specs/041 (2026-11-05) adds `authenticator-model`, the FIDO Alliance
+metadata catalog: global reference data (no `userId`, like `exchange-rate`), replaced as a whole by the
+daily maintenance step and loaded into the WebAuthn library to verify a passkey's attestation.
 
 Three rules make that split work without weakening the aggregates:
 

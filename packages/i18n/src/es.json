@@ -2382,6 +2382,17 @@
           "button": "Renombrar llave",
           "save": "Guardar nombre",
           "cancel": "Cancelar cambio de nombre"
+        },
+        "status": {
+          "verified": "Verificada",
+          "compromised": "Comprometida"
+        },
+        "model": "Modelo: {{model}}",
+        "compromisedHint": "Su fabricante o la FIDO Alliance declaró inseguro este modelo. Ya no sirve para entrar ni confirmar tu identidad: quítala y agrega otra.",
+        "statusExport": {
+          "unverified": "Sin verificar",
+          "verified": "Verificada",
+          "compromised": "Comprometida"
         }
       },
       "sessions": {
@@ -2640,7 +2651,8 @@
         "lastUsedAt": "Último uso",
         "closedAt": "Cerrada el",
         "name": "Nombre",
-        "expiresAt": "Vence el"
+        "expiresAt": "Vence el",
+        "authenticatorModel": "Modelo"
       },
       "fields": {
         "name": "Nombre",
@@ -2817,7 +2829,9 @@
     "MFA_EMAIL_NOT_VERIFIED": "Primero confirma tu correo: el código se envía solo a un correo confirmado.",
     "MFA_SAME_METHOD": "Ya usas ese método.",
     "MFA_CODE_RATE_LIMITED": "Ya te enviamos un código hace poco. Espera un momento para pedir otro.",
-    "TRUSTED_DEVICE_NOT_FOUND": "Ese dispositivo ya no está recordado."
+    "TRUSTED_DEVICE_NOT_FOUND": "Ese dispositivo ya no está recordado.",
+    "PASSKEY_AUTHENTICATOR_COMPROMISED": "Ese modelo de llave fue declarado inseguro por su fabricante o la FIDO Alliance, así que no lo podemos registrar. Usa otra llave o una passkey de tu teléfono o gestor de contraseñas.",
+    "PASSKEY_COMPROMISED": "Esta llave de acceso ya no es segura: su modelo fue declarado comprometido. Entra con tu RUT y contraseña y quítala desde Perfil → Seguridad."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",
