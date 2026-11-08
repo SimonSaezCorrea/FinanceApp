@@ -16,7 +16,7 @@ import { Segmented } from "../../../shared/ui/segmented";
 import { useTemplateImport } from "../hooks/useTemplateImport";
 import type { TemplateRefs } from "../lib/buildTemplate";
 import {
-  readTemplate,
+  readTemplateFile,
   TemplateReadError,
   type TemplateReadFailure,
   type TemplateSheetsRead,
@@ -68,6 +68,8 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
   const [read, setRead] = useState<TemplateSheetsRead | null>(null);
   const [importMode, setImportMode] = useState<imports.TemplateImportMode>("MERGE");
   const [confirmText, setConfirmText] = useState("");
+  /** The file is a template of ONE account: it can only add, never replace everything. */
+  const [scoped, setScoped] = useState(false);
 
   const defined = (id: string) => request?.accounts.find((a) => a.id === id);
   const accountName = (id: string) =>
@@ -86,6 +88,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     setRead(null);
     setImportMode("MERGE");
     setConfirmText("");
+    setScoped(false);
     preview.reset();
     idempotencyKey.reset();
   }
@@ -132,11 +135,25 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     reset();
     setReading(true);
     try {
-      const file_ = await readTemplate(file, labelers, refs.customFields);
+      const { read: file_, scopeAccountId } = await readTemplateFile(
+        file,
+        labelers,
+        refs.customFields,
+      );
       setFileName(file.name);
       setRead(file_);
-      // A pre-filled template with nothing added: only replacing makes sense.
+      setScoped(scopeAccountId !== null);
       const rows = Object.values(file_).flat();
+      // One account's template holds only that account: it adds what's new, never replaces.
+      if (scopeAccountId !== null) {
+        if (rows.every((r) => r.existing)) {
+          setFailure("empty");
+          return;
+        }
+        apply(file_, "MERGE");
+        return;
+      }
+      // A pre-filled template with nothing added: only replacing makes sense.
       if (rows.every((r) => r.existing)) {
         if (rows.length === 0) {
           setFailure("empty");
@@ -324,13 +341,20 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
                 onChange={(mode) => apply(read, mode)}
                 options={[
                   { value: "MERGE", label: t("import.template.ui.modeMerge") },
-                  { value: "REPLACE", label: t("import.template.ui.modeReplace") },
+                  {
+                    value: "REPLACE",
+                    label: t("import.template.ui.modeReplace"),
+                    disabled: scoped,
+                    disabledReason: t("import.template.ui.scopedNoReplace"),
+                  },
                 ]}
               />
               <p className="text-xs text-muted-foreground">
-                {replacing
-                  ? t("import.template.ui.modeReplaceHint")
-                  : t("import.template.ui.modeMergeHint")}
+                {scoped
+                  ? t("import.template.ui.scopedNoReplace")
+                  : replacing
+                    ? t("import.template.ui.modeReplaceHint")
+                    : t("import.template.ui.modeMergeHint")}
               </p>
             </section>
           ) : null}

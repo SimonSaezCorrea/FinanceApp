@@ -13,6 +13,7 @@ import {
   MARKER_SHEET,
   REFERENCE_KEY,
   TEMPLATE_SHEETS,
+  SCOPE_MARKER,
   TEMPLATE_VERSION,
   cardLabel,
   columnHelpKey,
@@ -121,8 +122,11 @@ export async function buildTemplate(input: {
    * emails, consents, sessions and passkeys). The importer reads only the sheets it knows, so
    * the file can still be uploaded again. */
   extraSheets?: (workbook: Workbook) => void;
+  /** A template of ONE account (Importar → that account): recorded in the marker sheet so the
+   * importer never lets it "replace everything" — it holds only that account's data. */
+  scopeAccountId?: string;
 }): Promise<Blob> {
-  const { refs, t, locale, existing, extraSheets } = input;
+  const { refs, t, locale, existing, extraSheets, scopeAccountId } = input;
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "mifik";
@@ -331,6 +335,10 @@ export async function buildTemplate(input: {
   marker.getCell(1, 2).value = TEMPLATE_VERSION;
   marker.getCell(2, 1).value = "locale";
   marker.getCell(2, 2).value = locale;
+  if (scopeAccountId) {
+    marker.getCell(3, 1).value = SCOPE_MARKER;
+    marker.getCell(3, 2).value = scopeAccountId;
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new Blob([buffer], {

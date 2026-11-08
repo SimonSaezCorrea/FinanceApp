@@ -1323,6 +1323,19 @@ now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero m
     uploading the file again imports only rows added below. Limitation: a new payment row for a
     debt/plan that already exists can't reference it (its row is skipped → `unknownRef`); those
     payments are recorded in the app.
+    Amendment (one account's own choices, 2026-11-07): tapping an account in `/import` opens
+    `AccountImportPanel` (a Modal) with the same ways in as the template card, for that account:
+    **Descargar plantilla** (`DownloadTemplateDialog` with `accountName`: empty, or "con los datos de
+    esta cuenta" — `lib/accountScope.ts`'s `scopeExistingData` keeps its movements + both legs of its
+    transfers, its statements, and the debts/plans/fixed expenses/contributions it pays or names,
+    then `scopeExistingRows` keeps only its row on Cuentas and its cards), **Subir plantilla**
+    (`TemplateImportPanel`) and **Importar cartola del banco** (`ImportMovementsPanel`, as before).
+    A file with one account's DATA carries `account` + its id in the hidden `_fik` marker
+    (`buildTemplate`'s `scopeAccountId`, `SCOPE_MARKER`); `readTemplateFile`/`templateScope` read it
+    and `TemplateImportPanel` then allows only "Agregar" (REPLACE disabled,
+    `import.template.ui.scopedNoReplace`), wherever the file is uploaded — replacing everything
+    from one account's file would delete the rest. i18n `import.accountPanel.*`,
+    `import.template.content.accountPrefilled.*`.
     Amendment (template v2: accounts, cards, statements and "Reemplazar todo", 2026-10-07):
     `TEMPLATE_VERSION` = 2 (a v1 file is refused as outdated). Three new sheets, defined in
     `templateSpec.ts`: **Cuentas** (name, type, currency, institution [linked to the catalogue by

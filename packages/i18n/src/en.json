@@ -1652,6 +1652,10 @@
           "title": "With my current data",
           "hint": "Comes with what you already have in mifik, so you can pick up from there.",
           "note": "Your data is tagged with a mifik ID and skipped when you upload it again: only the rows you add get imported."
+        },
+        "accountPrefilled": {
+          "title": "With this account's data",
+          "hint": "Brings what {{account}} already has in mifik so you continue from there."
         }
       },
       "existingId": {
@@ -2092,9 +2096,25 @@
         "replaceConfirmLabel": "Type REPLACE to confirm",
         "replaceConfirmWord": "REPLACE",
         "submitReplace": "Replace everything",
-        "newAccount": "new"
+        "newAccount": "new",
+        "scopedNoReplace": "This template is for one account: it only adds new rows, never replaces everything."
       },
       "customFieldHelp": "Your own column ({{type}}). {{options}}"
+    },
+    "accountPanel": {
+      "description": "What do you want to do with this account?",
+      "download": {
+        "title": "Download template",
+        "hint": "Empty, or with this account's movements, transfers and statements."
+      },
+      "upload": {
+        "title": "Upload template",
+        "hint": "Import the new rows of a filled mifik template."
+      },
+      "statement": {
+        "title": "Import bank statement",
+        "hint": "Load the Excel or CSV your bank exports, in whatever layout it comes."
+      }
     }
   },
   "auth": {

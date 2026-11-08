@@ -90,4 +90,31 @@ describe("ImportRoute", () => {
     expect(refs.categories.map((c) => c.code)).toEqual(["SUPERMARKET"]);
     expect(refs.currencies).toEqual(["CLP"]);
   });
+
+  it("an account opens its own choices: template with its data, upload, or the bank's statement", async () => {
+    vi.mocked(buildTemplate).mockClear();
+    renderRoute();
+    fireEvent.click(await screen.findByRole("button", { name: /BCI/ }));
+    const panel = await screen.findByRole("dialog", { name: "BCI" });
+    expect(within(panel).getByRole("button", { name: /Subir plantilla/ })).toBeTruthy();
+    expect(within(panel).getByRole("button", { name: /Importar cartola del banco/ })).toBeTruthy();
+
+    fireEvent.click(within(panel).getByRole("button", { name: /Descargar plantilla/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Descargar plantilla" });
+    expect(within(dialog).getByText("Con los datos de esta cuenta")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Descargar" }));
+    await waitFor(() => expect(buildTemplate).toHaveBeenCalled());
+    // An empty template carries no data, so it needs no account mark.
+    expect(vi.mocked(buildTemplate).mock.calls[0]![0].scopeAccountId).toBeUndefined();
+  });
+
+  it("'Importar cartola del banco' closes the choices and opens the statement importer for it", async () => {
+    renderRoute();
+    fireEvent.click(await screen.findByRole("button", { name: /BCI/ }));
+    const panel = await screen.findByRole("dialog", { name: "BCI" });
+    fireEvent.click(within(panel).getByRole("button", { name: /Importar cartola del banco/ }));
+    const importer = await screen.findByRole("dialog", { name: i18n.t("import.panelTitle") });
+    expect(importer.textContent).toContain("BCI");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "BCI" })).toBeNull());
+  });
 });

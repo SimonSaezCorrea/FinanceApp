@@ -16,12 +16,14 @@ import { ACCOUNT_ICON, isCreditType } from "../../accounts/components/accountVis
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { useCategories, useInstitutions } from "../../reference/hooks/useReference";
+import { AccountImportPanel, type AccountImportAction } from "../components/AccountImportPanel";
 import { DownloadTemplateDialog, type TemplateContent } from "../components/DownloadTemplateDialog";
 import { ImportMovementsPanel } from "../components/ImportMovementsPanel";
 import { TemplateImportPanel } from "../components/TemplateImportPanel";
 import { buildTemplate, type TemplateRefs } from "../lib/buildTemplate";
 import { loadExistingData, templateRefs } from "../lib/loadExistingData";
 import { useCustomFields } from "../../custom-fields/hooks/useCustomFields";
+import { scopeExistingData, scopeExistingRows } from "../lib/accountScope";
 import { existingRows } from "../lib/templateData";
 import { withBrand } from "@finance/ui/src/shared/lib/brand";
 import { saveFile } from "../../../shared/lib/saveFile";
@@ -39,8 +41,11 @@ export function ImportRoute() {
   const { t, i18n } = useTranslation();
   const query = useAccounts({ status: "active" });
   const [target, setTarget] = useState<accounts.BankAccount | null>(null);
-  // Kept after closing so the panel's exit animation still has an account to render.
+  // Kept after closing so the panels' exit animation still has an account to render.
+  const [choiceOpen, setChoiceOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  /** The account the template download/upload is for; null = the whole template above the list. */
+  const [templateAccount, setTemplateAccount] = useState<accounts.BankAccount | null>(null);
 
   const list = useMemo(
     () => (query.isError ? [] : (query.data ?? [])),
@@ -68,17 +73,31 @@ export function ImportRoute() {
     [list, categories.data, allowedCurrencies, institutions.data, customFieldList.data],
   );
 
-  /** Everything the user has, fetched only when a pre-filled template is asked for. */
-  async function loadExisting() {
-    return existingRows(await loadExistingData(categories.data ?? []), t, refs.customFields);
+  /** Everything the user has — or only what one account is involved in — fetched only when a
+   * pre-filled template is asked for. */
+  async function loadExisting(account: accounts.BankAccount | null) {
+    const data = await loadExistingData(categories.data ?? []);
+    if (!account) return existingRows(data, t, refs.customFields);
+    const rows = existingRows(scopeExistingData(data, account.id), t, refs.customFields);
+    return scopeExistingRows(rows, account);
   }
 
   async function download(content: TemplateContent) {
     setDownloading(true);
     try {
-      const existing = content === "prefilled" ? await loadExisting() : undefined;
-      const blob = await buildTemplate({ refs, t, locale: i18n.language, existing });
-      saveFile(blob, `${t("import.template.cardTitle")}.xlsx`);
+      const existing = content === "prefilled" ? await loadExisting(templateAccount) : undefined;
+      const blob = await buildTemplate({
+        refs,
+        t,
+        locale: i18n.language,
+        existing,
+        // Only a file holding one account's DATA needs the mark that keeps it from replacing all.
+        scopeAccountId: templateAccount && existing ? templateAccount.id : undefined,
+      });
+      const name = templateAccount
+        ? `${t("import.template.cardTitle")} - ${templateAccount.name}`
+        : t("import.template.cardTitle");
+      saveFile(blob, `${name}.xlsx`);
       setDownloadOpen(false);
     } catch {
       toast.error(t("import.template.downloadError"));
@@ -89,7 +108,27 @@ export function ImportRoute() {
 
   function pick(account: accounts.BankAccount) {
     setTarget(account);
-    setOpen(true);
+    setChoiceOpen(true);
+  }
+
+  /** One of the account panel's choices: each opens its own panel for that account. */
+  function act(action: AccountImportAction) {
+    if (!target) return;
+    setChoiceOpen(false);
+    if (action === "statement") {
+      setOpen(true);
+      return;
+    }
+    setTemplateAccount(target);
+    if (action === "download") setDownloadOpen(true);
+    else setTemplateOpen(true);
+  }
+
+  /** The whole template above the list: no account. */
+  function openWhole(which: "download" | "upload") {
+    setTemplateAccount(null);
+    if (which === "download") setDownloadOpen(true);
+    else setTemplateOpen(true);
   }
 
   return (
@@ -109,7 +148,7 @@ export function ImportRoute() {
             variant="outline"
             size="sm"
             disabled={!query.data || !categories.data}
-            onClick={() => setDownloadOpen(true)}
+            onClick={() => openWhole("download")}
           >
             <Download className="h-4 w-4" aria-hidden />
             {t("import.template.download")}
@@ -118,7 +157,7 @@ export function ImportRoute() {
             variant="accent"
             size="sm"
             disabled={!query.data}
-            onClick={() => setTemplateOpen(true)}
+            onClick={() => openWhole("upload")}
           >
             <Upload className="h-4 w-4" aria-hidden />
             {t("import.template.upload")}
@@ -180,11 +219,25 @@ export function ImportRoute() {
         onOpenChange={setDownloadOpen}
         downloading={downloading}
         onDownload={(content) => void download(content)}
+        accountName={templateAccount?.name}
       />
       <TemplateImportPanel open={templateOpen} onOpenChange={setTemplateOpen} refs={refs} />
 
       {target ? (
-        <ImportMovementsPanel key={target.id} open={open} onOpenChange={setOpen} account={target} />
+        <>
+          <AccountImportPanel
+            account={target}
+            open={choiceOpen}
+            onOpenChange={setChoiceOpen}
+            onPick={act}
+          />
+          <ImportMovementsPanel
+            key={target.id}
+            open={open}
+            onOpenChange={setOpen}
+            account={target}
+          />
+        </>
       ) : null}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   TEMPLATE_SHEETS,
   LEGACY_COLUMN_NAMES,
   LEGACY_SHEET_NAMES,
+  SCOPE_MARKER,
   TEMPLATE_VERSION,
   columnKey,
   sheetNameKey,
@@ -118,12 +119,31 @@ export function parseTemplateSheets(
   return read;
 }
 
+/** The account a template of ONE account was downloaded for (Importar → that account), or null
+ * for a whole template. Such a file holds only that account's data, so it must never replace
+ * everything. */
+export function templateScope(sheets: Sheet[]): string | null {
+  const marker = sheets.find((s) => s.name === MARKER_SHEET);
+  const row = marker?.matrix.find((r) => normalize(r[0] ?? null) === SCOPE_MARKER);
+  const id = row?.[1];
+  return typeof id === "string" && id.trim() ? id.trim() : null;
+}
+
 /** Reads an uploaded file as a fik template. */
 export async function readTemplate(
   file: File,
   labelers: Labelers,
   fields: readonly customFields.CustomField[] = [],
 ): Promise<TemplateSheetsRead> {
+  return (await readTemplateFile(file, labelers, fields)).read;
+}
+
+/** The same, plus the account the file is limited to (`templateScope`). */
+export async function readTemplateFile(
+  file: File,
+  labelers: Labelers,
+  fields: readonly customFields.CustomField[] = [],
+): Promise<{ read: TemplateSheetsRead; scopeAccountId: string | null }> {
   let sheets: Sheet[];
   try {
     sheets = await readSpreadsheet(file);
@@ -140,5 +160,8 @@ export async function readTemplate(
     }
     throw error;
   }
-  return parseTemplateSheets(sheets, labelers, fields);
+  return {
+    read: parseTemplateSheets(sheets, labelers, fields),
+    scopeAccountId: templateScope(sheets),
+  };
 }

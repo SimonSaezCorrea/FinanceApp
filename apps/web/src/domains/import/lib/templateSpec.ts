@@ -262,6 +262,8 @@ export const FIXED_LISTS: Partial<Record<ListKey, readonly string[]>> = {
 /** Hidden sheet that marks a file as a mifik template (never shown, so it kept the name it had
  * when the product was called "fik": templates downloaded before the rename still import). */
 export const MARKER_SHEET = "_fik";
+/** Marker row of a template of ONE account: its id in the next cell. */
+export const SCOPE_MARKER = "account";
 /** Visible sheets that carry no rows. */
 export const INSTRUCTIONS_KEY = "instructions";
 export const REFERENCE_KEY = "reference";

@@ -5,7 +5,13 @@ import type { reference } from "@finance/contracts";
 import i18n from "../../../i18n";
 import { buildTemplate, type TemplateRefs } from "./buildTemplate";
 import type { Matrix, Sheet } from "./importParsing";
-import { parseTemplateSheets, readTemplate, TemplateReadError } from "./readTemplate";
+import {
+  parseTemplateSheets,
+  readTemplate,
+  readTemplateFile,
+  templateScope,
+  TemplateReadError,
+} from "./readTemplate";
 import { resolveTemplate } from "./resolveTemplate";
 import { existingRows, type ExistingData } from "./templateData";
 import { columnHelpKey, MARKER_SHEET, TEMPLATE_SHEETS, TEMPLATE_VERSION } from "./templateSpec";
@@ -579,5 +585,54 @@ describe("custom field columns (specs/036)", () => {
     } as unknown as ExistingData;
     const rows = existingRows(data, es, [transferido]);
     expect(rows.movements[0]?.cells[`cf:${FIELD}`]).toBe(es("import.template.values.yesNo.YES"));
+  });
+});
+
+describe("a template of one account", () => {
+  it("records the account in the hidden marker, and a whole template records none", async () => {
+    const scoped = await bytesOf(
+      await buildTemplate({
+        refs,
+        t: es,
+        locale: "es",
+        scopeAccountId: "acc-1",
+        existing: undefined,
+      }),
+    );
+    const whole = await bytesOf(await buildTemplate({ refs, t: es, locale: "es" }));
+    const { default: ExcelJS } = await import("exceljs");
+    const scopeOf = async (bytes: ArrayBuffer) => {
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(bytes);
+      const marker = wb.getWorksheet("_fik")!;
+      return marker.getCell(3, 1).value === "account" ? marker.getCell(3, 2).value : null;
+    };
+    expect(await scopeOf(scoped)).toBe("acc-1");
+    expect(await scopeOf(whole)).toBeNull();
+  });
+
+  it("templateScope reads the account from the marker, or null without one", () => {
+    expect(
+      templateScope([
+        {
+          name: "_fik",
+          matrix: [
+            ["version", 2],
+            ["account", "acc-1"],
+          ],
+        },
+      ]),
+    ).toBe("acc-1");
+    expect(templateScope([{ name: "_fik", matrix: [["version", 2]] }])).toBeNull();
+  });
+
+  it("the reader returns the account it is limited to", async () => {
+    const bytes = await bytesOf(
+      await buildTemplate({ refs, t: es, locale: "es", scopeAccountId: "acc-1" }),
+    );
+    // Nothing to import, but the scope is read before that.
+    await expect(readTemplateFile(xlsxFile(bytes), labelers)).rejects.toMatchObject({
+      reason: "empty",
+    });
   });
 });

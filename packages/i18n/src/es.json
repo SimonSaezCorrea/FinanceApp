@@ -1652,6 +1652,10 @@
           "title": "Con mis datos actuales",
           "hint": "Trae lo que ya tienes en mifik para que sigas desde ahí.",
           "note": "Tus datos quedan marcados con un ID mifik y se saltan al volver a subirla: solo se importan las filas que agregues."
+        },
+        "accountPrefilled": {
+          "title": "Con los datos de esta cuenta",
+          "hint": "Trae lo que {{account}} ya tiene en mifik para que sigas desde ahí."
         }
       },
       "existingId": {
@@ -2092,9 +2096,25 @@
         "replaceConfirmLabel": "Escribe REEMPLAZAR para confirmar",
         "replaceConfirmWord": "REEMPLAZAR",
         "submitReplace": "Reemplazar todo",
-        "newAccount": "nueva"
+        "newAccount": "nueva",
+        "scopedNoReplace": "Esta plantilla es de una sola cuenta: solo agrega filas nuevas, nunca reemplaza todo."
       },
       "customFieldHelp": "Columna propia ({{type}}). {{options}}"
+    },
+    "accountPanel": {
+      "description": "¿Qué quieres hacer con esta cuenta?",
+      "download": {
+        "title": "Descargar plantilla",
+        "hint": "Vacía, o con los movimientos, traspasos y facturaciones de esta cuenta."
+      },
+      "upload": {
+        "title": "Subir plantilla",
+        "hint": "Importa las filas nuevas de una plantilla mifik ya llena."
+      },
+      "statement": {
+        "title": "Importar cartola del banco",
+        "hint": "Carga el Excel o CSV que exporta tu banco, en el formato que venga."
+      }
     }
   },
   "auth": {

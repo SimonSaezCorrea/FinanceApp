@@ -23,13 +23,20 @@ export function DownloadTemplateDialog({
   onOpenChange,
   downloading,
   onDownload,
+  accountName,
 }: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   downloading: boolean;
   onDownload: (content: TemplateContent) => void;
+  /** A template of ONE account (Importar → that account): "with my data" brings only its data. */
+  accountName?: string;
 }>) {
   const { t } = useTranslation();
+  const text = (value: TemplateContent, part: "title" | "hint") =>
+    accountName && value === "prefilled"
+      ? t(`import.template.content.accountPrefilled.${part}`, { account: accountName })
+      : t(`import.template.content.${value}.${part}`);
   const [content, setContent] = useState<TemplateContent>("empty");
 
   return (
@@ -38,6 +45,7 @@ export function DownloadTemplateDialog({
       onOpenChange={onOpenChange}
       mode="create"
       title={t("import.template.downloadTitle")}
+      eyebrow={accountName}
       description={t("import.template.downloadDescription")}
       submitLabel={
         downloading ? t("import.template.downloading") : t("import.template.downloadSubmit")
@@ -90,11 +98,9 @@ export function DownloadTemplateDialog({
                   {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
                 </span>
                 <span className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">
-                    {withBrand(t(`import.template.content.${value}.title`))}
-                  </span>
+                  <span className="text-sm font-medium">{withBrand(text(value, "title"))}</span>
                   <span className="text-xs leading-relaxed text-muted-foreground">
-                    {withBrand(t(`import.template.content.${value}.hint`))}
+                    {withBrand(text(value, "hint"))}
                   </span>
                 </span>
               </button>
