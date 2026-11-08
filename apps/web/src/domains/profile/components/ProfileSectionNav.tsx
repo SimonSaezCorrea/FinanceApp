@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 
 import { cn } from "@finance/ui/src/shared/lib/cn";
-import { PROFILE_GROUPS, PROFILE_SECTIONS, sectionHref } from "../lib/profileSections";
+import {
+  PROFILE_COMING_SOON,
+  PROFILE_GROUPS,
+  PROFILE_SECTIONS,
+  sectionHref,
+} from "../lib/profileSections";
 import type { SectionStatuses } from "../lib/profileStatus";
 
 /**
@@ -24,7 +29,8 @@ export function ProfileSectionNav({
     <nav aria-label={t("profile.nav.label")} className="flex flex-col gap-4">
       {PROFILE_GROUPS.map((group) => {
         const items = sections.filter((s) => s.group === group);
-        if (items.length === 0) return null;
+        const soon = PROFILE_COMING_SOON.filter((s) => s.group === group);
+        if (items.length === 0 && soon.length === 0) return null;
         return (
           <div key={group} className="flex flex-col gap-1">
             <h2
@@ -101,6 +107,29 @@ export function ProfileSectionNav({
                   </li>
                 );
               })}
+              {soon.map(({ key, icon: Icon }) => (
+                <li
+                  key={key}
+                  className={cn(
+                    "grid items-center gap-3 py-2 opacity-60",
+                    variant === "panel"
+                      ? "min-h-12 grid-cols-[minmax(0,1fr)] border-l-2 border-transparent pl-3 pr-1"
+                      : "min-h-16 grid-cols-[1.25rem_minmax(0,1fr)] px-3",
+                  )}
+                >
+                  {variant === "list" ? (
+                    <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
+                  ) : null}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-muted-foreground">
+                      {t(`profile.comingSoon.${key}`)}
+                    </span>
+                    <span className="block truncate text-xs text-dim">
+                      {t("profile.comingSoon.label")}
+                    </span>
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>
         );

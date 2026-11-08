@@ -1770,10 +1770,10 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   **`marked`**, styled by `.prose-fik` (moved from the landing's `global.css` to
   `packages/ui/src/styles/prose.css`, imported by both apps), plus "Ver en mifik.cl"; reached from
   Perfil → Datos y privacidad (`PrivacyPolicySection`). In `AppLayout`, the logo (open sidebar, rail,
-  phone header) is a link to the Panel ("Ir al Panel"), and "Sitio de fik" (open sidebar under
-  Novedades, rail, the phone's "Más" sheet) opens `landingHomeUrl(lang)` (`/es/` or `/en/`) in a NEW
-  tab without touching the session. i18n `legal.privacyPolicy.*`, `nav.goToDashboard`,
-  `nav.publicSite`, `nav.opensInNewTab`.
+  phone header) is a link to the Panel ("Ir al Panel"), and the exit button ("Salir": open sidebar,
+  rail, the phone's "Más" sheet) opens `app/LeaveDialog` — "Ir al sitio" opens
+  `landingHomeUrl(lang)` in a NEW tab without touching the session, "Cerrar sesión" signs out.
+  i18n `legal.privacyPolicy.*`, `nav.goToDashboard`, `nav.leave.*`.
 
   Amendment (browser errors to Sentry, 2026-11-02): `shared/lib/errorReporting.ts` reports
   uncaught errors, unhandled rejections, `RouteErrorBoundary`'s crashes and `createRoot`'s
@@ -2056,8 +2056,10 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     `NotificationsSection`, `DataPrivacySection`, `AccountStatusSection`, `ProfileCard` (→
     `ProfileIdentity`, now with this month's movements), `ProfileRoute`, and their i18n keys
     (`profile.notifications.*`, `profile.dataPrivacy.*`, `profile.accountStatus.*`, `profile.plan.*`,
-    `profile.preferences.darkTheme`); what doesn't exist yet is one text line,
-    `profile.comingSoon.list`. `buttonClasses` lives in `shared/ui/button-classes.ts` (a `Link` that
+    `profile.preferences.darkTheme`); what doesn't exist yet is listed in its own group
+    as a non-link row "· Próximamente" (`PROFILE_COMING_SOON` in `lib/profileSections.ts`: today only
+    Notificaciones, in App; the global "Próximamente: …" line and the profile photo were dropped
+    2026-11-07). `buttonClasses` lives in `shared/ui/button-classes.ts` (a `Link` that
     reads as a button). Profile tests needing the URL use `domains/profile/testing/renderRouted`.
     Frontend only: no API, schema or contract change.
     Amendment (`dateFormat` removed, 2026-09-18): the "Formato de fecha" preference

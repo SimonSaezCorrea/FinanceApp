@@ -1,4 +1,5 @@
 import {
+  Bell,
   FileCheck,
   LockKeyhole,
   type LucideIcon,
@@ -31,6 +32,14 @@ export const PROFILE_SECTIONS: readonly ProfileSection[] = [
 ];
 
 export const PROFILE_GROUPS: readonly ProfileSectionGroup[] = ["account", "app", "privacy"];
+
+/** Sections that don't exist yet, listed in their group as "Próximamente": a row, never a link,
+ * so nobody opens an empty screen. Each one says where it will live once it's built. */
+export const PROFILE_COMING_SOON: readonly {
+  key: "notifications";
+  group: ProfileSectionGroup;
+  icon: LucideIcon;
+}[] = [{ key: "notifications", group: "app", icon: Bell }];
 
 /** Absolute address of a section. */
 export function sectionHref(section: Pick<ProfileSection, "path">): string {

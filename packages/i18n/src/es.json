@@ -125,8 +125,14 @@
     "whatsNew": "Novedades",
     "whatsNewUnseen": "hay novedades",
     "goToDashboard": "Ir al Panel",
-    "publicSite": "Sitio de mifik",
-    "opensInNewTab": "se abre en una pestaña nueva"
+    "leave": {
+      "button": "Salir",
+      "title": "¿Qué quieres hacer?",
+      "site": "Ir al sitio de mifik",
+      "siteHint": "En otra pestaña, sin cerrar tu sesión.",
+      "logout": "Cerrar sesión",
+      "logoutHint": "Sales de tu cuenta en este dispositivo."
+    }
   },
   "theme": {
     "label": "Tema",
@@ -2213,7 +2219,8 @@
       "notSet": "Sin especificar"
     },
     "comingSoon": {
-      "list": "Próximamente: notificaciones, respaldo automático y foto de perfil."
+      "label": "Próximamente",
+      "notifications": "Notificaciones"
     },
     "financial": {
       "extraCurrencies": "Monedas extra",

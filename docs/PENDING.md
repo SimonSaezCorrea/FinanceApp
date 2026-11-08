@@ -24,16 +24,12 @@ cuenta como pendiente mientras no se confirme). Lo que sigue sin existir:
 **Para hacerlo real**: un proveedor de SMS + `phoneVerifiedAt` con su flujo de código, y (opcional)
 un proveedor de verificación de identidad de terceros.
 
-### 2. Foto de perfil
+### 2. ~~Foto de perfil~~ — descartada (2026-11-07)
 
-El botón "Añadir" en el checklist de completitud está deshabilitado a propósito — el avatar sigue
-siendo siempre iniciales generadas (`getInitials`), consistente con la Assumption original de
-specs/008. No hay endpoint de subida de archivos ni almacenamiento de objetos (S3/Cloudinary
-equivalente) integrado en el proyecto.
-
-**Para hacerlo real**: elegir un proveedor de almacenamiento de objetos, agregar `User.avatarUrl`,
-endpoint de subida con validación de tipo/tamaño, y servir la imagen en vez de las iniciales cuando
-exista.
+El avatar son las iniciales (`getInitials`) y se queda así: subir una foto pedía almacenamiento de
+objetos, `User.avatarUrl` y un endpoint de subida para algo que la app no necesita. Salió de la línea
+"Próximamente" del Perfil, que también se retiró: lo que falta se anuncia en su propia sección
+(hoy, "Notificaciones · Próximamente" en el grupo App del índice de Perfil, `PROFILE_COMING_SOON`).
 
 ### 3. Llave de acceso (Passkey / WebAuthn) — real desde specs/022, un solo camino queda fuera
 
@@ -166,7 +162,9 @@ historial de facturas desde el proveedor. Recién entonces reconstruir la secci�
   (cada registro tal como lo devuelve el API). Se arma en el navegador con los endpoints de la app,
   sin endpoint nuevo. La §6 de la política de privacidad lo dice (versión
   `2026-10-15`).
-- **Respaldo automático mensual**: switch local, sin ningún job de respaldo real corriendo.
+- ~~**Respaldo automático mensual**~~ — **descartado (2026-11-07)**: venía del prototipo de Perfil
+  (specs/008) como un switch sin efecto. "Descargar mis datos" ya entrega una copia reimportable, y la
+  protección contra fallas propias es el respaldo del servidor (RDS), no una copia por persona.
 
 ### 7. Personalización financiera — resuelto en specs/020 (2026-09-18)
 

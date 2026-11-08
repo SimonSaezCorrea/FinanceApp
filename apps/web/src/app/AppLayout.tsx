@@ -4,7 +4,6 @@ import {
   CircleDollarSign,
   CopyPlus,
   CreditCard,
-  Globe,
   HandCoins,
   LayoutDashboard,
   LogOut,
@@ -32,7 +31,7 @@ import { useHasUnseenReleaseNotes } from "../domains/release-notes/hooks/useRele
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
-import { landingHomeUrl } from "../shared/lib/landingUrl";
+import { LeaveDialog } from "./LeaveDialog";
 import { preloadAllPages } from "./lazyPages";
 import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
 import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
@@ -161,20 +160,6 @@ const BRAND_LINK =
   "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
- * The public site (mifik.cl) in the person's language, in a NEW tab: the session stays as it is
- * (the site shows "Ir a la app" while it lasts), and the app keeps whatever was open here.
- */
-function usePublicSite() {
-  const { t, i18n } = useTranslation();
-  return {
-    href: landingHomeUrl(i18n.language),
-    label: t("nav.publicSite"),
-    // Said to screen readers: a link that opens a tab should say so.
-    fullLabel: `${t("nav.publicSite")} (${t("nav.opensInNewTab")})`,
-  };
-}
-
-/**
  * The open sidebar: brand + collapse, "Nuevo movimiento", the grouped sections and the user.
  * The active section is a soft fill with a thin mark at the edge, not a solid block competing
  * with the content.
@@ -182,12 +167,12 @@ function usePublicSite() {
 function SidebarOpen({
   onCollapse,
   onNew,
-}: Readonly<{ onCollapse?: () => void; onNew: () => void }>) {
+  onLeave,
+}: Readonly<{ onCollapse?: () => void; onNew: () => void; onLeave: () => void }>) {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const needsVerification = user?.emailVerified === false;
   const unseenNews = useHasUnseenReleaseNotes();
-  const site = usePublicSite();
   return (
     <>
       <div className="flex items-center gap-2 px-1.5 py-2">
@@ -262,16 +247,6 @@ function SidebarOpen({
         {t(WHATS_NEW.key)}
         {unseenNews ? <span className="sr-only">{` · ${t("nav.whatsNewUnseen")}`}</span> : null}
       </NavLink>
-      <a
-        href={site.href}
-        target="_blank"
-        rel="noopener"
-        aria-label={site.fullLabel}
-        className="flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-      >
-        <Globe className="h-4 w-4 shrink-0" aria-hidden />
-        {site.label}
-      </a>
 
       <div className="mt-1 flex items-center gap-1 border-t pt-3">
         <NavLink
@@ -304,9 +279,10 @@ function SidebarOpen({
         </NavLink>
         <button
           type="button"
-          title={t("auth.logout")}
-          aria-label={t("auth.logout")}
-          onClick={() => void logout()}
+          title={t("nav.leave.button")}
+          aria-label={t("nav.leave.button")}
+          aria-haspopup="dialog"
+          onClick={onLeave}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <LogOut className="h-4 w-4" aria-hidden />
@@ -317,9 +293,13 @@ function SidebarOpen({
 }
 
 /** The contracted sidebar: icons only, each with its own label on hover/focus, "+" on top. */
-function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNew: () => void }>) {
+function SidebarRail({
+  onExpand,
+  onNew,
+  onLeave,
+}: Readonly<{ onExpand?: () => void; onNew: () => void; onLeave: () => void }>) {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const needsVerification = user?.emailVerified === false;
   const profileLabel = needsVerification
     ? `${t("profile.title")} · ${t("app.emailVerification.short")}`
@@ -328,7 +308,6 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
   const newsLabel = unseenNews
     ? `${t(WHATS_NEW.key)} · ${t("nav.whatsNewUnseen")}`
     : t(WHATS_NEW.key);
-  const site = usePublicSite();
   return (
     <>
       <Link
@@ -405,16 +384,6 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
           </span>
           <RailTip>{newsLabel}</RailTip>
         </NavLink>
-        <a
-          href={site.href}
-          target="_blank"
-          rel="noopener"
-          aria-label={site.fullLabel}
-          className={RAIL_BUTTON}
-        >
-          <Globe className="h-[18px] w-[18px]" aria-hidden />
-          <RailTip>{site.label}</RailTip>
-        </a>
         <NavLink to="/profile" aria-label={profileLabel} className={RAIL_BUTTON}>
           <UserAvatar
             name={user?.name}
@@ -426,12 +395,13 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
         </NavLink>
         <button
           type="button"
-          aria-label={t("auth.logout")}
-          onClick={() => void logout()}
+          aria-label={t("nav.leave.button")}
+          aria-haspopup="dialog"
+          onClick={onLeave}
           className={RAIL_BUTTON}
         >
           <LogOut className="h-4 w-4" aria-hidden />
-          <RailTip>{t("auth.logout")}</RailTip>
+          <RailTip>{t("nav.leave.button")}</RailTip>
         </button>
       </div>
     </>
@@ -439,15 +409,14 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
 }
 
 /** Phone: the bottom tab bar (in thumb reach) and the "Más" sheet with the rest. */
-function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
+function PhoneNav({ onNew, onLeave }: Readonly<{ onNew: () => void; onLeave: () => void }>) {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const needsVerification = user?.emailVerified === false;
   const unseenNews = useHasUnseenReleaseNotes();
   const moreAttention = needsVerification || unseenNews;
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
-  const site = usePublicSite();
   const inSheet = [...SHEET_ITEMS.map((i) => i.to), "/profile"].some((to) =>
     pathname.startsWith(to),
   );
@@ -539,17 +508,6 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
                   </NavLink>
                 ),
               )}
-              <a
-                href={site.href}
-                target="_blank"
-                rel="noopener"
-                aria-label={site.fullLabel}
-                onClick={() => setMoreOpen(false)}
-                className="flex min-h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl bg-muted px-1 py-3 text-center text-xs font-medium leading-tight text-foreground transition-colors"
-              >
-                <Globe className="h-5 w-5 text-primary" aria-hidden />
-                {site.label}
-              </a>
             </div>
             <div className="flex items-center gap-2 border-t pt-3">
               <UserAvatar
@@ -561,11 +519,15 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
               <span className="min-w-0 flex-1 truncate text-sm">{user?.name || user?.email}</span>
               <button
                 type="button"
-                onClick={() => void logout()}
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setMoreOpen(false);
+                  onLeave();
+                }}
                 className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <LogOut className="h-4 w-4" aria-hidden />
-                {t("auth.logout")}
+                {t("nav.leave.button")}
               </button>
             </div>
           </RadixDialog.Content>
@@ -590,6 +552,7 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const isLarge = useMediaQuery(minWidth("lg"));
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [newOpen, setNewOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const rail = !isLarge || collapsed;
 
   useEffect(() => {
@@ -601,6 +564,7 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => (import.meta.env.MODE === "test" ? undefined : preloadAllPages()), []);
 
   const openNew = () => setNewOpen(true);
+  const openLeave = () => setLeaveOpen(true);
 
   return (
     // `app-shell`: the document itself never scrolls here (only <main> does), so
@@ -621,9 +585,14 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
             <SidebarRail
               onExpand={isLarge ? () => setCollapsed(false) : undefined}
               onNew={openNew}
+              onLeave={openLeave}
             />
           ) : (
-            <SidebarOpen onCollapse={() => setCollapsed(true)} onNew={openNew} />
+            <SidebarOpen
+              onCollapse={() => setCollapsed(true)}
+              onNew={openNew}
+              onLeave={openLeave}
+            />
           )}
         </aside>
       ) : null}
@@ -646,8 +615,9 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
         </main>
       </div>
 
-      {isTablet ? null : <PhoneNav onNew={openNew} />}
+      {isTablet ? null : <PhoneNav onNew={openNew} onLeave={openLeave} />}
       <TransactionCreateModal open={newOpen} onOpenChange={setNewOpen} />
+      <LeaveDialog open={leaveOpen} onOpenChange={setLeaveOpen} />
     </div>
   );
 }

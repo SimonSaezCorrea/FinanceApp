@@ -5,7 +5,6 @@ import { Link, Outlet, useLocation, useMatch } from "react-router";
 
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { PROFILE_PANES_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
-import { ComingSoonNote } from "../components/ComingSoonNote";
 import { ProfileIdentity } from "../components/ProfileIdentity";
 import { ProfileSectionNav } from "../components/ProfileSectionNav";
 import { ProfileSummary } from "../components/ProfileSummary";
@@ -55,7 +54,6 @@ export function ProfileLayout() {
           <div className="grid grid-cols-[13rem_minmax(0,1fr)] items-start gap-10">
             <aside className="sticky top-6 flex flex-col gap-6">
               <ProfileSectionNav variant="panel" statuses={statuses} />
-              <ComingSoonNote />
             </aside>
             <div className="min-w-0 max-w-[760px]">
               <Outlet />
@@ -70,7 +68,6 @@ export function ProfileLayout() {
           <ProfileIdentity variant="full" />
           <ProfileSummary showQuickSettings={false} />
           <ProfileSectionNav variant="list" statuses={statuses} />
-          <ComingSoonNote />
         </div>
       ) : (
         <div className="flex flex-col gap-4">

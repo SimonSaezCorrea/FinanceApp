@@ -264,9 +264,12 @@ describe("an honest profile: no inert controls, no promises", () => {
     },
   );
 
-  it("lists what isn't available yet as text only", async () => {
+  it("lists Notificaciones in its group as coming soon, never as a link", async () => {
     renderAt("/profile");
-    expect(await screen.findByText(i18n.t("profile.comingSoon.list"))).toBeTruthy();
+    const row = (await screen.findAllByText("Notificaciones"))[0]!.closest("li")!;
+    expect(row.textContent).toContain("Próximamente");
+    expect(row.querySelector("a")).toBeNull();
+    expect(screen.queryByText(/foto de perfil/i)).toBeNull();
   });
 
   it("'Eliminar cuenta' lives only in Data and privacy", async () => {

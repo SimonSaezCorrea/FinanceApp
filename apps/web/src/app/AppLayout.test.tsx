@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,10 +9,11 @@ import i18n from "../i18n";
 import { AppLayout } from "./AppLayout";
 
 const auth = vi.hoisted(() => ({ user: {} as Record<string, unknown> }));
+const logout = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 const viewport = vi.hoisted(() => ({ large: true }));
 
 vi.mock("../domains/auth/hooks/useAuth", () => ({
-  useAuth: () => ({ user: auth.user, logout: vi.fn() }),
+  useAuth: () => ({ user: auth.user, logout }),
 }));
 vi.mock("../domains/profile/components/ThemeSync", () => ({ ThemeSync: () => null }));
 vi.mock("../domains/transactions/components/TransactionCreateModal", () => ({
@@ -69,8 +70,9 @@ describe("AppLayout · Novedades (spec 038)", () => {
   });
 });
 
-describe("AppLayout · logo and public site", () => {
+describe("AppLayout · logo and leaving", () => {
   beforeEach(() => {
+    logout.mockClear();
     viewport.large = true;
     globalThis.localStorage?.clear();
     auth.user = user(null);
@@ -81,19 +83,23 @@ describe("AppLayout · logo and public site", () => {
     expect(screen.getByRole("link", { name: "Ir al Panel" }).getAttribute("href")).toBe("/");
   });
 
-  it("the open sidebar links to the public site in a new tab, without signing out", () => {
-    renderLayout();
-    const site = screen.getByRole("link", { name: /Sitio de fik/ });
-    expect(site.getAttribute("href")).toMatch(/\/es\/$/);
-    expect(site.getAttribute("target")).toBe("_blank");
-    expect(site.getAttribute("aria-label")).toContain("pestaña nueva");
-  });
-
-  it("the contracted rail keeps both", () => {
+  it("the contracted rail's logo goes to the Panel too", () => {
     globalThis.localStorage?.setItem("finance.sidebarCollapsed", "1");
     renderLayout();
     expect(screen.getByRole("link", { name: "Ir al Panel" }).getAttribute("href")).toBe("/");
-    expect(screen.getByRole("link", { name: /Sitio de fik/ })).toBeDefined();
+  });
+
+  it("Salir asks: the public site in a new tab (still signed in) or sign out", async () => {
+    renderLayout();
+    expect(screen.queryByRole("link", { name: /Ir al sitio/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Salir" }));
+    const dialog = await screen.findByRole("dialog", { name: "¿Qué quieres hacer?" });
+    const site = within(dialog).getByRole("link", { name: /Ir al sitio de/ });
+    expect(site.getAttribute("href")).toBe("http://localhost:4321/");
+    expect(site.getAttribute("target")).toBe("_blank");
+    expect(logout).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: /Cerrar sesión/ }));
+    expect(logout).toHaveBeenCalledTimes(1);
   });
 
   it("the phone header's logo goes to the Panel", () => {
