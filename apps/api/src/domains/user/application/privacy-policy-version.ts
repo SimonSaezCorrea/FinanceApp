@@ -1,6 +1,6 @@
 /** Server-defined identifier for "which version of the privacy policy and sensitive-data consent
  * text was shown" (Ley 21.719 Art. 16) — the date of the published policy
- * (`mifik.cl/es/privacy-policy/`, source `apps/landing/src/legal/privacy-policy.es.md`), bumped by
+ * (`mifik.cl/es/privacy-policy/`, source `packages/i18n/legal/privacy-policy.es.md`), bumped by
  * hand whenever that policy or the consent text materially changes. Never client-supplied (a
  * client claiming an earlier/different version would be worthless as evidence). Each
  * `ConsentRecord` keeps the version current at the moment it was given.

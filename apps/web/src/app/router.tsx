@@ -15,6 +15,7 @@ import {
   ImportRoute,
   InstallmentsRoute,
   NotFoundPage,
+  PrivacyPolicyRoute,
   ProfileLayout,
   RecurringRoute,
   ReleaseNotesRoute,
@@ -103,6 +104,12 @@ export const router = createBrowserRouter([
             path: "/whats-new",
             element: <ReleaseNotesRoute />,
             handle: handle({ title: "releaseNotes.title" }),
+          },
+          {
+            // The legal privacy policy, the same text as the public site's.
+            path: "/privacy-policy",
+            element: <PrivacyPolicyRoute />,
+            handle: handle({ title: "legal.privacyPolicy.title" }),
           },
           {
             path: "/import",

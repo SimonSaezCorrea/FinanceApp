@@ -1764,6 +1764,17 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   must set the multipart boundary), and **`src/i18n/parity.test.ts`** now enforces es/en key parity
   as a test instead of by discipline.
 
+  Amendment (privacy policy in the app, logo and public-site link, 2026-11-07): **`/privacy-policy`**
+  (`domains/legal/routes/PrivacyPolicyRoute`, its own lazy chunk) renders the SAME Markdown the public
+  site publishes (`@finance/i18n/legal/privacy-policy.{es,en}.md?raw`) with the new web dependency
+  **`marked`**, styled by `.prose-fik` (moved from the landing's `global.css` to
+  `packages/ui/src/styles/prose.css`, imported by both apps), plus "Ver en mifik.cl"; reached from
+  Perfil → Datos y privacidad (`PrivacyPolicySection`). In `AppLayout`, the logo (open sidebar, rail,
+  phone header) is a link to the Panel ("Ir al Panel"), and "Sitio de fik" (open sidebar under
+  Novedades, rail, the phone's "Más" sheet) opens `landingHomeUrl(lang)` (`/es/` or `/en/`) in a NEW
+  tab without touching the session. i18n `legal.privacyPolicy.*`, `nav.goToDashboard`,
+  `nav.publicSite`, `nav.opensInNewTab`.
+
   Amendment (browser errors to Sentry, 2026-11-02): `shared/lib/errorReporting.ts` reports
   uncaught errors, unhandled rejections, `RouteErrorBoundary`'s crashes and `createRoot`'s
   `onUncaughtError` to **Sentry** — only when `VITE_SENTRY_DSN` is set (empty = nothing is sent, so
@@ -1783,7 +1794,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   **Astro 7** (`output: "static"`, `build.format: "directory"`) + `@astrojs/react` (React components
   render **at build only**, never hydrated on arrival) + `@astrojs/sitemap`; dev `@astrojs/check`,
   `@resvg/resvg-js` (`scripts/og.mjs` → `public/og/fik-{es,en}.png`). Pages
-  `src/pages/[lang]/{index,about,privacy,pricing,faq}.astro` + `privacy-policy.astro` (the LEGAL privacy policy, Ley 21.719, added 2026-10-11: Markdown in `src/legal/privacy-policy.{es,en}.md`, Spanish binding, English a declared translation; `Page` "privacyPolicy", slug `privacy-policy`; linked from the footer, the plain-language Privacy page and the sign-up consent; the internal draft with notes is `.compliance/docs/21719-politica-privacidad.md`); **visit statistics** (2026-10-11): Cloudflare Web Analytics added BY HAND in `PageLayout.astro` (not Cloudflare's automatic injection, which must stay off) only when `PUBLIC_CF_WEB_ANALYTICS_TOKEN` is set (deploy.yml, repo variable `CF_WEB_ANALYTICS_TOKEN`), `defer`, never on the pages an email link opens (one-time token in the URL), the 404 or the app; declared in the privacy policy; home pages carry WebSite/Organization JSON-LD (name "fik", alternate "mifik"; since 2026-10-25 the Organization also has `logo` = `/logo.png` [512×512 PNG on white, drawn by `scripts/og.mjs`], `sameAs` = the brand's live profiles [only the GitHub repo until social profiles exist], a `contactPoint` [`contacto@mifik.cl`, customer support, CL, es/en, no phone on purpose] and `founder` = Simón Sáez with his LinkedIn; the values live in `src/lib/organization.ts`, also read by a guide's `Person` author); the site's CSS is inlined (`build.inlineStylesheets: "always"`) and the logo font is a 5.5 KB f/i/k subset (`packages/ui/src/styles/brand-font.css`) → `/es/`, `/en/pricing/`, … (English
+  `src/pages/[lang]/{index,about,privacy,pricing,faq}.astro` + `privacy-policy.astro` (the LEGAL privacy policy, Ley 21.719, added 2026-10-11: Markdown in `packages/i18n/legal/privacy-policy.{es,en}.md` since 2026-11-07 [shared: the app shows the same text at `/privacy-policy`, see the `apps/web` bullet], Spanish binding, English a declared translation; `Page` "privacyPolicy", slug `privacy-policy`; linked from the footer, the plain-language Privacy page and the sign-up consent; the internal draft with notes is `.compliance/docs/21719-politica-privacidad.md`); **visit statistics** (2026-10-11): Cloudflare Web Analytics added BY HAND in `PageLayout.astro` (not Cloudflare's automatic injection, which must stay off) only when `PUBLIC_CF_WEB_ANALYTICS_TOKEN` is set (deploy.yml, repo variable `CF_WEB_ANALYTICS_TOKEN`), `defer`, never on the pages an email link opens (one-time token in the URL), the 404 or the app; declared in the privacy policy; home pages carry WebSite/Organization JSON-LD (name "fik", alternate "mifik"; since 2026-10-25 the Organization also has `logo` = `/logo.png` [512×512 PNG on white, drawn by `scripts/og.mjs`], `sameAs` = the brand's live profiles [only the GitHub repo until social profiles exist], a `contactPoint` [`contacto@mifik.cl`, customer support, CL, es/en, no phone on purpose] and `founder` = Simón Sáez with his LinkedIn; the values live in `src/lib/organization.ts`, also read by a guide's `Person` author); the site's CSS is inlined (`build.inlineStylesheets: "always"`) and the logo font is a 5.5 KB f/i/k subset (`packages/ui/src/styles/brand-font.css`) → `/es/`, `/en/pricing/`, … (English
   slugs in both languages, trailing slash; `lib/language.ts`'s `pagePath`/`pickLanguage`/
   `legacyTarget`); on Cloudflare Pages the old `/precios`/`/nosotros`/`/privacidad`/`/preguntas`
   answer a **301** (`public/_redirects`, kept equal to `LEGACY_REDIRECTS` by a test) and `/` a

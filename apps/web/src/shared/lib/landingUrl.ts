@@ -22,7 +22,17 @@ export function landingAccessUrl(mode: AccessMode, returnTo?: string | null): st
   return `${LANDING_URL}/?${params.toString()}`;
 }
 
-/** The public site's home (its root picks the visitor's language). */
-export function landingHomeUrl(): string {
-  return `${LANDING_URL}/`;
+/** The public site's home: its root picks the visitor's language, or `lang` names one (`/es/`). */
+export function landingHomeUrl(lang?: string): string {
+  return lang ? `${LANDING_URL}/${landingLanguage(lang)}/` : `${LANDING_URL}/`;
+}
+
+/** The public site's privacy policy in that language (`/es/privacy-policy/`). */
+export function landingPrivacyPolicyUrl(lang: string): string {
+  return `${LANDING_URL}/${landingLanguage(lang)}/privacy-policy/`;
+}
+
+/** The public site has `/es/` and `/en/`: anything else (or "es-CL") reads as one of those. */
+function landingLanguage(lang: string): "es" | "en" {
+  return lang.startsWith("en") ? "en" : "es";
 }

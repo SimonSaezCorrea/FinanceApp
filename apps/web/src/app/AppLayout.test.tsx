@@ -68,3 +68,37 @@ describe("AppLayout · Novedades (spec 038)", () => {
     expect(screen.getByRole("link", { name: /Novedades/ }).textContent).toContain("hay novedades");
   });
 });
+
+describe("AppLayout · logo and public site", () => {
+  beforeEach(() => {
+    viewport.large = true;
+    globalThis.localStorage?.clear();
+    auth.user = user(null);
+  });
+
+  it("the open sidebar's logo goes to the Panel", () => {
+    renderLayout();
+    expect(screen.getByRole("link", { name: "Ir al Panel" }).getAttribute("href")).toBe("/");
+  });
+
+  it("the open sidebar links to the public site in a new tab, without signing out", () => {
+    renderLayout();
+    const site = screen.getByRole("link", { name: /Sitio de fik/ });
+    expect(site.getAttribute("href")).toMatch(/\/es\/$/);
+    expect(site.getAttribute("target")).toBe("_blank");
+    expect(site.getAttribute("aria-label")).toContain("pestaña nueva");
+  });
+
+  it("the contracted rail keeps both", () => {
+    globalThis.localStorage?.setItem("finance.sidebarCollapsed", "1");
+    renderLayout();
+    expect(screen.getByRole("link", { name: "Ir al Panel" }).getAttribute("href")).toBe("/");
+    expect(screen.getByRole("link", { name: /Sitio de fik/ })).toBeDefined();
+  });
+
+  it("the phone header's logo goes to the Panel", () => {
+    viewport.large = false;
+    renderLayout();
+    expect(screen.getByRole("link", { name: "Ir al Panel" }).getAttribute("href")).toBe("/");
+  });
+});

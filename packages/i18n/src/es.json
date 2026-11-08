@@ -98,6 +98,13 @@
     "showPassword": "Mostrar contraseña",
     "actions": "Acciones"
   },
+  "legal": {
+    "privacyPolicy": {
+      "title": "Política de privacidad",
+      "description": "Qué datos tratamos, para qué, con quién los compartimos y cómo ejerces tus derechos.",
+      "onSite": "Ver en mifik.cl"
+    }
+  },
   "nav": {
     "dashboard": "Panel",
     "menu": "Menú",
@@ -116,7 +123,10 @@
     "customFields": "Columnas propias",
     "templates": "Plantillas",
     "whatsNew": "Novedades",
-    "whatsNewUnseen": "hay novedades"
+    "whatsNewUnseen": "hay novedades",
+    "goToDashboard": "Ir al Panel",
+    "publicSite": "Sitio de fik",
+    "opensInNewTab": "se abre en una pestaña nueva"
   },
   "theme": {
     "label": "Tema",

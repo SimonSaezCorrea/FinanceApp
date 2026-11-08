@@ -6,7 +6,7 @@
 ## 1. Texto público
 
 Publicado en la política de privacidad, sección 6 (`mifik.cl/es/privacy-policy/`, fuente
-`apps/landing/src/legal/privacy-policy.es.md`). Canal: **contacto@mifik.cl**, que Cloudflare Email
+`packages/i18n/legal/privacy-policy.es.md`). Canal: **contacto@mifik.cl**, que Cloudflare Email
 Routing reenvía a `mifik.general@gmail.com`.
 
 ## 2. Procedimiento interno

@@ -60,6 +60,11 @@ export const ReleaseNotesRoute = lazy(() =>
     default: m.ReleaseNotesRoute,
   })),
 );
+export const PrivacyPolicyRoute = lazy(() =>
+  import("../domains/legal/routes/PrivacyPolicyRoute").then((m) => ({
+    default: m.PrivacyPolicyRoute,
+  })),
+);
 export const ExchangeRatesRoute = lazy(() =>
   import("../domains/exchange-rates/routes/ExchangeRatesRoute").then((m) => ({
     default: m.ExchangeRatesRoute,
@@ -97,6 +102,7 @@ const PAGE_CHUNKS: [RegExp, () => Promise<unknown>][] = [
   [/^\/savings/, () => import("../domains/savings/routes/SavingsRoute")],
   [/^\/exchange-rates/, () => import("../domains/exchange-rates/routes/ExchangeRatesRoute")],
   [/^\/import/, () => import("../domains/import/routes/ImportRoute")],
+  [/^\/privacy-policy/, () => import("../domains/legal/routes/PrivacyPolicyRoute")],
   [/^\/whats-new/, () => import("../domains/release-notes/routes/ReleaseNotesRoute")],
   [/^\/custom-fields/, () => import("../domains/custom-fields/routes/CustomFieldsRoute")],
   [/^\/templates/, () => import("../domains/movement-templates/routes/TemplatesRoute")],

@@ -4,6 +4,7 @@ import {
   CircleDollarSign,
   CopyPlus,
   CreditCard,
+  Globe,
   HandCoins,
   LayoutDashboard,
   LogOut,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavLink, useLocation } from "react-router";
+import { Link, NavLink, useLocation } from "react-router";
 
 import { minWidth } from "@finance/ui/breakpoints";
 import { useAuth } from "../domains/auth/hooks/useAuth";
@@ -31,6 +32,7 @@ import { useHasUnseenReleaseNotes } from "../domains/release-notes/hooks/useRele
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
+import { landingHomeUrl } from "../shared/lib/landingUrl";
 import { preloadAllPages } from "./lazyPages";
 import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
 import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
@@ -154,6 +156,24 @@ function RailTip({ children }: Readonly<{ children: string }>) {
 const RAIL_BUTTON =
   "group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+/** Where the brand takes you: the Panel, from every form of the shell. */
+const BRAND_LINK =
+  "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/**
+ * The public site (mifik.cl) in the person's language, in a NEW tab: the session stays as it is
+ * (the site shows "Ir a la app" while it lasts), and the app keeps whatever was open here.
+ */
+function usePublicSite() {
+  const { t, i18n } = useTranslation();
+  return {
+    href: landingHomeUrl(i18n.language),
+    label: t("nav.publicSite"),
+    // Said to screen readers: a link that opens a tab should say so.
+    fullLabel: `${t("nav.publicSite")} (${t("nav.opensInNewTab")})`,
+  };
+}
+
 /**
  * The open sidebar: brand + collapse, "Nuevo movimiento", the grouped sections and the user.
  * The active section is a soft fill with a thin mark at the edge, not a solid block competing
@@ -167,10 +187,13 @@ function SidebarOpen({
   const { user, logout } = useAuth();
   const needsVerification = user?.emailVerified === false;
   const unseenNews = useHasUnseenReleaseNotes();
+  const site = usePublicSite();
   return (
     <>
       <div className="flex items-center gap-2 px-1.5 py-2">
-        <BrandLogo className="h-10" title={t("brand.name")} />
+        <Link to="/" aria-label={t("nav.goToDashboard")} className={BRAND_LINK}>
+          <BrandLogo className="h-10" title={t("brand.name")} />
+        </Link>
         {onCollapse ? (
           <button
             type="button"
@@ -239,6 +262,16 @@ function SidebarOpen({
         {t(WHATS_NEW.key)}
         {unseenNews ? <span className="sr-only">{` · ${t("nav.whatsNewUnseen")}`}</span> : null}
       </NavLink>
+      <a
+        href={site.href}
+        target="_blank"
+        rel="noopener"
+        aria-label={site.fullLabel}
+        className="flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+      >
+        <Globe className="h-4 w-4 shrink-0" aria-hidden />
+        {site.label}
+      </a>
 
       <div className="mt-1 flex items-center gap-1 border-t pt-3">
         <NavLink
@@ -295,11 +328,17 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
   const newsLabel = unseenNews
     ? `${t(WHATS_NEW.key)} · ${t("nav.whatsNewUnseen")}`
     : t(WHATS_NEW.key);
+  const site = usePublicSite();
   return (
     <>
-      <span className="flex h-10 items-center justify-center">
+      <Link
+        to="/"
+        aria-label={t("nav.goToDashboard")}
+        className={cn("group relative flex h-10 w-10 items-center justify-center", BRAND_LINK)}
+      >
         <BrandMark className="h-6 w-6" />
-      </span>
+        <RailTip>{t("nav.goToDashboard")}</RailTip>
+      </Link>
       {onExpand ? (
         <button
           type="button"
@@ -366,6 +405,16 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
           </span>
           <RailTip>{newsLabel}</RailTip>
         </NavLink>
+        <a
+          href={site.href}
+          target="_blank"
+          rel="noopener"
+          aria-label={site.fullLabel}
+          className={RAIL_BUTTON}
+        >
+          <Globe className="h-[18px] w-[18px]" aria-hidden />
+          <RailTip>{site.label}</RailTip>
+        </a>
         <NavLink to="/profile" aria-label={profileLabel} className={RAIL_BUTTON}>
           <UserAvatar
             name={user?.name}
@@ -398,6 +447,7 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
   const moreAttention = needsVerification || unseenNews;
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const site = usePublicSite();
   const inSheet = [...SHEET_ITEMS.map((i) => i.to), "/profile"].some((to) =>
     pathname.startsWith(to),
   );
@@ -489,6 +539,17 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
                   </NavLink>
                 ),
               )}
+              <a
+                href={site.href}
+                target="_blank"
+                rel="noopener"
+                aria-label={site.fullLabel}
+                onClick={() => setMoreOpen(false)}
+                className="flex min-h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl bg-muted px-1 py-3 text-center text-xs font-medium leading-tight text-foreground transition-colors"
+              >
+                <Globe className="h-5 w-5 text-primary" aria-hidden />
+                {site.label}
+              </a>
             </div>
             <div className="flex items-center gap-2 border-t pt-3">
               <UserAvatar
@@ -570,7 +631,9 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {isTablet ? null : (
           <header className="flex shrink-0 items-center gap-2 border-b bg-card px-4 py-3">
-            <BrandLogo className="h-9" title={t("brand.name")} />
+            <Link to="/" aria-label={t("nav.goToDashboard")} className={BRAND_LINK}>
+              <BrandLogo className="h-9" title={t("brand.name")} />
+            </Link>
           </header>
         )}
         <main

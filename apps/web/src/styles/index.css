@@ -1,5 +1,6 @@
 /* Every token, base rule and shared utility lives in @finance/ui (one source with the public site). */
 @import "@finance/ui/src/styles/fik.css";
+@import "@finance/ui/src/styles/prose.css";
 
 /* Toasts (sonner). Radix sets `pointer-events: none` on <body> while a dialog is
    open; the toaster takes them back so its "×" works over a modal (the dialogs

@@ -98,6 +98,13 @@
     "showPassword": "Show password",
     "actions": "Actions"
   },
+  "legal": {
+    "privacyPolicy": {
+      "title": "Privacy policy",
+      "description": "What data we process, why, who we share it with and how to exercise your rights.",
+      "onSite": "View on mifik.cl"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "menu": "Menu",
@@ -116,7 +123,10 @@
     "customFields": "Custom columns",
     "templates": "Templates",
     "whatsNew": "What's new",
-    "whatsNewUnseen": "new updates"
+    "whatsNewUnseen": "new updates",
+    "goToDashboard": "Go to the Dashboard",
+    "publicSite": "fik website",
+    "opensInNewTab": "opens in a new tab"
   },
   "theme": {
     "label": "Theme",

@@ -3,12 +3,13 @@ import { HERO_TITLE } from "../../domains/landing/components/bits";
 import PageLayout from "../../layouts/PageLayout.astro";
 import { t } from "../../i18n";
 import { type Language, LANGUAGES } from "../../lib/language";
-import { Content as En } from "../../legal/privacy-policy.en.md";
-import { Content as Es } from "../../legal/privacy-policy.es.md";
+import { Content as En } from "@finance/i18n/legal/privacy-policy.en.md";
+import { Content as Es } from "@finance/i18n/legal/privacy-policy.es.md";
 
 /**
  * The legal privacy policy (Ley 21.719, deber de información). The text lives in
- * `src/legal/privacy-policy.<lang>.md`: Spanish is the version that applies, English a translation
+ * `packages/i18n/legal/privacy-policy.<lang>.md` (shared with the app, which shows it at
+ * `/privacy-policy`): Spanish is the version that applies, English a translation
  * that says so. Linked from the footer, the plain-language Privacy page and the sign-up consent.
  * Internal compliance notes stay in `.compliance/docs/21719-politica-privacidad.md`.
  */

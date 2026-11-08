@@ -2,7 +2,7 @@
 
 **Última actualización:** 2026-10-14
 
-> ✅ **Publicada el 2026-10-11** en `mifik.cl/es/privacy-policy/` (y su traducción en `/en/privacy-policy/`), enlazada desde el pie de página, la página de Privacidad y el consentimiento del registro. **El texto público vive en `apps/landing/src/legal/privacy-policy.es.md`** (y `.en.md`): cualquier cambio se hace ahí. Este archivo conserva el borrador con notas internas; mantener ambos en línea.
+> ✅ **Publicada el 2026-10-11** en `mifik.cl/es/privacy-policy/` (y su traducción en `/en/privacy-policy/`), enlazada desde el pie de página, la página de Privacidad y el consentimiento del registro. **El texto público vive en `packages/i18n/legal/privacy-policy.es.md`** (y `.en.md`): cualquier cambio se hace ahí. Este archivo conserva el borrador con notas internas; mantener ambos en línea.
 
 ## 1. Responsable del tratamiento
 
