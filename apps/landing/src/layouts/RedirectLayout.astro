@@ -4,16 +4,14 @@
  * query (`?acceso=…&volver=…`) and the anchor (`#faq-minors`), which a meta refresh would drop;
  * the meta refresh covers a visitor without JavaScript; the canonical tells a crawler where the
  * content lives. In production these pages are never served: Cloudflare Pages answers first with
- * real redirects (`public/_redirects` = 301 for the old addresses, `functions/index.ts` = 302 by
- * language for the root). They stay as the fallback where no host rules run (`astro preview`).
+ * real redirects (`public/_redirects` = 301 for the old addresses). They stay as the fallback where
+ * no host rules run (`astro preview`).
  */
 interface Props {
-  /** Where to go; for the root, the Spanish home (the script may pick English instead). */
+  /** Where to go. */
   target: string;
-  /** The root picks the language from the browser instead of always going to `target`. */
-  pickLanguage?: boolean;
 }
-const { target, pickLanguage = false } = Astro.props;
+const { target } = Astro.props;
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
 ---
 
@@ -23,28 +21,14 @@ const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, follow" />
-    <title>fik</title>
+    <title>mifik</title>
     <link rel="canonical" href={`${site}${target}`} />
-    {
-      pickLanguage && (
-        <>
-          <link rel="alternate" hreflang="es" href={`${site}/es/`} />
-          <link rel="alternate" hreflang="en" href={`${site}/en/`} />
-          <link rel="alternate" hreflang="x-default" href={`${site}/`} />
-        </>
-      )
-    }
     <meta http-equiv="refresh" content={`0;url=${target}`} />
-    <script is:inline define:vars={{ target, pickLanguage }}>
-      var path = target;
-      if (pickLanguage) {
-        var first = ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
-        path = first.indexOf("en") === 0 ? "/en/" : "/es/";
-      }
-      location.replace(path + location.search + location.hash);
+    <script is:inline define:vars={{ target }}>
+      location.replace(target + location.search + location.hash);
     </script>
   </head>
   <body>
-    <p><a href={target}><i>fik</i></a></p>
+    <p><a href={target}><i>mifik</i></a></p>
   </body>
 </html>

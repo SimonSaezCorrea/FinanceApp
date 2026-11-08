@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "fik",
+    "name": "mifik",
     "slogan": "The backbone that keeps your finances balanced"
   },
   "app": {
@@ -125,7 +125,7 @@
     "whatsNew": "What's new",
     "whatsNewUnseen": "new updates",
     "goToDashboard": "Go to the Dashboard",
-    "publicSite": "fik website",
+    "publicSite": "mifik website",
     "opensInNewTab": "opens in a new tab"
   },
   "theme": {
@@ -402,7 +402,7 @@
         "wallet": "Last, build your wallet"
       },
       "description": {
-        "account": "Your cash account is ready. Add your bank account or credit card so fik keeps track of your balances and your credit limit.",
+        "account": "Your cash account is ready. Add your bank account or credit card so mifik keeps track of your balances and your credit limit.",
         "movement": "Write down an expense or an income, or import your bank statement to bring your history in one go.",
         "wallet": "Choose which accounts and cards to always see on the Panel, with their balance and limit."
       },
@@ -1628,7 +1628,7 @@
       "truncated": "Showing the first {{shown}} rows; all of them are imported."
     },
     "template": {
-      "cardTitle": "fik template",
+      "cardTitle": "mifik template",
       "cardDescription": "Keep your finances in your own spreadsheet? Download the template, copy your movements, transfers, debts, instalments, fixed expense payments and goals into it, and upload it. Each sheet says what its rows are, so nothing has to be guessed.",
       "download": "Download template",
       "downloading": "Preparing template…",
@@ -1644,15 +1644,15 @@
         },
         "prefilled": {
           "title": "With my current data",
-          "hint": "Comes with what you already have in fik, so you can pick up from there.",
-          "note": "Your data is tagged with a fik ID and skipped when you upload it again: only the rows you add get imported."
+          "hint": "Comes with what you already have in mifik, so you can pick up from there.",
+          "note": "Your data is tagged with a mifik ID and skipped when you upload it again: only the rows you add get imported."
         }
       },
       "existingId": {
-        "header": "fik ID",
-        "help": "This row is already in fik and won't be imported again. Leave this column empty on new rows."
+        "header": "mifik ID",
+        "help": "This row is already in mifik and won't be imported again. Leave this column empty on new rows."
       },
-      "panelTitle": "Import a fik template",
+      "panelTitle": "Import a mifik template",
       "panelDescription": "Upload the template you downloaded from this page, filled in.",
       "eyebrow": "Import · Template",
       "pickTitle": "Choose or drop your template",
@@ -1676,7 +1676,7 @@
       "submit": "Import",
       "submitting": "Importing…",
       "success": "Template imported",
-      "notTemplate": "This file isn't a fik template. For a bank statement use the statement importer, choosing the account on this page.",
+      "notTemplate": "This file isn't a mifik template. For a bank statement use the statement importer, choosing the account on this page.",
       "outdated": "This template is from an earlier version. Download the current template and copy your data into it.",
       "empty": "The template has no rows to import.",
       "tooMany": "The template has more than {{max}} rows. Split it into several files.",
@@ -2032,13 +2032,13 @@
         "accountStatuses": "Statuses"
       },
       "instructions": {
-        "title": "fik template",
+        "title": "mifik template",
         "intro": "Fill in one sheet per kind of data and upload the file from Import. Leave the sheets you don't use empty. Cells with a dropdown only accept your own accounts, cards and categories; if you type them, make them match.",
         "rules": "What moves money: a movement, a transfer, a debt payment, an instalment payment without a credit card and a contribution move their account's balance. Creating a debt, a plan or a goal moves nothing. An instalment payment of a credit card plan only marks it paid and frees its credit: that instalment will never be billed.",
         "refs": "References: write a short code in the Reference column of a debt, plan, goal or fixed expense (for example VICTOR) and repeat it on its payments, contributions or movements to link them. It must be unique in its sheet.",
         "allOrNothing": "If any row has a problem nothing is imported: you'll see every problem with its sheet and row.",
         "reimport": "Uploading the same file twice imports it twice.",
-        "prefilled": "This template comes with your current data. Rows with a fik ID are already in the app and are skipped on upload: add new rows below them. Payments of debts or instalments that already exist are recorded in the app.",
+        "prefilled": "This template comes with your current data. Rows with a mifik ID are already in the app and are skipped on upload: add new rows below them. Payments of debts or instalments that already exist are recorded in the app.",
         "exampleTitle": "Examples (not imported)",
         "examples": {
           "movements": "Movements: 28/11/2025 · Expense · 15000 · BCI · · Groceries · Jumbo (if it pays a fixed expense, that series' Reference in the Fixed expense column)",
@@ -2109,7 +2109,7 @@
       "birthDate": "Choose the day"
     },
     "sensitiveDataConsentLabel": "Sensitive data",
-    "sensitiveDataConsent": "I agree that <brand>fik</brand> processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
+    "sensitiveDataConsent": "I agree that <brand>mifik</brand> processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
     "consentRequired": "Tick this box to create your account.",
     "guardian": {
       "title": "Parent/guardian authorization",
@@ -2123,7 +2123,7 @@
         "OTHER": "Other"
       },
       "acceptLabel": "Authorization",
-      "accept": "I authorize the processing of my child's/dependent's financial data in fik.",
+      "accept": "I authorize the processing of my child's/dependent's financial data in mifik.",
       "acceptRequired": "The guardian's authorization is missing: tick this box.",
       "relationshipLabel": "Relationship"
     },
@@ -2196,7 +2196,7 @@
     },
     "appUnavailable": {
       "title": "You’re signed in",
-      "body": "But the fik app isn’t responding right now. Your session is open: please try again in a few minutes.",
+      "body": "But the mifik app isn’t responding right now. Your session is open: please try again in a few minutes.",
       "retry": "Try again",
       "checking": "Checking…"
     }
@@ -2213,7 +2213,7 @@
       "notSet": "Not specified"
     },
     "comingSoon": {
-      "list": "Coming soon: notifications, exporting movements, automatic backups and a profile photo."
+      "list": "Coming soon: notifications, automatic backups and a profile photo."
     },
     "financial": {
       "extraCurrencies": "Extra currencies",
@@ -2473,11 +2473,11 @@
       },
       "security": {
         "title": "Security",
-        "description": "How you sign in to fik and from which devices."
+        "description": "How you sign in to mifik and from which devices."
       },
       "preferences": {
         "title": "Preferences",
-        "description": "How fik looks and which currencies you work in."
+        "description": "How mifik looks and which currencies you work in."
       },
       "privacy": {
         "title": "Data and privacy",
@@ -2626,16 +2626,16 @@
     },
     "export": {
       "title": "Download my data",
-      "description": "Everything fik keeps about you in one file: your profile, emails, consents, sessions and passkeys, plus all your accounts, cards, movements, statements, debts, instalments, fixed expenses and savings. It doesn't include your password or your sign-in secrets, which never leave the server.",
+      "description": "Everything mifik keeps about you in one file: your profile, emails, consents, sessions and passkeys, plus all your accounts, cards, movements, statements, debts, instalments, fixed expenses and savings. It doesn't include your password or your sign-in secrets, which never leave the server.",
       "formatLabel": "File format",
       "formats": {
         "xlsx": {
           "label": "Excel",
-          "hint": "For you to read. It's the import template with your data plus profile, emails, consents, sessions and passkeys sheets; it can be uploaded to fik again."
+          "hint": "For you to read. It's the import template with your data plus profile, emails, consents, sessions and passkeys sheets; it can be uploaded to mifik again."
         },
         "json": {
           "label": "JSON",
-          "hint": "For another program: every record exactly as fik stores it, with no detail lost."
+          "hint": "For another program: every record exactly as mifik stores it, with no detail lost."
         }
       },
       "download": "Download",
@@ -2816,13 +2816,13 @@
     "EMAIL_NOT_FOUND": "That email is not in your list.",
     "EMAIL_PRIMARY_NOT_DELETABLE": "You cannot delete your main email.",
     "STEP_UP_REQUIRED": "Confirm it’s you to make this change.",
-    "NETWORK_ERROR": "fik isn’t responding right now. Please try again in a few minutes.",
+    "NETWORK_ERROR": "mifik isn’t responding right now. Please try again in a few minutes.",
     "OFFLINE": "You’re offline. Check your Wi-Fi or mobile data and try again.",
     "DEBT_PAYMENT_EXCEEDS_PENDING": "The amount is more than what's left to pay on this debt.",
     "DEBT_WRITTEN_OFF": "This debt was closed unpaid. Reinstate it to record payments.",
     "DEBT_NOT_WRITTEN_OFF": "This debt isn't closed unpaid.",
     "DEBT_TOTAL_BELOW_PAID": "The new amount is less than what's already been paid on this debt.",
-    "STATEMENT_PAYMENT_NOT_UNDOABLE": "This statement was imported as paid: it has no fik payment to undo.",
+    "STATEMENT_PAYMENT_NOT_UNDOABLE": "This statement was imported as paid: it has no mifik payment to undo.",
     "PAYMENT_CARRY_OVER_SETTLED": "It can't be undone: what this payment left owing was already paid in the next statement. Undo that payment first.",
     "CUSTOM_FIELD_NOT_FOUND": "That column doesn’t exist.",
     "CUSTOM_FIELD_NAME_TAKEN": "You already have a column with that name.",
@@ -3204,8 +3204,8 @@
   },
   "releaseNotes": {
     "title": "What's new",
-    "lead": "What changed in fik in each version, newest first.",
-    "since": "fik opened on October 10, 2026 (v1.0). We have recorded every change since v1.1.",
+    "lead": "What changed in mifik in each version, newest first.",
+    "since": "mifik opened on October 10, 2026 (v1.0). We have recorded every change since v1.1.",
     "empty": "No updates recorded yet.",
     "loadError": "We couldn't load the updates.",
     "kinds": {

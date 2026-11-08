@@ -2,11 +2,11 @@
 
 _This is a translation for convenience. The [Spanish version](/es/privacy-policy/) is the one that legally applies._
 
-This policy explains what personal data _fik_ processes, why, who it shares it with, how long it keeps it and how you exercise your rights, under Chilean Laws 19.628 and 21.719 on personal data protection.
+This policy explains what personal data _mifik_ processes, why, who it shares it with, how long it keeps it and how you exercise your rights, under Chilean Laws 19.628 and 21.719 on personal data protection.
 
 ## 1. Data controller
 
-_fik_ is an early-stage project with no incorporated company, run by **Simón Sáez** as an individual, **RUT 20.640.480-9**, domiciled in La Florida, Santiago, Chile.
+_mifik_ is an early-stage project with no incorporated company, run by **Simón Sáez** as an individual, **RUT 20.640.480-9**, domiciled in La Florida, Santiago, Chile.
 
 Contact for anything about your personal data: **contacto@mifik.cl**.
 
@@ -20,7 +20,7 @@ If a company is incorporated later, this policy will be updated with its legal n
 - **Emails:** whether you opened the emails we send you (see section 4).
 - **Visits to the public site** (mifik.cl, not the app): aggregated statistics of which pages are visited, which site you came from, country, device and browser type, and how fast the page loaded. They use no cookies and cannot identify you (see section 4).
 
-**We process sensitive data.** Under article 2(g) of Law 21.719, a person's **socioeconomic situation** is sensitive personal data, and that is exactly what you record in _fik_. That is why we ask for your **express consent**, separate from everything else, to process your financial data.
+**We process sensitive data.** Under article 2(g) of Law 21.719, a person's **socioeconomic situation** is sensitive personal data, and that is exactly what you record in _mifik_. That is why we ask for your **express consent**, separate from everything else, to process your financial data.
 
 **Minors:** when you sign up we ask for your date of birth. If you are under 18, signing up requires the authorization of your mother, father or guardian (name, RUT and relationship), which we keep as a separate consent. The guardian's RUT is stored only as an irreversible encrypted code, never in plain text. This authorization is declarative: we do not verify identity documents.
 
@@ -39,7 +39,7 @@ If a company is incorporated later, this policy will be updated with its legal n
 
 ## 4. Who we share your data with
 
-To work, _fik_ uses providers that process your data **on our behalf**: they may only use it to provide their service to us, never for their own purposes. **All of them are outside Chile**, so using _fik_ means your data is transferred abroad:
+To work, _mifik_ uses providers that process your data **on our behalf**: they may only use it to provide their service to us, never for their own purposes. **All of them are outside Chile**, so using _mifik_ means your data is transferred abroad:
 
 | Provider                      | What for                                                            | Where                                  | Which data                                                                                                                                                                             |
 | ----------------------------- | ------------------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -78,7 +78,7 @@ You can ask for **access, rectification, erasure, objection, portability and blo
 
 - **In the app:**
   - correct your personal details (Profile → Personal information);
-  - **download a copy of all your data** (Profile → Data and privacy → Download my data), in the format you choose: an **Excel** spreadsheet you can also import into _fik_ again, or a **JSON** file to take it to another program. It includes your profile details, emails, consents, sessions, passkeys and remembered devices, and your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments. It doesn't include your password or the secrets of your sign-in methods, which never leave our servers;
+  - **download a copy of all your data** (Profile → Data and privacy → Download my data), in the format you choose: an **Excel** spreadsheet you can also import into _mifik_ again, or a **JSON** file to take it to another program. It includes your profile details, emails, consents, sessions, passkeys and remembered devices, and your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments. It doesn't include your password or the secrets of your sign-in methods, which never leave our servers;
   - delete your account (section 5).
 - **By email, to contacto@mifik.cl:** any other request.
 
@@ -86,7 +86,7 @@ We answer within **30 calendar days**, which may be extended once by another 30.
 
 ## 7. Automated decisions
 
-We do **not** make automated decisions that produce legal or similarly significant effects on you. _fik_ does not score your credit or approve or reject anything about your financial situation: it only organizes and shows the information you enter.
+We do **not** make automated decisions that produce legal or similarly significant effects on you. _mifik_ does not score your credit or approve or reject anything about your financial situation: it only organizes and shows the information you enter.
 
 ## 8. Where the data comes from
 

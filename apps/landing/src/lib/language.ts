@@ -59,9 +59,12 @@ const SLUG: Record<Exclude<Page, LocalizedPage>, string> = {
   ai: "ai",
 };
 
-/** `/es/`, `/en/pricing/` — always prefixed by the language and ending with a slash (the static
- * output is one folder per page, so that IS the address a host serves). */
+/** `/`, `/en/`, `/es/pricing/` — prefixed by the language and ending with a slash (the static
+ * output is one folder per page, so that IS the address a host serves). The Spanish home is the
+ * root itself: the domain's home page must be a real page (not a redirect) for search engines to
+ * read the site's name and show it with its sections; `/es/` is a permanent redirect to it. */
 export function pagePath(lang: Language, page: Page): string {
+  if (page === "home" && lang === DEFAULT_LANGUAGE) return "/";
   const slug = slugOf(page, lang);
   return slug ? `/${lang}/${slug}/` : `/${lang}/`;
 }
@@ -74,15 +77,10 @@ export function isLanguage(value: unknown): value is Language {
   return typeof value === "string" && (LANGUAGES as readonly string[]).includes(value);
 }
 
-/** The language the root `/` sends a visitor to: English when the browser's FIRST preference is
- * English, Spanish otherwise (the site's default market is Chile). */
-export function pickLanguage(preferred: readonly string[] | undefined): Language {
-  const first = preferred?.[0]?.toLowerCase() ?? "";
-  return first.startsWith("en") ? "en" : DEFAULT_LANGUAGE;
-}
-
-/** The Spanish addresses the site had before specs/031, each kept as a permanent redirect. */
+/** Addresses the site had before, each kept as a permanent redirect: the Spanish ones from before
+ * specs/031, and `/es/`, the Spanish home until it moved to the root. */
 export const LEGACY_REDIRECTS: Record<string, string> = {
+  "/es": pagePath("es", "home"),
   "/precios": pagePath("es", "pricing"),
   "/nosotros": pagePath("es", "about"),
   "/privacidad": pagePath("es", "privacy"),

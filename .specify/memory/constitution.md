@@ -1,4 +1,9 @@
 <!--
+Sync Impact Report — 2026-11-07 (amendment 2.11.1)
+- Version change: 2.11.0 → 2.11.1 (PATCH: product rename "fik" → "mifik", matching the domain;
+  the public site's Spanish home is served at the root `/` instead of a 302 by language, `/es/` is
+  a 301 to it and the Cloudflare Pages Function is gone; no principle text changed).
+
 Sync Impact Report — 2026-11-05 (amendment 2.11.0)
 - Version change: 2.10.0 → 2.11.0 (MINOR: a table is added; no principle text changes meaning).
 - AMENDED Principle VI title and Principle VIII: 37 → 38 tables — `authenticator-model` (specs/041):
@@ -2416,4 +2421,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.11.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-05
+**Version**: 2.11.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-07

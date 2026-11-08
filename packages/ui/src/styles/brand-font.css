@@ -1,12 +1,12 @@
 /*
- * Caveat Brush, ONLY for the logo's handwritten "fik" (BrandLogo). The full Latin file weighed
- * 67 KB, the heaviest download of the landing, to draw three letters; this one is subset to "f",
- * "i", "k" and their contextual alternates (5.5 KB), so the logo renders exactly as before. Any
+ * Caveat Brush, ONLY for the logo's handwritten "mifik" (BrandLogo). The full Latin file weighed
+ * 67 KB, the heaviest download of the landing, to draw a few letters; this one is subset to "m",
+ * "i", "f", "k" and their contextual alternates (6.5 KB), so the logo renders exactly as with the full file. Any
  * other text in this family would fall back to `cursive`: don't use it for running text.
  * Regenerate after changing the logo's text:
- *   python -m fontTools.subset apps/landing/scripts/fonts/CaveatBrush-Regular.ttf --text="fik" \
+ *   python -m fontTools.subset apps/landing/scripts/fonts/CaveatBrush-Regular.ttf --text="mifik" \
  *     --flavor=woff2 --layout-features='*' \
- *     --output-file=packages/ui/src/styles/fonts/caveat-brush-fik.woff2
+ *     --output-file=packages/ui/src/styles/fonts/caveat-brush-mifik.woff2
  * SIL Open Font License 1.1 (no Reserved Font Name): fonts/CaveatBrush-OFL.txt.
  */
 @font-face {
@@ -14,5 +14,5 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./fonts/caveat-brush-fik.woff2") format("woff2");
+  src: url("./fonts/caveat-brush-mifik.woff2") format("woff2");
 }

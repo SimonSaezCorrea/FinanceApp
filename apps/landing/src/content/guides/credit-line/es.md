@@ -63,9 +63,9 @@ Si esa misma compra de $200.000 la hubieras hecho con tarjeta de crédito, iría
 
 La línea de crédito tiene un monto máximo, un plazo y un interés pactados en tu contrato. Cualquier aumento del monto necesita tu consentimiento.
 
-## Cómo lo haces en _fik_
+## Cómo lo haces en _mifik_
 
-En _fik_ la línea de crédito es parte de tu cuenta corriente y la tarjeta de crédito es su propia cuenta:
+En _mifik_ la línea de crédito es parte de tu cuenta corriente y la tarjeta de crédito es su propia cuenta:
 
 1. **Registra tu línea:** al crear tu cuenta corriente en **Cuentas**, abre **Más detalles** y escribe el monto de tu **Línea de sobregiro**. También puedes agregarla después, editando la cuenta. El saldo podrá bajar de cero hasta ese monto, y un gasto que lo pase se rechaza, como en el banco.
 2. **Registra tus movimientos:** cuando el saldo queda en negativo, estás usando la línea. Cada ingreso que registres lo acerca de nuevo a cero, igual que el pago automático.

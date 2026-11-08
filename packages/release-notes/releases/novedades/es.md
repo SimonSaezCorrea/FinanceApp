@@ -1,6 +1,6 @@
 ---
 title: Novedades
-summary: Ahora cada actualización de fik queda registrada por versión y puedes ver qué cambió.
+summary: Ahora cada actualización de mifik queda registrada por versión y puedes ver qué cambió.
 commits:
   - 35e2d6a5
   - c37c257b
@@ -11,7 +11,7 @@ commits:
 
 ## Nuevo
 
-- **Novedades**: una página que cuenta qué cambió en fik en cada versión, en
+- **Novedades**: una página que cuenta qué cambió en mifik en cada versión, en
   [mifik.cl/es/novedades](https://mifik.cl/es/novedades/) y dentro de la app.
 - Cada versión reúne todo lo que se publicó el mismo día, con un resumen al inicio de lo que trae.
   Las versiones anteriores siguen disponibles, una a la vez.

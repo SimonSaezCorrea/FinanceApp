@@ -1,4 +1,4 @@
-// Generates the social preview images (public/og/fik-{es,en}.png, 1200×630) — run once with
+// Generates the social preview images (public/og/mifik-{es,en}.png, 1200×630) — run once with
 // `node scripts/og.mjs` and commit the result (spec 031, research R11). The cordillera comes from
 // the home hero's own geometry (src/domains/landing/lib/ridgeGeometry.ts), read as text so there
 // is one source; the colors are the dark theme's --ridge-* / --logo-* tokens.
@@ -17,7 +17,7 @@ const constant = (name) => {
 };
 const RIDGE = constant("RIDGE_LINE");
 const FAR = constant("FAR_RANGE");
-// The logo (packages/ui brand-logo.tsx, "Cuaderno"): the Andes sketched above "fik" at 112px.
+// The logo (packages/ui brand-logo.tsx, "Cuaderno"): the Andes sketched above "mifik" at 112px.
 const ANDES = [
   [0, 0],
   [0.07, 0.34],
@@ -33,7 +33,7 @@ const ANDES = [
   [0.89, 0.37],
   [1, 0],
 ];
-const PEAKS = ANDES.map(([f, k]) => [-6 + 120 * f, -84 - 48 * k]);
+const PEAKS = ANDES.map(([f, k]) => [-1 + 210 * f, -84 - 62 * k]);
 const LOGO_RIDGE = PEAKS.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 const LOGO_SNOW = ANDES.flatMap(([, k], i) => {
   if (k < 0.5 || i === 0 || i === ANDES.length - 1) return [];
@@ -83,7 +83,7 @@ function svg({ slogan, lead }) {
       <polyline points="${LOGO_RIDGE}" stroke-width="4"/>
       <path d="${LOGO_SNOW}" stroke-width="2"/>
     </g>
-    <text x="0" y="0" font-family="Caveat Brush" font-size="112" fill="#e6eeee">fik</text>
+    <text x="0" y="0" font-family="Caveat Brush" font-size="112" fill="#e6eeee">mifik</text>
   </g>
   <g font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif">
     <text x="84" y="214" font-size="40" font-weight="600" fill="#6fd0c8">${escape(slogan)}</text>
@@ -103,16 +103,16 @@ for (const [lang, copy] of Object.entries(COPY)) {
   })
     .render()
     .asPng();
-  writeFileSync(join(outDir, `fik-${lang}.png`), png);
-  console.log(`og/fik-${lang}.png ${png.length} bytes`);
+  writeFileSync(join(outDir, `mifik-${lang}.png`), png);
+  console.log(`og/mifik-${lang}.png ${png.length} bytes`);
 }
 
 // The logo at the top of every email (specs/032): the same drawing, light palette (most inboxes
-// are white), transparent background, 2x the 120px it is shown at. It travels INSIDE each email as
+// are white), transparent background, 2x the 160px it is shown at. It travels INSIDE each email as
 // an inline image (cid:), so it shows in any inbox without fetching it from the site — written as a
 // base64 module of the API, which attaches it.
 const emailLogoModule = join(root, "../api/src/infra/email/templates/logo.generated.ts");
-const emailLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="270" viewBox="-10 -138 128 144">
+const emailLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="232" viewBox="-5 -152 218 158">
   <defs>
     <filter id="pencil" x="-5%" y="-5%" width="110%" height="110%">
       <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="3" result="n"/>
@@ -123,7 +123,7 @@ const emailLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="2
     <polyline points="${LOGO_RIDGE}" stroke-width="4"/>
     <path d="${LOGO_SNOW}" stroke-width="2"/>
   </g>
-  <text x="0" y="0" font-family="Caveat Brush" font-size="112" fill="#0e1f22">fik</text>
+  <text x="0" y="0" font-family="Caveat Brush" font-size="112" fill="#0e1f22">mifik</text>
 </svg>`;
 const logoPng = new Resvg(emailLogo, {
   font: {
@@ -147,8 +147,8 @@ console.log(
 // The square logo search engines read from the home's Organization JSON-LD (`logo`): Google wants
 // a raster image at least 112px square, so the same drawing goes centred on white (where results
 // show it), 512×512 → public/logo.png.
-const squareLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="-46 -166 200 200">
-  <rect x="-46" y="-166" width="200" height="200" fill="#ffffff"/>
+const squareLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="-26 -203 260 260">
+  <rect x="-26" y="-203" width="260" height="260" fill="#ffffff"/>
   ${emailLogo.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}
 </svg>`;
 const squarePng = new Resvg(squareLogo, {

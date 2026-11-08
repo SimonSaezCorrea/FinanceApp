@@ -4,10 +4,11 @@
  */
 
 /**
- * Other names the brand goes by: "fik" alone collides with unrelated brands in search, so the
- * structured data also lists the domain's name and the descriptive ones (es/en).
+ * Other names the brand goes by: "fik", what it was called until 2026-11-07 (renamed "mifik", the
+ * domain's own name, because "fik" alone collided with unrelated brands in search), and the
+ * descriptive ones (es/en).
  */
-export const BRAND_NAMES: readonly string[] = ["mifik", "fik finanzas", "fik finance"];
+export const BRAND_NAMES: readonly string[] = ["fik", "mifik finanzas", "mifik finance"];
 
 /** The address every person writes to (also in the privacy policy and security.txt). */
 export const CONTACT_EMAIL = "contacto@mifik.cl";

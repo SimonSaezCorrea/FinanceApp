@@ -1,0 +1,37 @@
+---
+/**
+ * The home page in one language. Spanish is served at the root `/` (the domain's home must be a
+ * real page for search engines to read the site's name), English at `/en/`.
+ */
+import { islandJson, ratesIsland } from "../../rates/lib/island";
+import PageLayout from "../../../layouts/PageLayout.astro";
+import { buildRatesSnapshot } from "../../../lib/exchangeRates";
+import { type Language, pagePath } from "../../../lib/language";
+import { LandingPage } from "../pages/LandingPage";
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+// The "UF y dólar hoy" block (spec 033, FR-013): values of the build, refreshed on arrival.
+const snapshot = await buildRatesSnapshot();
+const island = ratesIsland(lang, snapshot);
+// The home only needs the newest rows (and the one before, never shown): keep the island small.
+island.rows = snapshot ? [snapshot.latest.USD, snapshot.latest.CLF].filter((r) => r !== null) : [];
+const homeRates = {
+  lang,
+  latest: snapshot?.latest ?? { USD: null, CLF: null },
+  links: { CLF: pagePath(lang, "ufValue"), USD: pagePath(lang, "dollarRate") },
+};
+---
+
+<PageLayout lang={lang} page="home">
+  <LandingPage lang={lang} page="home" homeRates={homeRates} />
+  <script type="application/json" id="rates-data" set:html={islandJson(island)} />
+</PageLayout>
+
+<script>
+  import { initRatesHome } from "../../rates/scripts/rates";
+
+  initRatesHome();
+</script>

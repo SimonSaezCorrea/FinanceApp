@@ -38,7 +38,7 @@ export class ResendEmailSender implements EmailSenderPort {
         // The layout's logo travels inside the email (`cid:`), not as a link to the site.
         attachments: [
           {
-            filename: "fik.png",
+            filename: "mifik.png",
             content: EMAIL_LOGO_PNG_BASE64,
             content_type: "image/png",
             content_id: EMAIL_LOGO_CONTENT_ID,

@@ -74,9 +74,9 @@ If you want the purchase to stay interest-free, pay the full billed amount every
 - **Check the limit you have left:** the full purchase stays in use until you pay the last instalment.
 - **Check the conditions:** the number of interest-free instalments and any fee depend on the promotion and on your bank.
 
-## How to do it in _fik_
+## How to do it in _mifik_
 
-In _fik_ a credit card instalment purchase works as it does at your bank: it takes the full amount off the limit and each statement charges the instalment that falls in it.
+In _mifik_ a credit card instalment purchase works as it does at your bank: it takes the full amount off the limit and each statement charges the instalment that falls in it.
 
 1. **Create the plan:** under **Installments**, tap **New plan**. Enter the total amount, the number of instalments and the date of the first one, pick the card in **Payment card** and leave **Interest per period** at 0.
 2. **Check your limit:** from that day, the card's used limit includes the whole purchase.

@@ -1,12 +1,12 @@
 import { Fragment, type ReactNode } from "react";
 
 /**
- * The product name written as a word (not the logo) always goes in italics: "fik". Catalog
+ * The product name written as a word (not the logo) always goes in italics: "mifik". Catalog
  * strings keep the plain word — they also feed places with no formatting (tab titles, meta, alt
  * text, email subjects, spreadsheet cells) — and this puts it in italics where it is shown.
- * Matches the whole word only, so "mifik.cl" or an address stays as it is.
+ * Matches the word alone, so the domain ("mifik.cl"), an address or a URL stays as it is.
  */
-const BRAND_WORD = /\bfik\b/g;
+const BRAND_WORD = /(?<![\w@./-])mifik(?![\w-]|\.\w)/g;
 
 export function withBrand(text: string): ReactNode {
   if (!BRAND_WORD.test(text)) return text;
@@ -16,7 +16,7 @@ export function withBrand(text: string): ReactNode {
   for (const match of text.matchAll(BRAND_WORD)) {
     const at = match.index ?? 0;
     if (at > last) parts.push(text.slice(last, at));
-    parts.push(<i key={at}>fik</i>);
+    parts.push(<i key={at}>mifik</i>);
     last = at + match[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
@@ -31,5 +31,5 @@ export function brandHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-  return escaped.replace(BRAND_WORD, "<i>fik</i>");
+  return escaped.replace(BRAND_WORD, "<i>mifik</i>");
 }

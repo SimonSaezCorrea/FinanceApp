@@ -20,8 +20,10 @@ const PAGES = [
 ] as const;
 const LANGS = ["es", "en"] as const;
 
+/** The Spanish home is the root itself (`/`); every other page lives under its language. */
+const dirOf = (lang: string, slug: string) => (lang === "es" && !slug ? "" : join(lang, slug));
 const htmlOf = (lang: string, slug: string) =>
-  readFileSync(join(DIST, lang, slug, "index.html"), "utf8");
+  readFileSync(join(DIST, dirOf(lang, slug), "index.html"), "utf8");
 const attr = (html: string, pattern: RegExp) => html.match(pattern)?.[1] ?? null;
 const title = (html: string) => attr(html, /<title>([^<]*)<\/title>/);
 const description = (html: string) => attr(html, /<meta name="description" content="([^"]*)"/);
@@ -36,7 +38,9 @@ describe("public site build", () => {
       const path = `/${lang}/${slug}`;
       describe(path, () => {
         const html = htmlOf(lang, slug);
-        const canonical = slug ? `${SITE}/${lang}/${slug}/` : `${SITE}/${lang}/`;
+        const canonical = slug
+          ? `${SITE}/${lang}/${slug}/`
+          : `${SITE}${lang === "es" ? "" : `/${lang}`}/`;
 
         it("declares its language, title and description", () => {
           expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
@@ -52,7 +56,9 @@ describe("public site build", () => {
         });
 
         it("has a preview for social networks", () => {
-          expect(html).toContain(`<meta property="og:image" content="${SITE}/og/fik-${lang}.png"`);
+          expect(html).toContain(
+            `<meta property="og:image" content="${SITE}/og/mifik-${lang}.png"`,
+          );
           expect(html).toMatch(/<meta property="og:locale" content="(es_CL|en_US)"/);
           expect(html).toContain('<meta name="twitter:card" content="summary_large_image"');
         });
@@ -78,7 +84,7 @@ describe("public site build", () => {
   }
 
   it("never repeats a title within a language, nor a description across the ten pages", () => {
-    // The home says the brand and what it is for its market ("fik · Finanzas personales en Chile").
+    // The home says the brand and what it is for its market ("mifik · Finanzas personales en Chile").
     for (const lang of LANGS) {
       const titles = PAGES.map(({ slug }) => title(htmlOf(lang, slug)));
       expect(new Set(titles).size).toBe(titles.length);
@@ -96,30 +102,32 @@ describe("public site build", () => {
     }
   });
 
-  // Brand searches ("fik", "mifik"): the home pages say what the site is called.
+  // Brand searches ("mifik", formerly "fik"): the home pages say what the site is called.
   for (const lang of LANGS) {
     it(`/${lang}/ declares the site name for search engines`, () => {
       const json = attr(htmlOf(lang, ""), /<script type="application\/ld\+json">([^<]*)<\/script>/);
       expect(json).toBeTruthy();
       const data = JSON.parse(json ?? "[]") as { "@type": string; name: string; url: string }[];
       const site = data.find((d) => d["@type"] === "WebSite");
-      expect(site?.name).toBe("fik");
+      expect(site?.name).toBe("mifik");
       expect(site?.url).toBe(`${SITE}/`);
     });
 
-    // "fik" alone collides with other brands in search: the home names the domain and the market,
+    // The brand alone collides with other brands in search: the home names the market,
     // and the structured data lists the longer names people may search for.
     it(`/${lang}/ is titled for its market and lists the brand's longer names`, () => {
       const html = htmlOf(lang, "");
       expect(title(html)).toBe(
-        lang === "es" ? "fik · Finanzas personales en Chile" : "fik · Personal finance in Chile",
+        lang === "es"
+          ? "mifik · Finanzas personales en Chile"
+          : "mifik · Personal finance in Chile",
       );
       const data = JSON.parse(
         attr(html, /<script type="application\/ld\+json">([^<]*)<\/script>/) ?? "[]",
       ) as { "@type": string; alternateName: string | string[] }[];
       for (const type of ["WebSite", "Organization"]) {
         const names = [data.find((d) => d["@type"] === type)?.alternateName].flat();
-        expect(names).toEqual(expect.arrayContaining(["mifik", "fik finanzas", "fik finance"]));
+        expect(names).toEqual(expect.arrayContaining(["fik", "mifik finanzas", "mifik finance"]));
       }
     });
 
@@ -252,19 +260,12 @@ describe("public site build", () => {
 
   it("publishes llms.txt with every listed page and guide, linked from the footer", () => {
     const llms = readFileSync(join(DIST, "llms.txt"), "utf8");
-    expect(llms.startsWith("# fik\n\n> ")).toBe(true);
-    for (const path of [
-      "/es/",
-      "/en/",
-      "/es/pricing/",
-      "/en/faq/",
-      "/es/valor-uf/",
-      "/en/guides/",
-    ]) {
+    expect(llms.startsWith("# mifik\n\n> ")).toBe(true);
+    for (const path of ["/", "/en/", "/es/pricing/", "/en/faq/", "/es/valor-uf/", "/en/guides/"]) {
       expect(llms).toContain(`(${SITE}${path})`);
     }
     expect(llms).not.toContain("verify-email");
-    expect(llms).not.toContain(" · fik](");
+    expect(llms).not.toContain(" · mifik](");
     for (const lang of LANGS) {
       // The footer goes to the page people read; that page shows the same text and links the file.
       expect(htmlOf(lang, "")).toContain(`href="/${lang}/ai/"`);
@@ -300,11 +301,15 @@ describe("public site build", () => {
     for (const lang of LANGS) {
       for (const { slug } of PAGES) {
         expect(xml).toContain(
-          slug ? `<loc>${SITE}/${lang}/${slug}/</loc>` : `<loc>${SITE}/${lang}/</loc>`,
+          `<loc>${SITE}/${[lang, slug].filter(Boolean).join("/")}/</loc>`.replace(
+            `${SITE}/es/</loc>`,
+            `${SITE}/</loc>`,
+          ),
         );
       }
     }
     expect(xml).not.toContain(`${SITE}/precios`);
+    expect(xml).not.toContain(`<loc>${SITE}/es/</loc>`);
     expect(xml).not.toContain("verify-email");
     expect(xml).not.toContain("reset-password");
   });
@@ -316,7 +321,7 @@ describe("public site build", () => {
         const html = htmlOf(lang, slug);
         expect(html).toContain(`<meta name="robots" content="noindex"`);
         expect(html).not.toContain(`rel="canonical"`);
-        expect(title(html)).toMatch(/· fik$/);
+        expect(title(html)).toMatch(/· mifik$/);
         expect(html).toContain("data-state=");
         expect(html).toContain(`<meta name="referrer" content="no-referrer"`);
         // Visit statistics never run where the address carries a one-time token.
@@ -353,7 +358,7 @@ describe("public site build", () => {
 
           it("has its own title, description, canonical without a query, and its real pair", () => {
             expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
-            expect(title(html)).toMatch(/· fik$/);
+            expect(title(html)).toMatch(/· mifik$/);
             expect(description(html)).toBeTruthy();
             expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${slug}/"`);
             expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${p[other]}/"`);
@@ -478,7 +483,7 @@ describe("public site build", () => {
 
         it("has its own title, description, canonical and its pair (FR-002, FR-011)", () => {
           expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
-          expect(title(html)).toMatch(/· fik$/);
+          expect(title(html)).toMatch(/· mifik$/);
           expect(description(html)?.length).toBeGreaterThan(40);
           expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${GUIDE[lang]}/"`);
           expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${GUIDE[other]}/"`);
@@ -508,7 +513,7 @@ describe("public site build", () => {
           expect(html).toMatch(/data-guide-sources[\s\S]*?<a href="https:\/\//);
           expect(html).toMatch(/data-guide-notice/);
           // The brand is italic in running text (CLAUDE.md conventions): "fik" may be wrapped in <em>.
-          expect(html).toMatch(/<h2 id="[^"]+">(Cómo lo haces en|How to do it in) (<em>)?fik/);
+          expect(html).toMatch(/<h2 id="[^"]+">(Cómo lo haces en|How to do it in) (<em>)?mifik/);
           expect(html).toMatch(
             /data-access-slot[^>]*>\s*<a href="\?acceso=registro" data-access="registro"[\s\S]*?<template data-app-template>/,
           );
@@ -594,9 +599,10 @@ describe("public site build", () => {
     });
   });
 
-  it("redirects the root and the old addresses", () => {
-    expect(readFileSync(join(DIST, "index.html"), "utf8")).toMatch(
-      /http-equiv="refresh"[^>]*\/es\//,
+  it("serves the Spanish home at the root and redirects the old addresses", () => {
+    expect(readFileSync(join(DIST, "index.html"), "utf8")).not.toContain('http-equiv="refresh"');
+    expect(readFileSync(join(DIST, "es", "index.html"), "utf8")).toMatch(
+      /http-equiv="refresh" content="0;url=\/"/,
     );
     expect(readFileSync(join(DIST, "precios", "index.html"), "utf8")).toContain("/es/pricing/");
   });

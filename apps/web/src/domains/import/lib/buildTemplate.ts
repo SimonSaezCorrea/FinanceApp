@@ -125,7 +125,7 @@ export async function buildTemplate(input: {
   const { refs, t, locale, existing, extraSheets } = input;
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "fik";
+  workbook.creator = "mifik";
 
   // Instructions first: it's what opens.
   const help = workbook.addWorksheet(t(sheetNameKey(INSTRUCTIONS_KEY)));

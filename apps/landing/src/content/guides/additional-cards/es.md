@@ -58,9 +58,9 @@ Además, exige que el estado de cuenta indique en cada compra si la hizo el titu
 - **Costos:** algunas tarjetas cobran comisión por cada adicional. Está en tu contrato y en la hoja resumen.
 - **Tope:** si tu banco lo permite, fija uno desde el principio, para que un gasto grande no te deje sin cupo.
 
-## Cómo lo haces en _fik_
+## Cómo lo haces en _mifik_
 
-En _fik_ las tarjetas de una cuenta comparten el cupo igual que en el banco, y puedes ver cuánto gastó cada una:
+En _mifik_ las tarjetas de una cuenta comparten el cupo igual que en el banco, y puedes ver cuánto gastó cada una:
 
 1. **Registra tu tarjeta:** crea tu tarjeta de crédito en **Cuentas** con el cupo total que te aprobó el banco. Esa primera tarjeta queda como principal por sí sola, y su cupo es el de la cuenta.
 2. **Agrega la adicional:** en la misma cuenta, usa **Añadir tarjeta**, marca **Tarjeta adicional** y escribe el nombre de quien la usa en **Titular de la tarjeta**.

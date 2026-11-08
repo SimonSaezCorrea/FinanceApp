@@ -9,9 +9,9 @@ commits:
 
 - **Política de privacidad dentro de la app**: en Perfil → Datos y privacidad la abres sin ir al
   sitio público. Es el mismo texto publicado en mifik.cl.
-- **Ir a mifik.cl sin cerrar sesión**: "Sitio de _fik_", bajo Novedades (en el teléfono, en "Más"),
-  abre el sitio público en una pestaña nueva y tu sesión sigue abierta.
+- **Salir sin cerrar sesión**: el botón "Salir" ahora te pregunta qué quieres hacer: ir al sitio
+  público en una pestaña nueva, con tu sesión abierta, o cerrar sesión.
 
 ## Cambios
 
-- **El logo te lleva al Panel**: toca el logo de _fik_ desde cualquier sección para volver al Panel.
+- **El logo te lleva al Panel**: toca el logo de _mifik_ desde cualquier sección para volver al Panel.

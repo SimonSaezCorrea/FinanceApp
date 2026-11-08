@@ -56,9 +56,9 @@ const structuredData = JSON.stringify([
       jobTitle: t(lang, "landing.about.author.role"),
       url: `${site}${pagePath(lang, "about")}#author`,
       sameAs: FOUNDER.profiles,
-      worksFor: { "@type": "Organization", name: "fik", url: `${site}/` },
+      worksFor: { "@type": "Organization", name: "mifik", url: `${site}/` },
     },
-    publisher: { "@type": "Organization", name: "fik", url: `${site}/`, logo: `${site}/favicon.svg` },
+    publisher: { "@type": "Organization", name: "mifik", url: `${site}/`, logo: `${site}/favicon.svg` },
     mainEntityOfPage: url,
     citation: guide.sources.map((s) => s.url),
   },
@@ -66,7 +66,7 @@ const structuredData = JSON.stringify([
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "fik", item: `${site}${pagePath(lang, "home")}` },
+      { "@type": "ListItem", position: 1, name: "mifik", item: `${site}${pagePath(lang, "home")}` },
       { "@type": "ListItem", position: 2, name: t(lang, "landing.guides.breadcrumb"), item: `${site}${indexPath}` },
       { "@type": "ListItem", position: 3, name: guide.title, item: url },
     ],
@@ -78,7 +78,7 @@ const structuredData = JSON.stringify([
   lang={lang}
   page="guides"
   paths={paths}
-  title={`${guide.title} · fik`}
+  title={`${guide.title} · mifik`}
   description={guide.description}
 >
   <script slot="head" type="application/ld+json" set:html={structuredData} />

@@ -267,7 +267,7 @@ console.log(
 function viewer(data: string): string {
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>fik · correos</title>
+<title>mifik · correos</title>
 <style>
 :root{--bg:#0b1518;--side:#0f1e21;--line:#1e2e32;--text:#e6eeee;--muted:#8aa0a2;--brand:#6fb3b8;--chip:#1a2b30}
 *{box-sizing:border-box}
@@ -308,7 +308,7 @@ pre{margin:0;padding:20px;white-space:pre-wrap;font:13px/1.55 ui-monospace,Conso
 </style></head>
 <body>
 <aside>
-  <h1>Correos de fik</h1>
+  <h1>Correos de mifik</h1>
   <p>Vista previa local · no envía nada</p>
   <div id="list"></div>
 </aside>
@@ -391,7 +391,7 @@ function render() {
   box.className = "mail" + (state.width === "mobile" ? " mobile" : "");
   const subject = clean ? esc(mail.subject) : markText(mail.subject, variables, values);
   const to = clean ? "ana@ejemplo.cl" : chip("address", variables, values && { address: "ana@ejemplo.cl" });
-  box.innerHTML = '<div class="head"><b>' + subject + "</b><span>fik &lt;no-reply@mifik.cl&gt; → " + to + "</span></div>";
+  box.innerHTML = '<div class="head"><b>' + subject + "</b><span>mifik &lt;no-reply@mifik.cl&gt; → " + to + "</span></div>";
   if (state.view === "text") {
     const pre = document.createElement("pre");
     if (clean) pre.textContent = mail.text;

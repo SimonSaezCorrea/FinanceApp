@@ -58,9 +58,9 @@ It also requires the statement to show, for each purchase, whether the primary o
 - **Costs:** some cards charge a fee for each additional card. It is in your contract and in the summary sheet (hoja resumen).
 - **Cap:** if your bank allows it, set one from the start, so one large purchase does not use up your limit.
 
-## How to do it in _fik_
+## How to do it in _mifik_
 
-In _fik_ the cards of an account share the credit limit just like at the bank, and you can see how much each one spent:
+In _mifik_ the cards of an account share the credit limit just like at the bank, and you can see how much each one spent:
 
 1. **Add your card:** create your credit card under **Accounts** with the total limit your bank approved. That first card becomes the primary one on its own, and its limit is the account's.
 2. **Add the additional card:** on the same account, use **Add card**, turn on **Additional card** and type the name of the person who uses it in **Cardholder**.

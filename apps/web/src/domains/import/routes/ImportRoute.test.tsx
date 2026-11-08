@@ -64,7 +64,7 @@ describe("ImportRoute", () => {
   it("offers the fik template next to the statement importer's account list", async () => {
     renderRoute();
     // "fik" goes in italics (its own <i>): the heading's accessible name joins the text back.
-    expect(screen.getByRole("heading", { name: "Plantilla fik" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Plantilla mifik" })).toBeTruthy();
     // The statement importer still lists the accounts to import into.
     expect(await screen.findByText("BCI")).toBeTruthy();
   });

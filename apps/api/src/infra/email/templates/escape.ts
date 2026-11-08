@@ -13,10 +13,11 @@ export function escapeHtml(value: string): string {
 }
 
 /** Text shown in an email's HTML body: escaped, and the product name written as a word (not the
- * logo) in italics, as everywhere else ("fik"). Whole word only: "mifik.cl" stays as it is.
- * Subjects, the preheader and the plain-text version have no formatting and keep the plain word. */
+ * logo) in italics, as everywhere else ("mifik"). The word alone: the domain ("mifik.cl"), an
+ * address or a URL stays as it is. Subjects, the preheader and the plain-text version have no
+ * formatting and keep the plain word. */
 export function bodyHtml(value: string): string {
-  return escapeHtml(value).replace(/\bfik\b/g, "<i>fik</i>");
+  return escapeHtml(value).replace(/(?<![\w@./-])mifik(?![\w-]|\.\w)/g, "<i>mifik</i>");
 }
 
 /** Fills `{name}` placeholders. `escape` is on for HTML, off for the plain-text version. */

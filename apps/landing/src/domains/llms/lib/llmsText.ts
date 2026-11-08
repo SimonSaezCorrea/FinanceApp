@@ -32,19 +32,20 @@ export interface LlmsInput {
   rates: LlmsRate[];
 }
 
-/** What fik is, for a model that has never seen it. Facts only: nothing promised that isn't built. */
+/** What mifik is, for a model that has never seen it. Facts only: nothing promised that isn't built. */
 const SUMMARY =
-  "fik is a free personal finance web app for Chile. It tracks bank accounts, credit cards, " +
+  "mifik is a free personal finance web app for Chile. It tracks bank accounts, credit cards, " +
   "instalment purchases (cuotas), debts, fixed expenses and savings goals in Chilean pesos (CLP), " +
   "US dollars (USD) and UF (CLF), following the rules Chilean banks use.";
 
 const FACTS = [
+  "Name: mifik, at mifik.cl (called fik until November 2026).",
   "Market: Chile only. Currencies: CLP, USD and UF (CLF).",
   "Credit cards work like the bank's: one shared credit limit (cupo) across the account's cards, " +
     "statements (facturaciones) generated with the dates printed on the bank statement, " +
     "minimum payment, prepayments and instalment plans billed one instalment per statement.",
   "Movements are entered by hand or imported from a spreadsheet (.xlsx or .csv); " +
-    "fik does not connect to banks.",
+    "mifik does not connect to banks.",
   "Price: free, one plan, no ads and no sale of personal data.",
   "Sign-in: Chilean RUT and password, optionally a passkey and a TOTP second factor.",
   "Languages: Spanish (default) and English.",
@@ -56,7 +57,7 @@ const line = (link: LlmsLink) => `- [${link.title}](${link.url}): ${link.descrip
 
 export function llmsText(input: LlmsInput): string {
   const parts = [
-    "# fik",
+    "# mifik",
     `> ${SUMMARY}`,
     FACTS.map((fact) => `- ${fact}`).join("\n"),
     `The app itself is at ${input.appUrl} (requires an account; not meant to be crawled).`,

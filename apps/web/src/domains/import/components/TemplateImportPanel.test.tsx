@@ -211,7 +211,7 @@ describe("TemplateImportPanel", () => {
     renderPanel();
     upload();
     expect(
-      await screen.findByText(byText(/no es una plantilla de fik.*importador de cartolas/)),
+      await screen.findByText(byText(/no es una plantilla de mifik.*importador de cartolas/)),
     ).toBeTruthy();
   });
 
@@ -230,14 +230,14 @@ describe("TemplateImportPanel", () => {
       {
         sheet: "Cuentas",
         data: [
-          ["Nombre", "Tipo", "Moneda", "Número de cuenta", "Saldo inicial", "ID fik"],
+          ["Nombre", "Tipo", "Moneda", "Número de cuenta", "Saldo inicial", "ID mifik"],
           ["BCI", "Corriente", "CLP", "123", 1000, BCI],
         ],
       },
       {
         sheet: "Movimientos",
         data: [
-          ["Fecha", "Tipo", "Monto", "Cuenta", "ID fik"],
+          ["Fecha", "Tipo", "Monto", "Cuenta", "ID mifik"],
           ["28/11/2025", "Gasto", 15000, "BCI", "01890a5d-ac96-774b-bcce-b302099a8099"],
         ],
       },

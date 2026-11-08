@@ -64,7 +64,7 @@ ${paragraph(t.buttonFallback, 13, MUTED)}
 <span style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(input.preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${CARD};border:1px solid ${LINE};border-radius:14px">
-<tr><td style="padding:28px 32px 8px"><img src="${escapeHtml(logo)}" width="120" alt="fik" style="display:block;border:0;height:auto"></td></tr>
+<tr><td style="padding:28px 32px 8px"><img src="${escapeHtml(logo)}" width="160" alt="mifik" style="display:block;border:0;height:auto"></td></tr>
 <tr><td style="padding:8px 32px 8px">
 <h1 style="margin:0 0 16px;font:700 22px/1.3 ${FONT};color:${INK}">${bodyHtml(input.title)}</h1>
 ${input.paragraphs.map((p) => paragraph(p)).join("\n")}

@@ -33,9 +33,9 @@ describe("readEmailConfig", () => {
     }
   });
 
-  it("uses fik's sender, the contact address and the local site by default", () => {
+  it("uses mifik's sender, the contact address and the local site by default", () => {
     const c = readEmailConfig(config({}));
-    expect(c.from).toBe("fik <no-reply@mifik.cl>");
+    expect(c.from).toBe("mifik <no-reply@mifik.cl>");
     expect(c.replyTo).toBe("contacto@mifik.cl");
     expect(c.publicSiteUrl).toBe("http://localhost:4321");
   });

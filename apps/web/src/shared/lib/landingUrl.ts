@@ -22,9 +22,9 @@ export function landingAccessUrl(mode: AccessMode, returnTo?: string | null): st
   return `${LANDING_URL}/?${params.toString()}`;
 }
 
-/** The public site's home: its root picks the visitor's language, or `lang` names one (`/es/`). */
+/** The public site's home: the root is the Spanish one, `/en/` the English one. */
 export function landingHomeUrl(lang?: string): string {
-  return lang ? `${LANDING_URL}/${landingLanguage(lang)}/` : `${LANDING_URL}/`;
+  return lang && landingLanguage(lang) === "en" ? `${LANDING_URL}/en/` : `${LANDING_URL}/`;
 }
 
 /** The public site's privacy policy in that language (`/es/privacy-policy/`). */

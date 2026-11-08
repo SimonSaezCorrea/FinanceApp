@@ -14,14 +14,16 @@ import { guideSitemapPairs } from "./src/domains/guides/lib/sitemapPairs.mjs";
 // `site` is the canonical origin used for canonical/hreflang/og:url and the sitemap.
 const site = process.env.PUBLIC_SITE_URL ?? "http://localhost:4321";
 
-// Pages that only redirect: the root (picks the language) and the old Spanish addresses.
-const REDIRECT_PAGES = new Set(["/", "/precios/", "/nosotros/", "/privacidad/", "/preguntas/"]);
+// Pages that only redirect: the Spanish home's old address and the old Spanish addresses.
+const REDIRECT_PAGES = new Set(["/es/", "/precios/", "/nosotros/", "/privacidad/", "/preguntas/"]);
 
 // The indicator pages (spec 033) and the guides (spec 035) have a different slug per language; the
 // sitemap's i18n option pairs pages by swapping the language segment, so their alternates are
 // rewritten from this table. Same pages as LOCALIZED_SLUGS in src/lib/language.ts
 // (test/build.test.ts checks the sitemap).
 const LOCALIZED_PAIRS = [
+  // The Spanish home is the root (src/lib/language.ts's pagePath).
+  { es: "/", en: "/en/" },
   { es: "/es/valor-uf/", en: "/en/uf-value/" },
   { es: "/es/dolar-observado/", en: "/en/dollar-rate/" },
   { es: "/es/guias/", en: "/en/guides/" },

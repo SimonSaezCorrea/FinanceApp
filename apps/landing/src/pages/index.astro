@@ -1,6 +1,5 @@
 ---
-import RedirectLayout from "../layouts/RedirectLayout.astro";
-import { pagePath } from "../lib/language";
+import HomeView from "../domains/landing/components/HomeView.astro";
 ---
 
-<RedirectLayout target={pagePath("es", "home")} pickLanguage />
+<HomeView lang="es" />

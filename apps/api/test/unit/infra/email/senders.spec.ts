@@ -8,7 +8,7 @@ const email: OutgoingEmail = {
   kind: "verify-email",
   to: "simon@mifik.cl",
   locale: "es",
-  subject: "Confirma tu correo en fik",
+  subject: "Confirma tu correo en mifik",
   html: "<p>Hola</p>",
   text: "Confirmar: http://localhost:4321/es/verify-email/?token=abc",
 };
@@ -20,7 +20,7 @@ describe("ResendEmailSender", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve("") });
     vi.stubGlobal("fetch", fetchMock);
 
-    await new ResendEmailSender("re_key", "fik <no-reply@mifik.cl>", "contacto@mifik.cl").send(
+    await new ResendEmailSender("re_key", "mifik <no-reply@mifik.cl>", "contacto@mifik.cl").send(
       email,
     );
 
@@ -30,14 +30,14 @@ describe("ResendEmailSender", () => {
     expect(headers.Authorization).toBe("Bearer re_key");
     expect(headers["Idempotency-Key"]).toBe(email.id);
     expect(JSON.parse(init.body as string)).toMatchObject({
-      from: "fik <no-reply@mifik.cl>",
+      from: "mifik <no-reply@mifik.cl>",
       to: ["simon@mifik.cl"],
       reply_to: "contacto@mifik.cl",
       subject: email.subject,
       html: email.html,
       text: email.text,
       // The logo travels inside the email, referenced by the layout as cid:fik-logo.
-      attachments: [{ filename: "fik.png", content_type: "image/png", content_id: "fik-logo" }],
+      attachments: [{ filename: "mifik.png", content_type: "image/png", content_id: "fik-logo" }],
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });

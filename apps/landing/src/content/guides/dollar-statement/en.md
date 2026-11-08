@@ -67,13 +67,13 @@ The new regulation (Decreto 75) takes effect on February 6, 2028. It requires a 
 
 It also requires showing the exchange rate applied when a purchase abroad is charged straight to the peso limit, and fees for purchases abroad to be reported in the foreign currency.
 
-## How to do it in _fik_
+## How to do it in _mifik_
 
-In _fik_ your card keeps the peso limit and the dollar limit separately, just like your two statements:
+In _mifik_ your card keeps the peso limit and the dollar limit separately, just like your two statements:
 
 1. **Turn on the dollar:** in **Profile → Preferences → Currencies and amounts**, add USD under **Extra currencies**.
 2. **Add your international limit:** on your credit card, under **Limits in other currencies**, enter your dollar limit.
 3. **Record your dollar purchases:** record them with the card and in dollars. Under **Statements** you will see one tab per currency.
 4. **Generate the statement:** when you generate it with your statement's dates, the peso period and the dollar period close together.
-5. **Pay the dollar statement:** on the USD tab, use **Pay**. Enter what you paid in dollars and, if you paid in pesos, what left your account: _fik_ suggests it with the dólar observado of the payment day, but use your bank's real amount.
+5. **Pay the dollar statement:** on the USD tab, use **Pay**. Enter what you paid in dollars and, if you paid in pesos, what left your account: _mifik_ suggests it with the dólar observado of the payment day, but use your bank's real amount.
 6. **If your bank moved it to pesos:** use **Transfer to CLP** and enter the peso charge exactly as it appears on your statement. You can undo it while that peso statement is unpaid.

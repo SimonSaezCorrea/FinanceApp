@@ -63,9 +63,9 @@ Had you made that same $200,000 CLP purchase with a credit card, it would go on 
 
 A credit line has a maximum amount, a term and an interest rate agreed in your contract. Any increase in the amount needs your consent.
 
-## How to do it in _fik_
+## How to do it in _mifik_
 
-In _fik_ the credit line is part of your checking account, and the credit card is an account of its own:
+In _mifik_ the credit line is part of your checking account, and the credit card is an account of its own:
 
 1. **Add your credit line:** when you create your checking account under **Accounts**, open **More details** and enter the amount of your **Overdraft line**. You can also add it later by editing the account. The balance can then go below zero down to that amount, and an expense that goes past it is rejected, just like at the bank.
 2. **Record your movements:** when the balance is negative, you are using the line. Every income you record brings it back toward zero, just like the automatic payment.

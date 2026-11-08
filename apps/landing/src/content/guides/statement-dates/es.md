@@ -82,13 +82,13 @@ El nuevo reglamento (Decreto 75) se publicó en el Diario Oficial el 6 de agosto
 
 En el **estado de cuenta** de tu tarjeta aparecen la fecha de facturación, la fecha de vencimiento, el total a pagar y el pago mínimo. También están en tu contrato y, normalmente, en la app o el sitio de tu banco.
 
-## Cómo lo haces en _fik_
+## Cómo lo haces en _mifik_
 
-En _fik_ cada facturación usa las fechas reales de tu estado de cuenta. Así lo que ves en la app cuadra con lo que te cobra el banco:
+En _mifik_ cada facturación usa las fechas reales de tu estado de cuenta. Así lo que ves en la app cuadra con lo que te cobra el banco:
 
 1. **Registra tus compras:** agrega tu tarjeta de crédito en **Cuentas** y anota tus compras. Se van sumando al período abierto.
 2. **Recibe tu estado de cuenta:** cuando llegue, ubica la fecha de cierre, la de pago y el total a pagar.
-3. **Genera la facturación con esas fechas:** entra a la tarjeta, abre **Facturación** y toca **Generar facturación**. Escribe la fecha de inicio, la de cierre y la de pago tal como aparecen; _fik_ deja dentro solo lo que compraste hasta el cierre y pasa lo posterior al período siguiente.
+3. **Genera la facturación con esas fechas:** entra a la tarjeta, abre **Facturación** y toca **Generar facturación**. Escribe la fecha de inicio, la de cierre y la de pago tal como aparecen; _mifik_ deja dentro solo lo que compraste hasta el cierre y pasa lo posterior al período siguiente.
 4. **Registra tu pago o prepago:** usa **Pagar** y elige desde qué cuenta sale la plata y cuánto: el total, el mínimo (si configuraste el porcentaje de pago mínimo de tu tarjeta) u otro monto. Si pagas menos que el total, lo que falta pasa a la facturación siguiente. Si quieres adelantar plata antes del cierre, usa **Prepagar** en el período abierto.
 
 Cada facturación muestra su fecha de pago y se marca como vencida si pasa sin pagarse.

@@ -1,0 +1,9 @@
+---
+import RedirectLayout from "../../layouts/RedirectLayout.astro";
+import { legacyTarget } from "../../lib/language";
+
+// The Spanish home's address until it moved to the root.
+const target = legacyTarget("/es")!;
+---
+
+<RedirectLayout target={target} />

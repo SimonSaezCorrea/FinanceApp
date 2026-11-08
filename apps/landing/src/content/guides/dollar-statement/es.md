@@ -67,13 +67,13 @@ El nuevo reglamento (Decreto 75) rige desde el 6 de febrero de 2028. Exige que u
 
 También exige mostrar el tipo de cambio aplicado cuando una compra en el extranjero se carga directo al cupo en pesos, y que las comisiones por compras en el extranjero se informen en la moneda extranjera.
 
-## Cómo lo haces en _fik_
+## Cómo lo haces en _mifik_
 
-En _fik_ tu tarjeta lleva el cupo en pesos y el cupo en dólares por separado, igual que tus dos estados de cuenta:
+En _mifik_ tu tarjeta lleva el cupo en pesos y el cupo en dólares por separado, igual que tus dos estados de cuenta:
 
 1. **Activa el dólar:** en **Perfil → Preferencias → Monedas y montos**, agrega USD en **Monedas extra**.
 2. **Agrega tu cupo internacional:** en tu tarjeta de crédito, en **Topes en otras monedas**, escribe tu cupo en dólares.
 3. **Registra tus compras en dólares:** anótalas con la tarjeta y en dólares. En **Facturación** verás una pestaña por moneda.
 4. **Genera la facturación:** al generarla con las fechas de tu estado de cuenta, se cierran juntos el período en pesos y el de dólares.
-5. **Paga la facturación en dólares:** en la pestaña USD, usa **Pagar**. Escribe lo que pagaste en dólares y, si pagaste en pesos, lo que salió de tu cuenta: _fik_ lo sugiere con el dólar observado del día del pago, pero usa el monto real de tu banco.
+5. **Paga la facturación en dólares:** en la pestaña USD, usa **Pagar**. Escribe lo que pagaste en dólares y, si pagaste en pesos, lo que salió de tu cuenta: _mifik_ lo sugiere con el dólar observado del día del pago, pero usa el monto real de tu banco.
 6. **Si tu banco la traspasó a pesos:** usa **Traspasar a CLP** y escribe el cargo en pesos tal como aparece en tu estado de cuenta. Puedes deshacerlo mientras esa facturación en pesos no esté pagada.

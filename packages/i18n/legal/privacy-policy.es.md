@@ -1,10 +1,10 @@
 **Última actualización:** 5 de noviembre de 2026
 
-Esta política explica qué datos personales trata _fik_, para qué, con quién los comparte, cuánto tiempo los guarda y cómo ejerces tus derechos, conforme a la Ley 19.628 y la Ley 21.719 sobre protección de datos personales.
+Esta política explica qué datos personales trata _mifik_, para qué, con quién los comparte, cuánto tiempo los guarda y cómo ejerces tus derechos, conforme a la Ley 19.628 y la Ley 21.719 sobre protección de datos personales.
 
 ## 1. Responsable del tratamiento
 
-_fik_ es un proyecto en etapa temprana, sin sociedad constituida, operado por **Simón Sáez** como persona natural, **RUT 20.640.480-9**, con domicilio en La Florida, Santiago, Chile.
+_mifik_ es un proyecto en etapa temprana, sin sociedad constituida, operado por **Simón Sáez** como persona natural, **RUT 20.640.480-9**, con domicilio en La Florida, Santiago, Chile.
 
 Contacto para todo lo relacionado con tus datos personales: **contacto@mifik.cl**.
 
@@ -18,7 +18,7 @@ Si más adelante se constituye una sociedad, esta política se actualizará con 
 - **Correos:** si abriste los correos que te enviamos (ver sección 4).
 - **Visitas al sitio público** (mifik.cl, no la app): estadísticas agregadas de qué páginas se visitan, desde qué sitio llegaste, país, tipo de dispositivo y navegador, y qué tan rápido cargó la página. No usan cookies ni sirven para identificarte (ver sección 4).
 
-**Tratamos datos sensibles.** Según el artículo 2 letra g) de la Ley 21.719, la **situación socioeconómica** de una persona es un dato personal sensible, y eso es justamente lo que registras en _fik_. Por eso pedimos tu **consentimiento expreso**, separado del resto, para tratar tus datos financieros.
+**Tratamos datos sensibles.** Según el artículo 2 letra g) de la Ley 21.719, la **situación socioeconómica** de una persona es un dato personal sensible, y eso es justamente lo que registras en _mifik_. Por eso pedimos tu **consentimiento expreso**, separado del resto, para tratar tus datos financieros.
 
 **Menores de edad:** al registrarte pedimos tu fecha de nacimiento. Si tienes menos de 18 años, el registro exige la autorización de tu madre, padre o tutor (nombre, RUT y parentesco), que guardamos como un consentimiento aparte. El RUT del tutor se guarda solo como un código cifrado irreversible, nunca en claro. Esta autorización es declarativa: no verificamos documentos de identidad.
 
@@ -37,7 +37,7 @@ Si más adelante se constituye una sociedad, esta política se actualizará con 
 
 ## 4. Con quién compartimos tus datos
 
-Para funcionar, _fik_ usa proveedores que tratan tus datos **por encargo nuestro**: solo pueden usarlos para prestarnos su servicio, nunca para fines propios. **Todos están fuera de Chile**, así que usar _fik_ implica transferir tus datos al extranjero:
+Para funcionar, _mifik_ usa proveedores que tratan tus datos **por encargo nuestro**: solo pueden usarlos para prestarnos su servicio, nunca para fines propios. **Todos están fuera de Chile**, así que usar _mifik_ implica transferir tus datos al extranjero:
 
 | Proveedor                     | Para qué                                                                | Dónde                                  | Qué datos                                                                                                                                                                                          |
 | ----------------------------- | ----------------------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -76,7 +76,7 @@ Puedes pedir **acceso, rectificación, supresión, oposición, portabilidad y bl
 
 - **Desde la app:**
   - corregir tus datos personales (Perfil → Información personal);
-  - **descargar una copia de todos tus datos** (Perfil → Datos y privacidad → Descargar mis datos), en el formato que elijas: una planilla **Excel**, que además puedes volver a importar en _fik_, o un archivo **JSON** para llevarlos a otro programa. Incluye tus datos de perfil, correos, consentimientos, sesiones, llaves de acceso y dispositivos recordados, y tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos. No incluye tu contraseña ni los secretos de tus métodos de acceso, que nunca salen de nuestros servidores;
+  - **descargar una copia de todos tus datos** (Perfil → Datos y privacidad → Descargar mis datos), en el formato que elijas: una planilla **Excel**, que además puedes volver a importar en _mifik_, o un archivo **JSON** para llevarlos a otro programa. Incluye tus datos de perfil, correos, consentimientos, sesiones, llaves de acceso y dispositivos recordados, y tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos. No incluye tu contraseña ni los secretos de tus métodos de acceso, que nunca salen de nuestros servidores;
   - eliminar tu cuenta (sección 5).
 - **Por correo, a contacto@mifik.cl:** cualquier otra solicitud.
 
@@ -84,7 +84,7 @@ Respondemos en un plazo de **30 días corridos**, prorrogable una sola vez por o
 
 ## 7. Decisiones automatizadas
 
-**No** tomamos decisiones automatizadas que te produzcan efectos jurídicos o significativos. _fik_ no evalúa tu crédito ni aprueba o rechaza nada sobre tu situación financiera: solo organiza y muestra la información que tú ingresas.
+**No** tomamos decisiones automatizadas que te produzcan efectos jurídicos o significativos. _mifik_ no evalúa tu crédito ni aprueba o rechaza nada sobre tu situación financiera: solo organiza y muestra la información que tú ingresas.
 
 ## 8. De dónde vienen los datos
 

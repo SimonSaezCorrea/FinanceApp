@@ -1,6 +1,6 @@
 ---
 title: We catch errors sooner
-summary: If something breaks in fik, we get an alert to fix it, without your personal data.
+summary: If something breaks in mifik, we get an alert to fix it, without your personal data.
 ---
 
 ## Improvements

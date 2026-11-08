@@ -7,30 +7,16 @@ import {
   legacyTarget,
   LOCALIZED_SLUGS,
   pagePath,
-  pickLanguage,
   RATE_PAGES,
 } from "./language";
 
-describe("pickLanguage", () => {
-  it("picks English when the browser prefers it first", () => {
-    expect(pickLanguage(["en-US", "es"])).toBe("en");
-    expect(pickLanguage(["en"])).toBe("en");
-  });
-
-  it("picks Spanish for Spanish or anything else", () => {
-    expect(pickLanguage(["es-CL", "en"])).toBe("es");
-    expect(pickLanguage(["fr-FR"])).toBe("es");
-  });
-
-  it("falls back to Spanish when nothing is known", () => {
-    expect(pickLanguage([])).toBe("es");
-    expect(pickLanguage(undefined)).toBe("es");
-  });
-});
-
 describe("pagePath", () => {
+  it("serves the Spanish home at the root", () => {
+    expect(pagePath("es", "home")).toBe("/");
+  });
+
   it("prefixes the language, uses the English slug in both, and ends with a slash", () => {
-    expect(pagePath("es", "home")).toBe("/es/");
+    expect(pagePath("en", "home")).toBe("/en/");
     expect(pagePath("en", "pricing")).toBe("/en/pricing/");
     expect(pagePath("es", "faq")).toBe("/es/faq/");
   });
@@ -42,12 +28,14 @@ describe("legacyTarget", () => {
     ["/nosotros", "/es/about/"],
     ["/privacidad", "/es/privacy/"],
     ["/preguntas", "/es/faq/"],
+    ["/es", "/"],
   ])("sends %s to %s", (from, to) => {
     expect(legacyTarget(from)).toBe(to);
   });
 
-  it("knows exactly the four old addresses", () => {
+  it("knows exactly the five old addresses", () => {
     expect(Object.keys(LEGACY_REDIRECTS).sort()).toEqual([
+      "/es",
       "/nosotros",
       "/precios",
       "/preguntas",

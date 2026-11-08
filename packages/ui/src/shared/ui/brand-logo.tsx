@@ -19,11 +19,11 @@ const ANDES: ReadonlyArray<readonly [number, number]> = [
   [1, 0],
 ];
 
-// The range spans the word (ink 1–106 wide at 112px of Caveat Brush) and sits above it.
-const X0 = -6;
-const X1 = 114;
+// The range spans the word (ink 6–201 wide at 112px of Caveat Brush) and sits above it.
+const X0 = -1;
+const X1 = 209;
 const BASE = -84;
-const HEIGHT = 48;
+const HEIGHT = 62;
 
 const PEAKS = ANDES.map(([f, k]) => [X0 + (X1 - X0) * f, BASE - HEIGHT * k] as const);
 const RIDGE = PEAKS.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
@@ -44,16 +44,16 @@ type BrandLogoProps = Readonly<{
 }>;
 
 /**
- * The full "Cuaderno" logo: the cordillera sketched in pencil above "fik" written with a marker.
+ * The full "Cuaderno" logo: the cordillera sketched in pencil above "mifik" written with a marker.
  * Use it wherever the name is shown; `BrandMark` (the tile) is for icon-only places — the
  * collapsed rail and the favicon. Size it by height; the width follows.
  */
-export function BrandLogo({ className, title = "fik" }: BrandLogoProps) {
+export function BrandLogo({ className, title = "mifik" }: BrandLogoProps) {
   const filter = `fik-pencil-${useId().replace(/:/g, "")}`;
 
   return (
     <svg
-      viewBox="-10 -138 128 144"
+      viewBox="-5 -152 218 158"
       fill="none"
       role="img"
       aria-label={title}
@@ -91,7 +91,7 @@ export function BrandLogo({ className, title = "fik" }: BrandLogoProps) {
         style={{ fill: "hsl(var(--foreground))", fontFamily: '"Caveat Brush", cursive' }}
         fontSize={112}
       >
-        fik
+        mifik
       </text>
     </svg>
   );

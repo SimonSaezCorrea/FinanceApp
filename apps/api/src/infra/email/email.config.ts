@@ -12,7 +12,7 @@ export interface EmailConfig {
   resendApiKey: string | null;
 }
 
-const DEFAULT_FROM = "fik <no-reply@mifik.cl>";
+const DEFAULT_FROM = "mifik <no-reply@mifik.cl>";
 const DEFAULT_REPLY_TO = "contacto@mifik.cl";
 const DEFAULT_SITE = "http://localhost:4321";
 

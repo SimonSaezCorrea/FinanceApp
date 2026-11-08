@@ -36,7 +36,7 @@ export async function buildLlmsText(site: URL | undefined): Promise<string> {
     {
       heading: SECTION_HEADING[lang],
       links: LISTED.map((page) => ({
-        title: metaTitle(lang, page).replace(/ · fik$/, ""),
+        title: metaTitle(lang, page).replace(/ · mifik$/, ""),
         url: `${origin}${pagePath(lang, page)}`,
         description: metaDescription(lang, page),
       })),

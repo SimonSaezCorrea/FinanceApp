@@ -74,9 +74,9 @@ Si quieres que la compra te salga sin interés, paga el total facturado cada mes
 - **Revisa el cupo que te queda:** el total de la compra queda ocupado hasta que pagues la última cuota.
 - **Revisa las condiciones:** el número de cuotas sin interés y si hay alguna comisión dependen de la promoción y de tu banco.
 
-## Cómo lo haces en _fik_
+## Cómo lo haces en _mifik_
 
-En _fik_ una compra en cuotas con tarjeta de crédito funciona igual que en tu banco: baja el cupo completo y cada facturación cobra la cuota que corresponde.
+En _mifik_ una compra en cuotas con tarjeta de crédito funciona igual que en tu banco: baja el cupo completo y cada facturación cobra la cuota que corresponde.
 
 1. **Crea el plan:** en **Cuotas**, toca **Nuevo plan**. Escribe el monto total, el número de cuotas y la fecha de la primera cuota, elige la tarjeta en **Tarjeta de pago** y deja **Interés por período** en 0.
 2. **Mira tu cupo:** desde ese día, el cupo usado de la tarjeta incluye la compra completa.

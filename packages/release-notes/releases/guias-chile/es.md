@@ -20,7 +20,7 @@ commits:
   de la tarjeta, tarjetas adicionales y cupo compartido, línea de crédito o tarjeta de crédito,
   compras en dólares con tarjeta, y cuotas sin interés. Cada una cita sus fuentes oficiales (CMF,
   SERNAC, Diario Oficial) y explica el pago mínimo según la norma de la CMF (NCG 537).
-- Las guías van firmadas por su autor, el fundador de fik, y una página nueva cuenta
+- Las guías van firmadas por su autor, el fundador de mifik, y una página nueva cuenta
   [cómo las escribimos](https://mifik.cl/es/como-escribimos/): de dónde salen los datos, cada cuánto
   se revisan y cómo avisarnos de un error.
 - Recursos para asistentes de IA: un resumen del sitio en `/llms.txt`, una página que lo muestra, y
@@ -31,9 +31,9 @@ commits:
 ## Mejoras
 
 - El pie de página del sitio se ordena por columnas: Indicadores, Aprende (las guías más recientes)
-  y fik.
-- La página de inicio se titula "fik · Finanzas personales en Chile", y el sitio describe mejor a
-  fik para los buscadores (nombre, contacto, logo y fundador).
+  y mifik.
+- La página de inicio se titula "mifik · Finanzas personales en Chile", y el sitio describe mejor a
+  mifik para los buscadores (nombre, contacto, logo y fundador).
 
 ## Correcciones
 

@@ -243,8 +243,8 @@ jobs:
           PUBLIC_CF_WEB_ANALYTICS_TOKEN: ${{ vars.CF_WEB_ANALYTICS_TOKEN }}
           RELEASE_DATE: ${{ needs.changes.outputs.release_date }}
       - name: Upload to Cloudflare Pages (fik-landing)
-        # From apps/landing: wrangler compiles the Pages Functions of the CURRENT directory's
-        # `functions/` (the root's language redirect) and uploads them with `dist`.
+        # From apps/landing, uploading `dist` (static only: no Pages Functions since the Spanish
+        # home moved to the root).
         working-directory: apps/landing
         run: npx --yes "$WRANGLER" pages deploy dist --project-name=fik-landing --branch=main --commit-hash="$SHA" --commit-dirty=true
         env:

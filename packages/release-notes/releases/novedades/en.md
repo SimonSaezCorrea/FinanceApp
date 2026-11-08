@@ -1,11 +1,11 @@
 ---
 title: What's new
-summary: Every fik update is now recorded by version, so you can see what changed.
+summary: Every mifik update is now recorded by version, so you can see what changed.
 ---
 
 ## New
 
-- **What's new**: a page that tells what changed in fik in each version, at
+- **What's new**: a page that tells what changed in mifik in each version, at
   [mifik.cl/en/whats-new](https://mifik.cl/en/whats-new/) and inside the app.
 - Each version gathers everything released the same day, opening with a summary of what it
   brings. Earlier versions stay available, one at a time.

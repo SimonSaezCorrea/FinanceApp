@@ -259,7 +259,8 @@ export const FIXED_LISTS: Partial<Record<ListKey, readonly string[]>> = {
   accountStatus: accounts.accountStatus.options,
 };
 
-/** Hidden sheet that marks a file as a fik template. */
+/** Hidden sheet that marks a file as a mifik template (never shown, so it kept the name it had
+ * when the product was called "fik": templates downloaded before the rename still import). */
 export const MARKER_SHEET = "_fik";
 /** Visible sheets that carry no rows. */
 export const INSTRUCTIONS_KEY = "instructions";
@@ -271,6 +272,8 @@ export const TEMPLATE_VERSION = imports.TEMPLATE_VERSION;
  * A row that carries one is already in the app, so the reader skips it. */
 export const EXISTING_ID_HEADER_KEY = "import.template.existingId.header";
 export const EXISTING_ID_HELP_KEY = "import.template.existingId.help";
+/** The id column's header before the product was renamed "mifik" (2026-11-07). */
+export const LEGACY_EXISTING_ID_HEADERS = ["ID fik"];
 
 /** i18n key of a sheet's visible name. */
 /**

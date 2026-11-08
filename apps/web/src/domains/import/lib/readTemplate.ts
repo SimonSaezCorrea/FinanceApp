@@ -7,6 +7,7 @@ import { readSpreadsheet, SpreadsheetReadError } from "./readSpreadsheet";
 import { customColumnKey, fieldForHeader, fieldsForSheet } from "./templateCustomFields";
 import {
   EXISTING_ID_HEADER_KEY,
+  LEGACY_EXISTING_ID_HEADERS,
   MARKER_SHEET,
   TEMPLATE_SHEETS,
   LEGACY_COLUMN_NAMES,
@@ -76,7 +77,11 @@ export function parseTemplateSheets(
 
     const header = sheet.matrix[0] ?? [];
     // A pre-filled template tags the rows already in the app: never import them again.
-    const idLabels = new Set(labelers.map((t) => normalize(t(EXISTING_ID_HEADER_KEY))));
+    const idLabels = new Set(
+      [...labelers.map((t) => t(EXISTING_ID_HEADER_KEY)), ...LEGACY_EXISTING_ID_HEADERS].map(
+        normalize,
+      ),
+    );
     const idColumn = header.findIndex((cell) => idLabels.has(normalize(cell)));
     const columnAt = new Map<number, string>();
     header.forEach((cell, index) => {

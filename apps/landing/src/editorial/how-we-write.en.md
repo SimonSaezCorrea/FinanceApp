@@ -1,10 +1,10 @@
 **Last updated:** 25 October 2026
 
-_fik_'s guides explain how credit cards, accounts and statements work in Chile. Since they are about your money, here is how we make them: who writes them, where the facts come from, how often they are reviewed and what to do if you find a mistake.
+_mifik_'s guides explain how credit cards, accounts and statements work in Chile. Since they are about your money, here is how we make them: who writes them, where the facts come from, how often they are reviewed and what to do if you find a mistake.
 
 ## Who writes them
 
-They are written and reviewed by **Simón Sáez**, founder of _fik_ ([about the author](/en/about/#author)). Every guide carries the author's name, the date it was published and the date it was last reviewed.
+They are written and reviewed by **Simón Sáez**, founder of _mifik_ ([about the author](/en/about/#author)). Every guide carries the author's name, the date it was published and the date it was last reviewed.
 
 ## Where the facts come from
 
@@ -23,13 +23,13 @@ They are general information, not financial or legal advice. To decide on your o
 
 ## Independence
 
-No bank or issuer pays to appear in a guide or for how it is described. _fik_ has no ads.
+No bank or issuer pays to appear in a guide or for how it is described. _mifik_ has no ads.
 
 ## How to report a mistake
 
 If something is wrong or out of date, tell us:
 
 - **By email**, at [contacto@mifik.cl](mailto:contacto@mifik.cl).
-- **On GitHub**, by opening an issue in [_fik_'s repository](https://github.com/SimonSaezCorrea/FinanceApp/issues/new).
+- **On GitHub**, by opening an issue in [_mifik_'s repository](https://github.com/SimonSaezCorrea/FinanceApp/issues/new).
 
 When we correct a guide, we update its review date.

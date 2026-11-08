@@ -1,6 +1,6 @@
 ---
 title: Detectamos los errores antes
-summary: Si algo falla en fik, nos llega un aviso para corregirlo, sin tus datos personales.
+summary: Si algo falla en mifik, nos llega un aviso para corregirlo, sin tus datos personales.
 commits:
   - 24cd1e49
   - d356e306

@@ -22,7 +22,7 @@ import { assertRecentStepUp } from "../step-up";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { StartMfaEnrollmentCommand } from "./start-mfa-enrollment.command";
 
-const ISSUER = "fik";
+const ISSUER = "mifik";
 
 @Injectable()
 @CommandHandler(StartMfaEnrollmentCommand)

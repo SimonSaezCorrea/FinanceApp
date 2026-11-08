@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "fik",
+    "name": "mifik",
     "slogan": "La columna que hace cuadrar tus finanzas"
   },
   "app": {
@@ -125,7 +125,7 @@
     "whatsNew": "Novedades",
     "whatsNewUnseen": "hay novedades",
     "goToDashboard": "Ir al Panel",
-    "publicSite": "Sitio de fik",
+    "publicSite": "Sitio de mifik",
     "opensInNewTab": "se abre en una pestaña nueva"
   },
   "theme": {
@@ -402,7 +402,7 @@
         "wallet": "Por último, arma tu cartera"
       },
       "description": {
-        "account": "Tu cuenta de efectivo ya está lista. Agrega la cuenta de tu banco o tu tarjeta de crédito para que fik lleve tus saldos y tu cupo.",
+        "account": "Tu cuenta de efectivo ya está lista. Agrega la cuenta de tu banco o tu tarjeta de crédito para que mifik lleve tus saldos y tu cupo.",
         "movement": "Anota un gasto o un ingreso, o importa la cartola de tu banco para traer tu historial de una vez.",
         "wallet": "Elige qué cuentas y tarjetas quieres ver siempre en el Panel, con su saldo y su cupo."
       },
@@ -1628,7 +1628,7 @@
       "truncated": "Se muestran las primeras {{shown}} filas; se importan todas."
     },
     "template": {
-      "cardTitle": "Plantilla fik",
+      "cardTitle": "Plantilla mifik",
       "cardDescription": "¿Llevas tus finanzas en tu propio Excel? Descarga la plantilla, copia en ella tus movimientos, traspasos, deudas, cuotas, gastos fijos y metas, y súbela. Cada hoja dice qué es cada fila, así que no hay nada que adivinar.",
       "download": "Descargar plantilla",
       "downloading": "Preparando plantilla…",
@@ -1644,15 +1644,15 @@
         },
         "prefilled": {
           "title": "Con mis datos actuales",
-          "hint": "Trae lo que ya tienes en fik para que sigas desde ahí.",
-          "note": "Tus datos quedan marcados con un ID fik y se saltan al volver a subirla: solo se importan las filas que agregues."
+          "hint": "Trae lo que ya tienes en mifik para que sigas desde ahí.",
+          "note": "Tus datos quedan marcados con un ID mifik y se saltan al volver a subirla: solo se importan las filas que agregues."
         }
       },
       "existingId": {
-        "header": "ID fik",
-        "help": "Esta fila ya está en fik y no se vuelve a importar. Deja esta columna vacía en las filas nuevas."
+        "header": "ID mifik",
+        "help": "Esta fila ya está en mifik y no se vuelve a importar. Deja esta columna vacía en las filas nuevas."
       },
-      "panelTitle": "Importar plantilla fik",
+      "panelTitle": "Importar plantilla mifik",
       "panelDescription": "Sube la plantilla que descargaste desde esta página, ya llena.",
       "eyebrow": "Importar · Plantilla",
       "pickTitle": "Elige o arrastra tu plantilla",
@@ -1676,7 +1676,7 @@
       "submit": "Importar",
       "submitting": "Importando…",
       "success": "Plantilla importada",
-      "notTemplate": "Este archivo no es una plantilla de fik. Para una cartola de tu banco usa el importador de cartolas, eligiendo la cuenta en esta página.",
+      "notTemplate": "Este archivo no es una plantilla de mifik. Para una cartola de tu banco usa el importador de cartolas, eligiendo la cuenta en esta página.",
       "outdated": "Esta plantilla es de una versión anterior. Descarga la plantilla actual y copia en ella tus datos.",
       "empty": "La plantilla no tiene filas que importar.",
       "tooMany": "La plantilla tiene más de {{max}} filas. Divídela en varios archivos.",
@@ -2032,13 +2032,13 @@
         "accountStatuses": "Estados"
       },
       "instructions": {
-        "title": "Plantilla fik",
+        "title": "Plantilla mifik",
         "intro": "Llena una hoja por tipo de dato y sube el archivo desde Importar. Deja vacías las hojas que no uses. Las celdas con lista desplegable solo aceptan tus propias cuentas, tarjetas y categorías; si las escribes a mano, que coincidan.",
         "rules": "Qué mueve dinero: un movimiento, un traspaso, un pago de deuda, un pago de cuota sin tarjeta de crédito y un aporte mueven el saldo de su cuenta. Crear una deuda, un plan o una meta no mueve dinero. Un pago de cuota de un plan con tarjeta de crédito solo la marca pagada y libera su cupo: esa cuota nunca se facturará.",
         "refs": "Referencias: escribe un código corto en la columna Referencia de una deuda, cuota, meta o gasto fijo (por ejemplo VICTOR) y repítelo en sus pagos, aportes o movimientos para unirlos. Debe ser único en su hoja.",
         "allOrNothing": "Si una fila tiene un problema no se importa nada: verás cada problema con su hoja y su fila.",
         "reimport": "Subir dos veces el mismo archivo lo importa dos veces.",
-        "prefilled": "Esta plantilla trae tus datos actuales. Las filas con ID fik ya están en la app y se saltan al subirla: agrega lo nuevo debajo. Los pagos de deudas o cuotas que ya existen se registran en la app.",
+        "prefilled": "Esta plantilla trae tus datos actuales. Las filas con ID mifik ya están en la app y se saltan al subirla: agrega lo nuevo debajo. Los pagos de deudas o cuotas que ya existen se registran en la app.",
         "exampleTitle": "Ejemplos (no se importan)",
         "examples": {
           "movements": "Movimientos: 28/11/2025 · Gasto · 15000 · BCI · · Supermercado · Jumbo (si paga un gasto fijo, su Referencia en la columna Gasto fijo)",
@@ -2109,7 +2109,7 @@
       "birthDate": "Elige el día"
     },
     "sensitiveDataConsentLabel": "Datos sensibles",
-    "sensitiveDataConsent": "Acepto que <brand>fik</brand> trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
+    "sensitiveDataConsent": "Acepto que <brand>mifik</brand> trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
     "consentRequired": "Marca esta casilla para crear tu cuenta.",
     "guardian": {
       "title": "Autorización de tu madre, padre o tutor",
@@ -2123,7 +2123,7 @@
         "OTHER": "Otro"
       },
       "acceptLabel": "Autorización",
-      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en fik.",
+      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en mifik.",
       "acceptRequired": "Falta la autorización del tutor: marca esta casilla.",
       "relationshipLabel": "Relación"
     },
@@ -2196,7 +2196,7 @@
     },
     "appUnavailable": {
       "title": "Iniciaste sesión",
-      "body": "Pero la app de fik no está respondiendo en este momento. Tu sesión quedó abierta: inténtalo de nuevo en unos minutos.",
+      "body": "Pero la app de mifik no está respondiendo en este momento. Tu sesión quedó abierta: inténtalo de nuevo en unos minutos.",
       "retry": "Reintentar",
       "checking": "Comprobando…"
     }
@@ -2213,7 +2213,7 @@
       "notSet": "Sin especificar"
     },
     "comingSoon": {
-      "list": "Próximamente: notificaciones, exportar movimientos, respaldo automático y foto de perfil."
+      "list": "Próximamente: notificaciones, respaldo automático y foto de perfil."
     },
     "financial": {
       "extraCurrencies": "Monedas extra",
@@ -2473,11 +2473,11 @@
       },
       "security": {
         "title": "Seguridad",
-        "description": "Cómo entras a fik y desde qué dispositivos."
+        "description": "Cómo entras a mifik y desde qué dispositivos."
       },
       "preferences": {
         "title": "Preferencias",
-        "description": "Cómo se ve fik y en qué monedas trabajas."
+        "description": "Cómo se ve mifik y en qué monedas trabajas."
       },
       "privacy": {
         "title": "Datos y privacidad",
@@ -2626,16 +2626,16 @@
     },
     "export": {
       "title": "Descargar mis datos",
-      "description": "Todo lo que fik guarda sobre ti en un archivo: tu perfil, correos, consentimientos, sesiones y llaves de acceso, y todas tus cuentas, tarjetas, movimientos, facturaciones, deudas, cuotas, gastos fijos y ahorros. No incluye tu contraseña ni los secretos de tus factores de acceso, que nunca salen del servidor.",
+      "description": "Todo lo que mifik guarda sobre ti en un archivo: tu perfil, correos, consentimientos, sesiones y llaves de acceso, y todas tus cuentas, tarjetas, movimientos, facturaciones, deudas, cuotas, gastos fijos y ahorros. No incluye tu contraseña ni los secretos de tus factores de acceso, que nunca salen del servidor.",
       "formatLabel": "Formato del archivo",
       "formats": {
         "xlsx": {
           "label": "Excel",
-          "hint": "Para leerlo tú. Es la plantilla de importación con tus datos más hojas de perfil, correos, consentimientos, sesiones y llaves; se puede volver a subir a fik."
+          "hint": "Para leerlo tú. Es la plantilla de importación con tus datos más hojas de perfil, correos, consentimientos, sesiones y llaves; se puede volver a subir a mifik."
         },
         "json": {
           "label": "JSON",
-          "hint": "Para llevarlo a otro programa: cada registro tal como lo guarda fik, sin perder detalle."
+          "hint": "Para llevarlo a otro programa: cada registro tal como lo guarda mifik, sin perder detalle."
         }
       },
       "download": "Descargar",
@@ -2816,13 +2816,13 @@
     "EMAIL_NOT_FOUND": "Ese correo no está en tu registro.",
     "EMAIL_PRIMARY_NOT_DELETABLE": "No puedes borrar tu correo principal.",
     "STEP_UP_REQUIRED": "Confirma que eres tú para hacer este cambio.",
-    "NETWORK_ERROR": "fik no está respondiendo en este momento. Inténtalo de nuevo en unos minutos.",
+    "NETWORK_ERROR": "mifik no está respondiendo en este momento. Inténtalo de nuevo en unos minutos.",
     "OFFLINE": "No tienes conexión a internet. Revisa tu wifi o tus datos móviles e inténtalo de nuevo.",
     "DEBT_PAYMENT_EXCEEDS_PENDING": "El monto supera lo que queda por pagar de esta deuda.",
     "DEBT_WRITTEN_OFF": "Esta deuda está cerrada sin pago. Reactívala para registrar pagos.",
     "DEBT_NOT_WRITTEN_OFF": "Esta deuda no está cerrada sin pago.",
     "DEBT_TOTAL_BELOW_PAID": "El nuevo monto es menor que lo que ya se pagó de esta deuda.",
-    "STATEMENT_PAYMENT_NOT_UNDOABLE": "Esta facturación se importó como pagada: no tiene un pago de fik que deshacer.",
+    "STATEMENT_PAYMENT_NOT_UNDOABLE": "Esta facturación se importó como pagada: no tiene un pago de mifik que deshacer.",
     "PAYMENT_CARRY_OVER_SETTLED": "No se puede deshacer: lo que este pago dejó pendiente ya se pagó en la facturación siguiente. Deshaz primero ese pago.",
     "CUSTOM_FIELD_NOT_FOUND": "Esa columna no existe.",
     "CUSTOM_FIELD_NAME_TAKEN": "Ya tienes una columna con ese nombre.",
@@ -3204,8 +3204,8 @@
   },
   "releaseNotes": {
     "title": "Novedades",
-    "lead": "Lo que cambió en fik en cada versión, la más reciente primero.",
-    "since": "fik abrió el 10 de octubre de 2026 (v1.0). Registramos los cambios desde v1.1.",
+    "lead": "Lo que cambió en mifik en cada versión, la más reciente primero.",
+    "since": "mifik abrió el 10 de octubre de 2026 (v1.0). Registramos los cambios desde v1.1.",
     "empty": "Todavía no hay novedades registradas.",
     "loadError": "No pudimos cargar las novedades.",
     "kinds": {

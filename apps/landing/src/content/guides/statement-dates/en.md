@@ -84,13 +84,13 @@ The CMF (Comisión para el Mercado Financiero) is Chile's financial regulator, a
 
 Your card's **statement** (estado de cuenta) shows the closing date, the due date, the total to pay and the minimum payment. They are also in your contract and usually in your bank's app or website.
 
-## How to do it in _fik_
+## How to do it in _mifik_
 
-In _fik_ each statement uses the real dates of your bank statement. That way what you see in the app matches what the bank charges:
+In _mifik_ each statement uses the real dates of your bank statement. That way what you see in the app matches what the bank charges:
 
 1. **Record your purchases:** add your credit card under **Accounts** and record your purchases. They add up in the open period.
 2. **Get your statement:** when it arrives, find the closing date, the due date and the total to pay.
-3. **Generate the statement with those dates:** open the card, go to **Statements** and tap **Generate statement**. Enter the start, closing and due dates exactly as printed; _fik_ keeps in it only what you bought up to the closing and moves later purchases to the next period.
+3. **Generate the statement with those dates:** open the card, go to **Statements** and tap **Generate statement**. Enter the start, closing and due dates exactly as printed; _mifik_ keeps in it only what you bought up to the closing and moves later purchases to the next period.
 4. **Record your payment or prepayment:** use **Pay** and choose the account the money comes from and how much: the total, the minimum (if you set your card's minimum payment percentage) or another amount. If you pay less than the total, the rest moves to the next statement. To pay ahead before the closing, use **Prepay** on the open period.
 
 Each statement shows its due date and is flagged as overdue if it passes unpaid.

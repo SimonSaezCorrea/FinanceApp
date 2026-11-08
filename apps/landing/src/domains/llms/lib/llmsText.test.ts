@@ -5,7 +5,7 @@ import { llmsText } from "./llmsText";
 const link = {
   title: "Precios",
   url: "https://mifik.cl/es/pricing/",
-  description: "fik es gratis.",
+  description: "mifik es gratis.",
 };
 
 describe("llmsText", () => {
@@ -15,9 +15,9 @@ describe("llmsText", () => {
       sections: [{ heading: "Pages in Spanish", links: [link] }],
       rates: [],
     });
-    expect(text.startsWith("# fik\n\n> ")).toBe(true);
+    expect(text.startsWith("# mifik\n\n> ")).toBe(true);
     expect(text).toContain(
-      "## Pages in Spanish\n- [Precios](https://mifik.cl/es/pricing/): fik es gratis.",
+      "## Pages in Spanish\n- [Precios](https://mifik.cl/es/pricing/): mifik es gratis.",
     );
     expect(text).toContain("https://app.mifik.cl");
     expect(text).not.toContain("Today's indicators");

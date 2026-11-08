@@ -12,7 +12,7 @@
       "otherLanguage": "English",
       "closeMenu": "Cerrar menú",
       "language": "Idioma",
-      "appUnavailable": "No pudimos abrir la app de fik. Inténtalo de nuevo en unos minutos.",
+      "appUnavailable": "No pudimos abrir la app de mifik. Inténtalo de nuevo en unos minutos.",
       "appUnavailableTitle": "La app no está respondiendo",
       "appUnavailableRetry": "Reintentar",
       "appUnavailableClose": "Cerrar aviso",
@@ -24,11 +24,11 @@
       "groups": {
         "rates": "Indicadores",
         "learn": "Aprende",
-        "company": "fik"
+        "company": "mifik"
       },
       "allGuides": "Todas las guías",
       "legal": "Legal",
-      "copyright": "© {{year}} fik · mifik.cl",
+      "copyright": "© {{year}} mifik",
       "llms": "Para asistentes de IA",
       "editorial": "Cómo escribimos",
       "releaseNotes": "Novedades"
@@ -127,14 +127,14 @@
         },
         "pending": {
           "title": "Pendiente",
-          "body": "Adjuntar comprobantes a tus movimientos llega pronto. La sincronización automática con bancos no existe todavía y puede llegar a futuro; mientras, importas la cartola de tu banco o la plantilla de fik, que también sirve para llevarte tus datos."
+          "body": "Adjuntar comprobantes a tus movimientos llega pronto. La sincronización automática con bancos no existe todavía y puede llegar a futuro; mientras, importas la cartola de tu banco o la plantilla de mifik, que también sirve para llevarte tus datos."
         }
       },
       "inTheApp": "En la app",
       "author": {
         "title": "Quién escribe las guías",
         "name": "Simón Sáez",
-        "role": "Fundador de fik",
+        "role": "Fundador de mifik",
         "body": "Simón escribe cada guía a partir de las normas y fuentes oficiales que cita, con un ejemplo en pesos chilenos, y anota en cada una cuándo se revisó por última vez.",
         "guides": "Ver las guías"
       }
@@ -241,7 +241,7 @@
       "reasons": {
         "whyFree": {
           "title": "Por qué no cuesta",
-          "body": "Lo caro de una app de finanzas es conectarse a los bancos: se le paga a un intermediario por cada cuenta. fik no se conecta, así que no tiene ese costo."
+          "body": "Lo caro de una app de finanzas es conectarse a los bancos: se le paga a un intermediario por cada cuenta. mifik no se conecta, así que no tiene ese costo."
         },
         "notYourData": {
           "title": "Tus datos no son el precio",
@@ -323,67 +323,67 @@
     "skipToContent": "Saltar al contenido",
     "meta": {
       "home": {
-        "title": "fik · Finanzas personales en {{country}}",
-        "description": "fik (mifik.cl), la columna que hace cuadrar tus finanzas. Finanzas personales en {{country}} con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
+        "title": "mifik · Finanzas personales en {{country}}",
+        "description": "mifik, la columna que hace cuadrar tus finanzas. Finanzas personales en {{country}} con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
       },
       "about": {
-        "title": "Nosotros · fik",
-        "description": "Por qué hicimos fik: una app que lleva tu tarjeta de crédito, tus cuotas y tu facturación como las lleva tu banco."
+        "title": "Nosotros · mifik",
+        "description": "Por qué hicimos mifik: una app que lleva tu tarjeta de crédito, tus cuotas y tu facturación como las lleva tu banco."
       },
       "privacy": {
-        "title": "Privacidad y datos · fik",
+        "title": "Privacidad y datos · mifik",
         "description": "Cómo protegemos tus saldos, movimientos y deudas: cinco capas, desde tu consentimiento hasta borrar tu cuenta."
       },
       "pricing": {
-        "title": "Precios · fik",
-        "description": "fik es gratis. Un solo plan, sin anuncios ni venta de datos."
+        "title": "Precios · mifik",
+        "description": "mifik es gratis. Un solo plan, sin anuncios ni venta de datos."
       },
       "faq": {
-        "title": "Preguntas frecuentes · fik",
-        "description": "Respuestas sobre cómo funciona fik, tus tarjetas y facturaciones, y tus datos."
+        "title": "Preguntas frecuentes · mifik",
+        "description": "Respuestas sobre cómo funciona mifik, tus tarjetas y facturaciones, y tus datos."
       },
-      "imageAlt": "fik, la columna que hace cuadrar tus finanzas, sobre una cordillera",
+      "imageAlt": "mifik, la columna que hace cuadrar tus finanzas, sobre una cordillera",
       "verifyEmail": {
-        "title": "Confirma tu correo · fik",
-        "description": "Confirma la dirección de correo de tu cuenta de fik."
+        "title": "Confirma tu correo · mifik",
+        "description": "Confirma la dirección de correo de tu cuenta de mifik."
       },
       "resetPassword": {
-        "title": "Contraseña nueva · fik",
-        "description": "Elige una contraseña nueva para tu cuenta de fik."
+        "title": "Contraseña nueva · mifik",
+        "description": "Elige una contraseña nueva para tu cuenta de mifik."
       },
       "privacyPolicy": {
-        "title": "Política de privacidad · fik",
-        "description": "La política de privacidad de fik: qué datos tratamos, con qué proveedores, cuánto tiempo los guardamos y cómo ejerces tus derechos."
+        "title": "Política de privacidad · mifik",
+        "description": "La política de privacidad de mifik: qué datos tratamos, con qué proveedores, cuánto tiempo los guardamos y cómo ejerces tus derechos."
       },
       "ufValue": {
-        "title": "Valor UF hoy · fik",
-        "titleWithValue": "Valor UF hoy {{date}}: {{value}} · fik",
+        "title": "Valor UF hoy · mifik",
+        "titleWithValue": "Valor UF hoy {{date}}: {{value}} · mifik",
         "description": "Valor de la UF hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de UF a pesos. Datos del Banco Central de Chile.",
         "descriptionWithValue": "Valor UF hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de UF a pesos. Datos del Banco Central de Chile."
       },
       "dollarRate": {
-        "title": "Dólar observado hoy · fik",
-        "titleWithValue": "Dólar observado hoy {{date}}: {{value}} · fik",
+        "title": "Dólar observado hoy · mifik",
+        "titleWithValue": "Dólar observado hoy {{date}}: {{value}} · mifik",
         "description": "Valor del dólar observado hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de dólares a pesos. Datos del Banco Central de Chile.",
         "descriptionWithValue": "Dólar observado hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de dólares a pesos. Datos del Banco Central de Chile."
       },
       "guides": {
-        "title": "Guías de finanzas personales para Chile · fik",
+        "title": "Guías de finanzas personales para Chile · mifik",
         "description": "Guías claras sobre tarjetas de crédito, cuentas y facturación en Chile, con ejemplos en pesos y fuentes oficiales (CMF, SERNAC, Banco Central)."
       },
       "ai": {
-        "title": "fik para asistentes de IA · fik",
-        "description": "Un resumen de fik para ChatGPT, Claude u otro asistente de IA: qué hace la app, sus páginas y guías, y la UF y el dólar del día."
+        "title": "mifik para asistentes de IA · mifik",
+        "description": "Un resumen de mifik para ChatGPT, Claude u otro asistente de IA: qué hace la app, sus páginas y guías, y la UF y el dólar del día."
       },
       "editorial": {
-        "title": "Cómo escribimos las guías · fik",
-        "description": "Quién escribe las guías de fik, de qué fuentes oficiales salen sus datos, cada cuánto se revisan y cómo reportar un error."
+        "title": "Cómo escribimos las guías · mifik",
+        "description": "Quién escribe las guías de mifik, de qué fuentes oficiales salen sus datos, cada cuánto se revisan y cómo reportar un error."
       },
       "releaseNotes": {
-        "title": "Novedades de fik · fik",
-        "description": "Qué cambió en fik en cada versión: funciones nuevas, mejoras, correcciones y cambios, con la fecha en que se publicaron.",
-        "versionTitle": "Novedades de fik v{{version}} · fik",
-        "versionDescription": "Qué trajo fik v{{version}}, publicada el {{date}}: {{titles}}."
+        "title": "Novedades de mifik · mifik",
+        "description": "Qué cambió en mifik en cada versión: funciones nuevas, mejoras, correcciones y cambios, con la fecha en que se publicaron.",
+        "versionTitle": "Novedades de mifik v{{version}} · mifik",
+        "versionDescription": "Qué trajo mifik v{{version}}, publicada el {{date}}: {{titles}}."
       }
     },
     "access": {
@@ -393,9 +393,9 @@
       "title": "Confirma tu correo",
       "loading": "Confirmando tu correo…",
       "success": "Listo, tu correo quedó confirmado. Ya puedes recuperar tu contraseña por correo y recibirás los avisos de seguridad.",
-      "invalid": "Este enlace no sirve: venció, ya se usó o pediste uno más nuevo. Entra a fik y pide otro desde el aviso o desde Perfil.",
+      "invalid": "Este enlace no sirve: venció, ya se usó o pediste uno más nuevo. Entra a mifik y pide otro desde el aviso o desde Perfil.",
       "error": "No pudimos conectarnos. Recarga la página para intentarlo de nuevo.",
-      "toApp": "Ir a fik"
+      "toApp": "Ir a mifik"
     },
     "resetPassword": {
       "title": "Elige una contraseña nueva",
@@ -479,7 +479,7 @@
       },
       "cta": {
         "title": "Tus cuentas en dólares y en UF, en pesos",
-        "body": "fik usa estos mismos valores para mostrarte cuánto suman en pesos tus cuentas en dólares y en UF, sin hacer la cuenta a mano.",
+        "body": "mifik usa estos mismos valores para mostrarte cuánto suman en pesos tus cuentas en dólares y en UF, sin hacer la cuenta a mano.",
         "action": "Crear cuenta"
       },
       "other": {
@@ -488,7 +488,7 @@
       },
       "home": {
         "title": "La UF y el dólar de hoy",
-        "body": "Los mismos valores que usa fik, con historial y conversor.",
+        "body": "Los mismos valores que usa mifik, con historial y conversor.",
         "see": "Ver historial y conversor"
       }
     },
@@ -499,7 +499,7 @@
       "empty": "Aún no hay guías en este idioma.",
       "published": "Publicada el {{date}}",
       "reviewed": "Revisada el {{date}}",
-      "authorRole": "fundador de fik",
+      "authorRole": "fundador de mifik",
       "reviewedShort": "Revisada el {{date}}",
       "toc": "En esta guía",
       "sources": "Fuentes",
@@ -507,7 +507,7 @@
       "backToIndex": "Ver todas las guías",
       "breadcrumb": "Guías",
       "cta": {
-        "title": "Lleva el control de tus tarjetas en fik",
+        "title": "Lleva el control de tus tarjetas en mifik",
         "body": "Anota tus compras, genera cada facturación con las fechas de tu estado de cuenta y sabe siempre cuánto debes pagar y cuándo.",
         "action": "Crear cuenta"
       },
@@ -521,8 +521,8 @@
       "editorialLink": "Cómo escribimos"
     },
     "ai": {
-      "title": "fik para asistentes de IA",
-      "intro": "Si le preguntas a ChatGPT, Claude, Gemini u otro asistente por fik, dale este resumen: le cuenta qué hace la app y dónde está cada página y guía. Se actualiza con cada versión del sitio, con la UF y el dólar del día.",
+      "title": "mifik para asistentes de IA",
+      "intro": "Si le preguntas a ChatGPT, Claude, Gemini u otro asistente por mifik, dale este resumen: le cuenta qué hace la app y dónde está cada página y guía. Se actualiza con cada versión del sitio, con la UF y el dólar del día.",
       "howTitle": "Cómo usarlo",
       "stepCopy": "Copia el resumen y pégalo en tu conversación antes de preguntar.",
       "stepAddress": "O dale la dirección {{url}}: los asistentes que navegan la leen solos.",
@@ -541,7 +541,7 @@
     },
     "releaseNotes": {
       "title": "Novedades",
-      "lead": "Lo que cambió en fik en cada versión, escrito para personas.",
+      "lead": "Lo que cambió en mifik en cada versión, escrito para personas.",
       "empty": "Todavía no hay novedades registradas."
     }
   }

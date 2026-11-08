@@ -1,10 +1,10 @@
 **Última actualización:** 25 de octubre de 2026
 
-Las guías de _fik_ explican cómo funcionan las tarjetas, las cuentas y la facturación en Chile. Como hablan de tu dinero, aquí está cómo las hacemos: quién las escribe, de dónde salen los datos, cada cuánto se revisan y qué hacer si encuentras un error.
+Las guías de _mifik_ explican cómo funcionan las tarjetas, las cuentas y la facturación en Chile. Como hablan de tu dinero, aquí está cómo las hacemos: quién las escribe, de dónde salen los datos, cada cuánto se revisan y qué hacer si encuentras un error.
 
 ## Quién las escribe
 
-Las escribe y las revisa **Simón Sáez**, fundador de _fik_ ([quién es](/es/about/#author)). Cada guía lleva su firma, la fecha en que se publicó y la fecha de su última revisión.
+Las escribe y las revisa **Simón Sáez**, fundador de _mifik_ ([quién es](/es/about/#author)). Cada guía lleva su firma, la fecha en que se publicó y la fecha de su última revisión.
 
 ## De dónde salen los datos
 
@@ -23,13 +23,13 @@ Son información general, no asesoría financiera ni legal. Para decidir sobre t
 
 ## Independencia
 
-Ningún banco ni emisor paga por aparecer en una guía ni por cómo se lo describe. _fik_ no tiene anuncios.
+Ningún banco ni emisor paga por aparecer en una guía ni por cómo se lo describe. _mifik_ no tiene anuncios.
 
 ## Cómo reportar un error
 
 Si algo está mal o desactualizado, avísanos:
 
 - **Por correo**, a [contacto@mifik.cl](mailto:contacto@mifik.cl).
-- **En GitHub**, abriendo un issue en [el repositorio de _fik_](https://github.com/SimonSaezCorrea/FinanceApp/issues/new).
+- **En GitHub**, abriendo un issue en [el repositorio de _mifik_](https://github.com/SimonSaezCorrea/FinanceApp/issues/new).
 
 Cuando corregimos una guía, actualizamos su fecha de revisión.

@@ -44,8 +44,8 @@ describe("email templates", () => {
     expect(out.html).toContain('lang="es"');
     expect(out.html).toContain('src="cid:fik-logo"');
     // The product name as a word goes in italics in the HTML body, never in the plain text.
-    expect(out.html).toContain("<i>fik</i>");
-    expect(out.html).not.toContain("mi<i>fik</i>");
+    expect(out.html).toContain("<i>mifik</i>");
+    expect(out.html).not.toContain("<i>mifik</i>.cl");
     expect(out.text).not.toContain("<i>");
     expect(out.text).toContain(link);
     expect(out.text).toContain("simon@mifik.cl");
@@ -104,7 +104,7 @@ describe("email templates", () => {
     const es_ = renderMfaCode({ ...base, locale: "es", purpose: "LOGIN", code: "048213" });
     expect(es_.text).toMatch(/^048213$/m);
     expect(es_.html).toContain("048213");
-    expect(es_.text).toContain("Nadie de fik te pedirá este código");
+    expect(es_.text).toContain("Nadie de mifik te pedirá este código");
     const en_ = renderMfaCode({ ...base, locale: "en", purpose: "STEP_UP", code: "111111" });
     expect(en_.subject).toContain("confirm");
   });

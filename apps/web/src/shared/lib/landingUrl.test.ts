@@ -20,4 +20,9 @@ describe("landingUrl", () => {
   it("points home at the public site's root", () => {
     expect(landingHomeUrl()).toBe(`${LANDING}/`);
   });
+
+  it("points the Spanish home at the root and the English one at /en/", () => {
+    expect(landingHomeUrl("es")).toBe(`${LANDING}/`);
+    expect(landingHomeUrl("en-US")).toBe(`${LANDING}/en/`);
+  });
 });

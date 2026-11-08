@@ -12,7 +12,7 @@
       "otherLanguage": "Español",
       "closeMenu": "Close menu",
       "language": "Language",
-      "appUnavailable": "We couldn’t open the fik app. Please try again in a few minutes.",
+      "appUnavailable": "We couldn’t open the mifik app. Please try again in a few minutes.",
       "appUnavailableTitle": "The app isn’t responding",
       "appUnavailableRetry": "Try again",
       "appUnavailableClose": "Close notice",
@@ -24,11 +24,11 @@
       "groups": {
         "rates": "Indicators",
         "learn": "Learn",
-        "company": "fik"
+        "company": "mifik"
       },
       "allGuides": "All guides",
       "legal": "Legal",
-      "copyright": "© {{year}} fik · mifik.cl",
+      "copyright": "© {{year}} mifik",
       "llms": "For AI assistants",
       "editorial": "How we write",
       "releaseNotes": "What's new"
@@ -127,14 +127,14 @@
         },
         "pending": {
           "title": "Pending",
-          "body": "Attaching receipts to your movements is coming soon. Automatic bank sync doesn't exist yet and may come in the future; meanwhile you import your bank statement or the fik template, which also lets you take your data with you."
+          "body": "Attaching receipts to your movements is coming soon. Automatic bank sync doesn't exist yet and may come in the future; meanwhile you import your bank statement or the mifik template, which also lets you take your data with you."
         }
       },
       "inTheApp": "In the app",
       "author": {
         "title": "Who writes the guides",
         "name": "Simón Sáez",
-        "role": "Founder of fik",
+        "role": "Founder of mifik",
         "body": "Simón writes each guide from the regulations and official sources it cites, with an example in Chilean pesos, and records in each one when it was last reviewed.",
         "guides": "See the guides"
       }
@@ -241,7 +241,7 @@
       "reasons": {
         "whyFree": {
           "title": "Why it doesn't cost anything",
-          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every account. fik doesn't connect, so it doesn't carry that cost."
+          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every account. mifik doesn't connect, so it doesn't carry that cost."
         },
         "notYourData": {
           "title": "Your data isn't the price",
@@ -323,67 +323,67 @@
     "skipToContent": "Skip to content",
     "meta": {
       "home": {
-        "title": "fik · Personal finance in {{country}}",
-        "description": "fik (mifik.cl), the backbone that keeps your finances balanced. Personal finance in {{country}} with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
+        "title": "mifik · Personal finance in {{country}}",
+        "description": "mifik, the backbone that keeps your finances balanced. Personal finance in {{country}} with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
       },
       "about": {
-        "title": "About · fik",
-        "description": "Why we built fik: an app that keeps your credit card, instalments and statements the way your bank does."
+        "title": "About · mifik",
+        "description": "Why we built mifik: an app that keeps your credit card, instalments and statements the way your bank does."
       },
       "privacy": {
-        "title": "Privacy and data · fik",
+        "title": "Privacy and data · mifik",
         "description": "How we protect your balances, movements and debts: five layers, from your consent to deleting your account."
       },
       "pricing": {
-        "title": "Pricing · fik",
-        "description": "fik is free. One plan, no ads, no selling your data."
+        "title": "Pricing · mifik",
+        "description": "mifik is free. One plan, no ads, no selling your data."
       },
       "faq": {
-        "title": "Frequently asked questions · fik",
-        "description": "Answers about how fik works, your cards and statements, and your data."
+        "title": "Frequently asked questions · mifik",
+        "description": "Answers about how mifik works, your cards and statements, and your data."
       },
-      "imageAlt": "fik, the backbone that keeps your finances balanced, over a mountain range",
+      "imageAlt": "mifik, the backbone that keeps your finances balanced, over a mountain range",
       "verifyEmail": {
-        "title": "Confirm your email · fik",
-        "description": "Confirm the email address of your fik account."
+        "title": "Confirm your email · mifik",
+        "description": "Confirm the email address of your mifik account."
       },
       "resetPassword": {
-        "title": "New password · fik",
-        "description": "Choose a new password for your fik account."
+        "title": "New password · mifik",
+        "description": "Choose a new password for your mifik account."
       },
       "privacyPolicy": {
-        "title": "Privacy policy · fik",
-        "description": "fik's privacy policy: what data we process, which providers we use, how long we keep it and how you exercise your rights."
+        "title": "Privacy policy · mifik",
+        "description": "mifik's privacy policy: what data we process, which providers we use, how long we keep it and how you exercise your rights."
       },
       "ufValue": {
-        "title": "UF value today · fik",
-        "titleWithValue": "UF value today, {{date}}: {{value}} · fik",
+        "title": "UF value today · mifik",
+        "titleWithValue": "UF value today, {{date}}: {{value}} · mifik",
         "description": "Today's value of the Chilean UF in pesos, with a 30-day and one-year history and a UF to pesos converter. Data from the Central Bank of Chile.",
         "descriptionWithValue": "UF value today, {{date}}: {{value}}. 30-day and one-year history and a UF to pesos converter. Data from the Central Bank of Chile."
       },
       "dollarRate": {
-        "title": "US dollar to Chilean peso today · fik",
-        "titleWithValue": "US dollar to Chilean peso, {{date}}: {{value}} · fik",
+        "title": "US dollar to Chilean peso today · mifik",
+        "titleWithValue": "US dollar to Chilean peso, {{date}}: {{value}} · mifik",
         "description": "Today's dólar observado, the official US dollar rate in Chilean pesos, with a 30-day and one-year history and a converter. Data from the Central Bank of Chile.",
         "descriptionWithValue": "Dólar observado, {{date}}: {{value}}. 30-day and one-year history and a dollars to pesos converter. Data from the Central Bank of Chile."
       },
       "guides": {
-        "title": "Personal finance guides for Chile · fik",
+        "title": "Personal finance guides for Chile · mifik",
         "description": "Clear guides on credit cards, accounts and billing in Chile for residents and newcomers, with examples in pesos and official sources."
       },
       "ai": {
-        "title": "fik for AI assistants · fik",
-        "description": "A summary of fik for ChatGPT, Claude or any AI assistant: what the app does, its pages and guides, and today's UF and dollar."
+        "title": "mifik for AI assistants · mifik",
+        "description": "A summary of mifik for ChatGPT, Claude or any AI assistant: what the app does, its pages and guides, and today's UF and dollar."
       },
       "editorial": {
-        "title": "How we write the guides · fik",
-        "description": "Who writes fik's guides, which official sources their facts come from, how often they are reviewed and how to report a mistake."
+        "title": "How we write the guides · mifik",
+        "description": "Who writes mifik's guides, which official sources their facts come from, how often they are reviewed and how to report a mistake."
       },
       "releaseNotes": {
-        "title": "What's new in fik · fik",
-        "description": "What changed in fik in each version: new features, improvements, fixes and changes, with the day they were released.",
-        "versionTitle": "What's new in fik v{{version}} · fik",
-        "versionDescription": "What fik v{{version}} brought, released on {{date}}: {{titles}}."
+        "title": "What's new in mifik · mifik",
+        "description": "What changed in mifik in each version: new features, improvements, fixes and changes, with the day they were released.",
+        "versionTitle": "What's new in mifik v{{version}} · mifik",
+        "versionDescription": "What mifik v{{version}} brought, released on {{date}}: {{titles}}."
       }
     },
     "access": {
@@ -393,9 +393,9 @@
       "title": "Confirm your email",
       "loading": "Confirming your email…",
       "success": "Done, your email is confirmed. You can now recover your password by email and you’ll get security notices.",
-      "invalid": "This link doesn’t work: it expired, was already used, or you asked for a newer one. Sign in to fik and ask for another from the notice or from Profile.",
+      "invalid": "This link doesn’t work: it expired, was already used, or you asked for a newer one. Sign in to mifik and ask for another from the notice or from Profile.",
       "error": "We couldn’t connect. Reload the page to try again.",
-      "toApp": "Go to fik"
+      "toApp": "Go to mifik"
     },
     "resetPassword": {
       "title": "Choose a new password",
@@ -479,7 +479,7 @@
       },
       "cta": {
         "title": "Your dollar and UF accounts, in pesos",
-        "body": "fik uses these same values to show what your dollar and UF accounts add up to in pesos, with no math by hand.",
+        "body": "mifik uses these same values to show what your dollar and UF accounts add up to in pesos, with no math by hand.",
         "action": "Create account"
       },
       "other": {
@@ -488,7 +488,7 @@
       },
       "home": {
         "title": "Today's UF and dollar",
-        "body": "The same values fik uses, with history and a converter.",
+        "body": "The same values mifik uses, with history and a converter.",
         "see": "See history and converter"
       }
     },
@@ -499,7 +499,7 @@
       "empty": "There are no guides in this language yet.",
       "published": "Published on {{date}}",
       "reviewed": "Reviewed on {{date}}",
-      "authorRole": "founder of fik",
+      "authorRole": "founder of mifik",
       "reviewedShort": "Reviewed on {{date}}",
       "toc": "In this guide",
       "sources": "Sources",
@@ -507,7 +507,7 @@
       "backToIndex": "See all guides",
       "breadcrumb": "Guides",
       "cta": {
-        "title": "Keep track of your cards in fik",
+        "title": "Keep track of your cards in mifik",
         "body": "Record your purchases, generate each statement with the dates on your bank statement and always know how much to pay and when.",
         "action": "Create account"
       },
@@ -521,8 +521,8 @@
       "editorialLink": "How we write"
     },
     "ai": {
-      "title": "fik for AI assistants",
-      "intro": "If you ask ChatGPT, Claude, Gemini or another assistant about fik, give it this summary: it tells it what the app does and where every page and guide is. It is updated with every version of the site, with today's UF and dollar.",
+      "title": "mifik for AI assistants",
+      "intro": "If you ask ChatGPT, Claude, Gemini or another assistant about mifik, give it this summary: it tells it what the app does and where every page and guide is. It is updated with every version of the site, with today's UF and dollar.",
       "howTitle": "How to use it",
       "stepCopy": "Copy the summary and paste it into your conversation before asking.",
       "stepAddress": "Or give it the address {{url}}: assistants that browse read it on their own.",
@@ -541,7 +541,7 @@
     },
     "releaseNotes": {
       "title": "What's new",
-      "lead": "What changed in fik in each version, written for people.",
+      "lead": "What changed in mifik in each version, written for people.",
       "empty": "No updates recorded yet."
     }
   }

@@ -11,7 +11,7 @@ const guide = {
 const labels = {
   published: "Publicada el 23 de octubre de 2026",
   reviewed: "Revisada el 23 de octubre de 2026",
-  authorRole: "fundador de fik",
+  authorRole: "fundador de mifik",
   sources: "Fuentes",
   notice: "Información general.",
 };
@@ -28,7 +28,7 @@ describe("guideMarkdown", () => {
       [
         "# Fecha de cierre",
         "> Qué es la fecha de cierre.",
-        "- URL: https://mifik.cl/es/guias/x/\n- Publicada el 23 de octubre de 2026\n- Revisada el 23 de octubre de 2026\n- Simón Sáez, fundador de fik",
+        "- URL: https://mifik.cl/es/guias/x/\n- Publicada el 23 de octubre de 2026\n- Revisada el 23 de octubre de 2026\n- Simón Sáez, fundador de mifik",
         "## Las dos fechas\n\nTexto.",
         "## Fuentes\n- [CMF: Estado de cuenta](https://www.cmfchile.cl/x)",
         "_Información general._",

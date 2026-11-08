@@ -62,17 +62,17 @@ const metaKey = utility ?? page;
 const title =
   Astro.props.title ??
   (notFound
-    ? `${t(lang, "app.notFound.title")} · fik`
+    ? `${t(lang, "app.notFound.title")} · mifik`
     : metaTitle(lang, metaKey));
 const description = Astro.props.description ?? metaDescription(lang, metaKey);
-const image = `${site}/og/fik-${lang}.png`;
+const image = `${site}/og/mifik-${lang}.png`;
 // Visit statistics (Cloudflare Web Analytics: aggregated, no cookies), declared in the privacy
 // policy. Added here by hand instead of Cloudflare's automatic injection so it runs ONLY on the
 // public pages: never on the pages an email link opens (their address carries a one-time token
 // the beacon would send along with the URL), never on the 404, never in the app.
 const analyticsToken = import.meta.env.PUBLIC_CF_WEB_ANALYTICS_TOKEN?.trim();
 const analytics = analyticsToken && (!unindexed || unlisted) ? JSON.stringify({ token: analyticsToken }) : null;
-// Structured data on the home page (both languages): tells Google the site is called "fik"
+// Structured data on the home page (both languages): tells Google the site is called "mifik"
 // (also searched as "mifik") so brand searches show that name and lead here.
 const structuredData =
   page === "home" && !unindexed
@@ -80,7 +80,7 @@ const structuredData =
         {
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "fik",
+          name: "mifik",
           alternateName: [...BRAND_NAMES, "mifik.cl"],
           url: `${site}/`,
           inLanguage: lang === "es" ? "es-CL" : "en-US",
@@ -88,7 +88,7 @@ const structuredData =
         {
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "fik",
+          name: "mifik",
           alternateName: BRAND_NAMES,
           url: `${site}/`,
           email: CONTACT_EMAIL,
@@ -146,7 +146,7 @@ const structuredData =
       )
     }
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="fik" />
+    <meta property="og:site_name" content="mifik" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={url(lang)} />
