@@ -89,6 +89,14 @@ export function AccountVisualCard({
   const shownBalance = account.currentBalance;
   const balance = Number(shownBalance);
 
+  // An additional card issued to someone else prints THEIR name, the way the plastic does; any
+  // other tile prints the owner's (`holder`).
+  const cardholder = card?.isAdditional ? card.cardholderName?.trim() : undefined;
+  const shownHolder = cardholder || holder;
+  // The network (Visa, Mastercard…) where a real card prints its brand; "Otra" says nothing.
+  const network =
+    card?.network && card.network !== "OTHER" ? t(`cards.network.${card.network}`) : null;
+
   const inactiveCard = card ? !card.isActive : false;
   const gradientClass = card
     ? inactiveCard
@@ -253,13 +261,22 @@ export function AccountVisualCard({
           )}
         </div>
 
-        <div className="flex items-end justify-between">
-          {holder ? (
-            <span className="text-xs font-medium uppercase tracking-wide opacity-90">{holder}</span>
+        <div className="flex items-end justify-between gap-3">
+          {shownHolder ? (
+            <span className="truncate text-xs font-medium uppercase tracking-wide opacity-90">
+              {shownHolder}
+            </span>
           ) : (
             <span />
           )}
-          {expiry ? <span className="text-xs tabular-nums opacity-90">{expiry}</span> : null}
+          {expiry || network ? (
+            <span className="flex shrink-0 items-baseline gap-2">
+              {expiry ? <span className="text-xs tabular-nums opacity-90">{expiry}</span> : null}
+              {network ? (
+                <span className="text-sm font-bold italic tracking-tight">{network}</span>
+              ) : null}
+            </span>
+          ) : null}
         </div>
       </div>
     </Tag>

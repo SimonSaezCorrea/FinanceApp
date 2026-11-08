@@ -616,6 +616,17 @@
     "savingsSentence": "Ahorras el {{pct}}% de lo que entró.",
     "overspent": "Salió más de lo que entró este mes.",
     "otherCategories": "Otras categorías",
+    "breakdown": {
+      "label": "Ver gastos por",
+      "category": "Categoría",
+      "account": "Cuenta",
+      "holder": "Titular",
+      "noAccount": "Sin cuenta"
+    },
+    "byHolder": {
+      "title": "Quién gastó",
+      "you": "Tú"
+    },
     "tabs": {
       "label": "Detalle",
       "month": "Mes",

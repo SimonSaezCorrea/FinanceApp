@@ -10,9 +10,8 @@ import { useFirstSteps } from "../domains/accounts/hooks/useFirstSteps";
 import { NEW_ACCOUNT_PARAM } from "../domains/accounts/lib/onboarding";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { AttentionStrip } from "../domains/dashboard/components/AttentionStrip";
-import { CategoryBars } from "../domains/dashboard/components/CategoryBars";
+import { SpendBreakdown } from "../domains/dashboard/components/SpendBreakdown";
 import {
-  CategoryRowsSkeleton,
   DashboardSkeleton,
   MonthFlowRowsSkeleton,
 } from "../domains/dashboard/components/DashboardSkeleton";
@@ -25,7 +24,9 @@ import { useDueStatements } from "../domains/dashboard/hooks/useDueStatements";
 import {
   attentionItems,
   endOfMonthISO,
+  expensesByAccount,
   expensesByCategory,
+  expensesByHolder,
   monthFlow,
   netWorth,
   secondaryTotals,
@@ -100,8 +101,8 @@ export function DashboardPage() {
   const debtsQuery = useDebts();
   const recurringQuery = useRecurring();
 
-  const accountList = accountsQuery.data ?? [];
-  const txs = txQuery.data ?? [];
+  const accountList = useMemo(() => accountsQuery.data ?? [], [accountsQuery.data]);
+  const txs = useMemo(() => txQuery.data ?? [], [txQuery.data]);
   const dueStatements = useDueStatements(accountList);
   // Everything the Panel adds up, except the month's own movements: until ALL of it is here the
   // whole Panel stays a skeleton. Gating on the accounts alone showed "$0", "nothing due" and a
@@ -132,6 +133,8 @@ export function DashboardPage() {
   );
   const flow = useMemo(() => monthFlow(txs), [txs]);
   const categories = useMemo(() => expensesByCategory(txs), [txs]);
+  const byAccount = useMemo(() => expensesByAccount(txs), [txs]);
+  const holders = useMemo(() => expensesByHolder(txs, accountList), [txs, accountList]);
   const upcoming = useMemo(
     () =>
       upcomingPayments(
@@ -159,9 +162,13 @@ export function DashboardPage() {
     </Section>
   );
   const categoriesBlock = (
-    <Section title={t("dashboard.spendByCategory")}>
-      {loadingMonth ? <CategoryRowsSkeleton /> : <CategoryBars slices={categories} />}
-    </Section>
+    <SpendBreakdown
+      categories={categories}
+      byAccount={byAccount}
+      byHolder={holders}
+      accountList={accountList}
+      loading={loadingMonth}
+    />
   );
   const paymentsBlock = (
     <Section title={t("dashboard.upcoming")}>
@@ -291,7 +298,7 @@ export function DashboardPage() {
               <NetWorthCard worth={worth} secondary={secondary} chartHeight={170} />
               <div className="grid grid-cols-2 gap-4">
                 <Card className="p-5">{monthBlock}</Card>
-                <Card className="p-5">{categoriesBlock}</Card>
+                <Card className="flex flex-col gap-5 p-5">{categoriesBlock}</Card>
               </div>
               <Card className="p-5">{paymentsBlock}</Card>
               {walletBlock}

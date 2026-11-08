@@ -7,7 +7,9 @@ import {
   type UpcomingPayment,
   attentionItems,
   excludeTransfers,
+  expensesByAccount,
   expensesByCategory,
+  expensesByHolder,
   monthFlow,
   netWorth,
 } from "./metrics";
@@ -213,5 +215,57 @@ describe("attentionItems", () => {
     );
     expect(items.map((i) => i.id)).toEqual(["late", "b", "a"]);
     expect(items[0]?.overdue).toBe(true);
+  });
+});
+
+describe("expensesByHolder", () => {
+  const card = (over: Partial<accounts.Card>): accounts.Card =>
+    ({ id: "c-own", isAdditional: false, cardholderName: null, ...over }) as accounts.Card;
+  const accountList = [
+    {
+      id: "a1",
+      cards: [
+        card({ id: "c-own" }),
+        card({ id: "c-cami", isAdditional: true, cardholderName: "Camila" }),
+        card({ id: "c-cami2", isAdditional: true, cardholderName: " camila " }),
+        card({ id: "c-blank", isAdditional: true, cardholderName: "  " }),
+      ],
+    },
+  ] as unknown as accounts.BankAccount[];
+
+  it("splits spending between the owner and each additional cardholder", () => {
+    const slices = expensesByHolder(
+      [
+        tx({ id: "1", amount: "1000" }),
+        tx({ id: "2", amount: "2000", cardId: "c-own" }),
+        tx({ id: "3", amount: "4000", cardId: "c-cami" }),
+        tx({ id: "4", amount: "500", cardId: "c-cami2" }),
+        tx({ id: "5", amount: "100", cardId: "c-blank" }),
+        tx({ id: "6", type: "INCOME", amount: "9000", cardId: "c-cami" }),
+        tx({ id: "7", amount: "9000", cardId: "c-cami", currency: "USD" }),
+        ...transferPair,
+      ],
+      accountList,
+    );
+    expect(slices).toEqual([
+      { holder: "Camila", total: "4500.0000" },
+      { holder: null, total: "3100.0000" },
+    ]);
+  });
+});
+
+describe("expensesByAccount", () => {
+  it("groups the month's expenses by account, largest first", () => {
+    const slices = expensesByAccount([
+      tx({ id: "1", amount: "1000", bankAccountId: "a1" }),
+      tx({ id: "2", amount: "3000", bankAccountId: "a2" }),
+      tx({ id: "3", amount: "500", bankAccountId: "a1" }),
+      tx({ id: "4", type: "INCOME", amount: "9000", bankAccountId: "a1" }),
+      ...transferPair,
+    ]);
+    expect(slices).toEqual([
+      { accountId: "a2", total: "3000.0000" },
+      { accountId: "a1", total: "1500.0000" },
+    ]);
   });
 });

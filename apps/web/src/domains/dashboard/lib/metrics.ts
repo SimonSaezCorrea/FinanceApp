@@ -2,6 +2,7 @@ import type { accounts, debts, installments, recurring, transactions } from "@fi
 import { transactions as transactionsContract } from "@finance/contracts";
 import { sumMoney } from "@finance/money";
 
+import { cardHolderOf } from "../../accounts/lib/cardHolder";
 import { netWorthByCurrency } from "../../accounts/lib/netWorth";
 import { isOpen, leftAmount } from "../../debts/lib/debtMetrics";
 import { linkTo } from "../../../shared/lib/useLinkedSelection";
@@ -171,6 +172,66 @@ export function expensesByCategory(txs: transactions.Transaction[]): CategorySli
   return [...map.entries()]
     .map(([categoryId, vals]) => ({ categoryId, total: sumMoney(vals) }))
     .sort((a, b) => Number(b.total) - Number(a.total));
+}
+
+export interface HolderSlice {
+  /** Who spent it: an additional card's cardholder, `null` for the account owner. */
+  holder: string | null;
+  total: string;
+}
+
+/**
+ * Expenses (primary currency) grouped by who spent them, largest first: what went through an
+ * additional card issued to another person is that person's, everything else (own cards, no card)
+ * is the owner's (`holder: null`). Same movements the category bars count. Names are compared
+ * case-insensitively, so two additional cards for "Camila" add up; the first spelling is shown.
+ */
+export function expensesByHolder(
+  txs: transactions.Transaction[],
+  accountList: accounts.BankAccount[],
+): HolderSlice[] {
+  const cards = new Map<string, accounts.Card>();
+  for (const a of accountList) for (const c of a.cards) cards.set(c.id, c);
+  const map = new Map<string | null, { holder: string | null; vals: string[] }>();
+  for (const t of excludeTransfers(txs)) {
+    if (t.type !== "EXPENSE" || t.currency !== PRIMARY_CURRENCY) continue;
+    const holder = cardHolderOf(t.cardId ? cards.get(t.cardId) : undefined);
+    const key = holder === null ? null : holder.toLocaleLowerCase();
+    const bucket = map.get(key) ?? { holder, vals: [] };
+    bucket.vals.push(t.amount);
+    map.set(key, bucket);
+  }
+  return [...map.values()]
+    .map(({ holder, vals }) => ({ holder, total: sumMoney(vals) }))
+    .sort((a, b) => Number(b.total) - Number(a.total));
+}
+
+export interface AccountSlice {
+  /** The account the expense was charged to, `null` for a movement with no account. */
+  accountId: string | null;
+  total: string;
+}
+
+/** Expenses (primary currency) grouped by the account they were charged to, largest first. Same
+ * movements the category bars count. */
+export function expensesByAccount(txs: transactions.Transaction[]): AccountSlice[] {
+  const map = new Map<string | null, string[]>();
+  for (const t of excludeTransfers(txs)) {
+    if (t.type !== "EXPENSE" || t.currency !== PRIMARY_CURRENCY) continue;
+    const key = t.bankAccountId ?? null;
+    const bucket = map.get(key) ?? [];
+    bucket.push(t.amount);
+    map.set(key, bucket);
+  }
+  return [...map.entries()]
+    .map(([accountId, vals]) => ({ accountId, total: sumMoney(vals) }))
+    .sort((a, b) => Number(b.total) - Number(a.total));
+}
+
+/** Whether a month's spending includes someone other than the owner (an additional cardholder):
+ * with the owner alone a "who spent it" block would be one bar at 100%. */
+export function hasOtherHolders(slices: HolderSlice[]): boolean {
+  return slices.some((s) => s.holder !== null && Number(s.total) > 0);
 }
 
 export type UpcomingKind = "installment" | "debt" | "recurring";

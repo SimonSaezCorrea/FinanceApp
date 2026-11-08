@@ -616,6 +616,17 @@
     "savingsSentence": "You're saving {{pct}}% of what came in.",
     "overspent": "More went out than came in this month.",
     "otherCategories": "Other categories",
+    "breakdown": {
+      "label": "Show spending by",
+      "category": "Category",
+      "account": "Account",
+      "holder": "Cardholder",
+      "noAccount": "No account"
+    },
+    "byHolder": {
+      "title": "Who spent it",
+      "you": "You"
+    },
     "tabs": {
       "label": "Detail",
       "month": "Month",

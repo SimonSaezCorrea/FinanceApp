@@ -14,6 +14,7 @@ import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { TransactionCustomFieldsSection } from "../../custom-fields/components/TransactionCustomFieldsSection";
 import { linkTo } from "../../../shared/lib/useLinkedSelection";
+import { cardHolderOf } from "../../accounts/lib/cardHolder";
 
 export function formatLongDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -53,6 +54,7 @@ export function TransactionDetailPanel({
 
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
   const card = tx.cardId ? account?.cards.find((c) => c.id === tx.cardId) : undefined;
+  const cardholder = cardHolderOf(card);
   const isIncome = tx.type === "INCOME";
   const isTransfer = tx.transferGroupId !== null;
 
@@ -235,6 +237,8 @@ export function TransactionDetailPanel({
             value={`••••${card.last4} · ${card.name}`}
           />
         ) : null}
+        {/* "¿Quién gastó esto?": a purchase on an additional card belongs to its cardholder. */}
+        {cardholder ? <DetailRow label={t("cards.detail.holder")} value={cardholder} /> : null}
         {/* An em dash, never an estimate, when the loaded set can't support it. */}
         <DetailRow
           label={t("transactions.detail.balanceAfter")}

@@ -457,16 +457,20 @@ datos; si el bucket falla en ese momento el archivo queda huérfano y solo se re
 (`orphaned object left in the bucket: <key>`). No existe todavía un job de limpieza que reconcilie
 claves huérfanas contra la tabla.
 
-### 4. Atributos de tarjeta puramente descriptivos
+### 4. Atributos de tarjeta — titular y red ya se usan (2026-11-07); virtual sigue descriptivo
 
-`CardAccount.isVirtual`, `isAdditional`, `cardholderName` y `network` se guardan, se editan en
-`CardForm` y se muestran en `CardDetailPanel`, pero **ninguna regla de negocio depende de ellos**: una
-tarjeta virtual no se comporta distinto de una física, una adicional no tiene tope propio ni
-consolidación por titular, y la red no cambia ninguna validación. Son datos para que la persona
-reconozca su tarjeta y para poder responder "¿quién gastó esto?" leyendo el movimiento.
+`CardAccount.isAdditional` + `cardholderName` y `network` dejaron de ser solo datos (card ClickUp
+17tgmdxnu9b): el bloque "En qué se fue" del Panel tiene un selector **Categoría · Cuenta · Titular**
+(`SpendBreakdown`; gasto del mes por titular con `expensesByHolder` en `dashboard/lib/metrics.ts`,
+"Titular" solo cuando alguien además del dueño gastó con una adicional), el detalle
+de un movimiento hecho con una adicional muestra su **Titular**, y la tarjeta visual
+(`AccountVisualCard`) imprime la **red** y, en una adicional, el nombre de su titular en vez del del
+dueño. La regla de quién es dueño del gasto vive en `accounts/lib/cardHolder.ts`'s `cardHolderOf`.
 
-**Para hacerlos reales**: agrupar el gasto por `cardholderName` en el panel y en los agregados
-(hoy no existe ese corte), y usar `network` en la presentación de la tarjeta.
+Lo que queda: `isVirtual` no cambia nada; ninguna regla de negocio depende de estos atributos (una
+adicional no tiene tope ni consolidación propios por titular); el corte por titular es solo del
+Panel (moneda principal) — `GET /transactions/summary` y los filtros de Movimientos no agrupan ni
+filtran por titular.
 
 ### 5. Un solo país en el catálogo (decisión de MVP, no un hueco)
 

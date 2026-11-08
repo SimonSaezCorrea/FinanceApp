@@ -101,6 +101,26 @@ describe("AccountVisualCard", () => {
     renderTile({ accountOnly: true });
     await waitFor(() => expect(screen.getByText(/1\.686\.470/)).toBeDefined());
   });
+
+  it("prints the card's network, and nothing for 'Otra'", async () => {
+    renderTile({ card: { ...card, network: "VISA" } });
+    await waitFor(() => expect(screen.getByText("Visa")).toBeDefined());
+  });
+
+  it("an additional card prints its cardholder's name instead of the owner's", async () => {
+    renderTile({
+      card: { ...card, isPrimary: false, isAdditional: true, cardholderName: "Camila Rojas" },
+      holder: "Javier Soto",
+    });
+    await waitFor(() => expect(screen.getByText("Camila Rojas")).toBeDefined());
+    expect(screen.queryByText("Javier Soto")).toBeNull();
+  });
+
+  it("an own card prints the owner's name", async () => {
+    renderTile({ card: { ...card, network: "OTHER" }, holder: "Javier Soto" });
+    await waitFor(() => expect(screen.getByText("Javier Soto")).toBeDefined());
+    expect(screen.queryByText("Otra")).toBeNull();
+  });
 });
 
 describe("AccountVisualCard — pesos equivalent (spec 030)", () => {

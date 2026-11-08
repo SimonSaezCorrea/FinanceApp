@@ -664,7 +664,7 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     (un emisor entrega varias virtuales sobre el mismo saldo), `isAdditional` + `cardholderName` (la
     tarjeta emitida a otra persona: saber QUIÉN gastó es gran parte de lo que esta app agrega sobre la
     cartola del banco) y `network` (enum nuevo **`CardNetwork`**: VISA/MASTERCARD/AMEX/REDCOMPRA/OTHER).
-    Todas opcionales y **descriptivas**: ninguna regla depende de ellas todavía. `CardForm` las pide
+    Todas opcionales y **descriptivas**: ninguna regla depende de ellas todavía. **Uso en la UI (2026-11-07):** el bloque "En qué se fue" del Panel (`SpendBreakdown`) tiene un selector Categoría · Cuenta · Titular (`expensesByCategory`/`expensesByAccount`/`expensesByHolder`, barras `RankedBars`; "Titular" solo si alguien además del dueño gastó con una adicional ese mes), el detalle del movimiento muestra el Titular de una adicional y `AccountVisualCard` imprime la red y el titular de la adicional (`accounts/lib/cardHolder.ts`'s `cardHolderOf`). `CardForm` las pide
     (switches + selector de red, el campo de titular solo aparece si la tarjeta es adicional) y
     `CardDetailPanel` las muestra como filas. Falta en el catálogo: el registro TCEEM completo
     (emisores de crédito no bancario) y las cooperativas.
