@@ -181,8 +181,11 @@ export class AuthController {
     res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
     if (trustedDeviceToken) {
+      // Flags written out, not spread from cookieBase(): CodeQL doesn't follow the spread.
       res.cookie(TRUSTED_DEVICE_COOKIE, trustedDeviceToken, {
-        ...this.cookieBase(),
+        httpOnly: true,
+        sameSite: "lax",
+        secure: requiresSecureCookies(this.config),
         path: TRUSTED_DEVICE_COOKIE_PATH,
         maxAge: TRUSTED_DEVICE_COOKIE_MAX_AGE_MS,
       });
