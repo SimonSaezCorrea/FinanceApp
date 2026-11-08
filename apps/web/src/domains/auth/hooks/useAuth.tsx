@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
 import type { auth } from "@finance/contracts";
 
@@ -7,24 +7,7 @@ import { authApi } from "@finance/client";
 import { setLanguage } from "../../../i18n";
 import { assignLocation } from "../../../shared/lib/leaveApp";
 import { landingHomeUrl } from "../../../shared/lib/landingUrl";
-
-/**
- * The app's session. Signing in and registering happen on the public site (spec 031), which
- * leaves the API's session cookies behind and sends the person here; this provider only reads that
- * session (`/auth/me`), keeps it fresh after profile edits, and ends it.
- */
-interface AuthContextValue {
-  user: auth.CurrentUser | null;
-  loading: boolean;
-  /** Ends the session and leaves for the public site's home. */
-  logout: () => Promise<void>;
-  /** Re-fetches /auth/me and refreshes the cached user (after a profile/preferences edit). */
-  refreshUser: () => Promise<auth.CurrentUser | null>;
-  /** Clears the local user without calling the API (session already ended server-side, e.g. deactivate). */
-  clearUser: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from "./authContext";
 
 let initialSession: Promise<auth.CurrentUser> | null = null;
 
@@ -40,6 +23,11 @@ export function primeSession(): void {
   initialSession.catch(() => undefined);
 }
 
+/**
+ * The app's session. Signing in and registering happen on the public site (spec 031), which
+ * leaves the API's session cookies behind and sends the person here; this provider only reads that
+ * session (`/auth/me`), keeps it fresh after profile edits, and ends it.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<auth.CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
