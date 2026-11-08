@@ -9,7 +9,8 @@ function type(
   how: { typedPoint?: boolean; pasted?: boolean } = {},
 ) {
   const caret = text.indexOf("|");
-  const r = formatWhileTyping(text.replace("|", ""), caret, lang, how);
+  // Exactly one caret: cut it out where it is (a `replace` reads as an incomplete escape).
+  const r = formatWhileTyping(text.slice(0, caret) + text.slice(caret + 1), caret, lang, how);
   return `${r.value.slice(0, r.caret)}|${r.value.slice(r.caret)}`;
 }
 

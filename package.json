@@ -32,7 +32,7 @@
       "@nestjs/core"
     ],
     "overrides": {
-      "fast-uri": "^3.1.6",
+      "fast-uri": "^3.1.9",
       "find-my-way": "^9.7.0",
       "postcss": "^8.5.18",
       "nanoid": "^3.3.18",
@@ -46,7 +46,10 @@
       "moment": "^2.31.0",
       "vite": "^8.3.5",
       "body-parser": "^2.4.0",
-      "undici": "^8.12.2"
+      "undici": "^8.12.2",
+      "qs": "^6.16.1",
+      "postcss-selector-parser@6": "^6.1.5",
+      "glob@13": "^14.0.2"
     },
     "auditConfig": {
       "ignoreGhsas": [
@@ -58,8 +61,7 @@
         "GHSA-c2c7-rcm5-vvqj",
         "GHSA-r5fr-rjxr-66jc",
         "GHSA-ph9p-34f9-6g65",
-        "GHSA-vfj7-8cjw-p6xm",
-        "GHSA-rj75-hqrm-r3gf"
+        "GHSA-vfj7-8cjw-p6xm"
       ]
     }
   },

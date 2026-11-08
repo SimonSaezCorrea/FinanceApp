@@ -147,7 +147,10 @@ function splitFrontmatter(file: string, raw: string): { meta: Frontmatter; body:
   return { meta: meta as Frontmatter, body: text.slice(match[0].length) };
 }
 
-const INLINE = /\*\*(.+?)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)/g;
+/** Bold, code and links. Each part is a bounded run of characters that can't start the next
+ * one (no `*` inside bold, no `[` inside a link's text), so a long line of brackets or asterisks
+ * can never make the match backtrack polynomially (CodeQL js/polynomial-redos). */
+const INLINE = /\*\*([^*]{1,500})\*\*|`([^`]{1,500})`|\[([^[\]]{1,500})\]\(([^()\s]{1,2000})\)/g;
 
 /** One change's text as tokens. Throws on a link that isn't https. */
 export function tokenizeInline(text: string, file = "inline"): InlineToken[] {
