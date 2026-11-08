@@ -1,6 +1,6 @@
 ---
 title: Privacy policy in the app
-summary: Read the policy without leaving the app, go back to the Dashboard from the logo and open mifik.cl without signing out.
+summary: Read the policy without leaving the app, go back to the Dashboard from the logo and choose between mifik.cl and signing out.
 ---
 
 ## New
@@ -14,3 +14,5 @@ summary: Read the policy without leaving the app, go back to the Dashboard from 
 
 - **The logo takes you to the Dashboard**: tap the _mifik_ logo from any section to go back to the
   Dashboard.
+- **What's coming, where it belongs**: in Profile, Notifications shows as "Coming soon" inside the App
+  group, instead of a loose list at the foot of the index.
