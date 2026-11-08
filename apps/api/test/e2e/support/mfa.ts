@@ -89,11 +89,18 @@ export async function verifyMfa(
 }
 
 /** Steps up the current session with the authenticator app. */
-export async function stepUpTotp(app: INestApplication, cookies: string[], secret: string) {
-  return request(app.getHttpServer())
+export async function stepUpTotp(
+  app: INestApplication,
+  cookies: string[],
+  secret: string,
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  // Named type, not supertest's inferred one: TS can't name superagent's `Response` from here
+  // (TS2883 in CI, where pnpm lays out @types/superagent differently).
+  const res = await request(app.getHttpServer())
     .post("/api/v1/auth/sessions/step-up")
     .set("Cookie", cookies)
     .send({ method: "totp", code: totpCodeFor(secret) });
+  return { status: res.status, body: res.body };
 }
 
 /** The cookie pairs ("name=value") of a Set-Cookie list, ready for `.set("Cookie", …)`. */

@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authApi } from "@finance/client";
-import { latestVersion } from "@finance/release-notes/src/lazy";
+import { latestVersion, loadVersions } from "@finance/release-notes/src/lazy";
 
 import i18n from "../../../i18n";
 import { ReleaseNotesRoute } from "./ReleaseNotesRoute";
@@ -35,6 +35,14 @@ function renderRoute() {
   );
 }
 
+/** The newest version's first record, read the way the page reads it — never a title typed here:
+ * which records the newest version holds depends on the git tags (a release moves them into an
+ * older version), so a fixed title broke the day a version was tagged. */
+async function newestRecord() {
+  const [newest] = await loadVersions("es");
+  return newest!.releases[0]!;
+}
+
 describe("ReleaseNotesRoute (spec 038)", () => {
   beforeEach(() => {
     mark.mockReset();
@@ -44,12 +52,10 @@ describe("ReleaseNotesRoute (spec 038)", () => {
 
   it("shows the newest version with its records and marks it as seen once", async () => {
     mark.mockResolvedValue(undefined);
+    const record = await newestRecord();
     renderRoute();
-    expect(
-      await screen.findByRole("heading", { name: "Guías de finanzas personales para Chile" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: record.title })).toBeTruthy();
     expect(screen.getByRole("heading", { name: `v${latestVersion()}` })).toBeTruthy();
-    expect(screen.getAllByRole("heading", { name: "Correcciones" }).length).toBeGreaterThan(0);
     const button = screen.getByRole("button", { name: `Versión ${latestVersion()}` });
     expect(button.getAttribute("aria-pressed")).toBe("true");
     // Newer than what was seen on arrival: it keeps its "new" mark while the page is open.
@@ -61,18 +67,18 @@ describe("ReleaseNotesRoute (spec 038)", () => {
 
   it("asks nothing when the newest was already seen, and marks nothing as new", async () => {
     auth.user = { releaseNotesSeenVersion: latestVersion() };
+    const record = await newestRecord();
     renderRoute();
-    await screen.findByRole("heading", { name: "Guías de finanzas personales para Chile" });
+    await screen.findByRole("heading", { name: record.title });
     expect(mark).not.toHaveBeenCalled();
     expect(screen.queryByText("Nueva")).toBeNull();
   });
 
   it("still reads when saving 'seen' fails", async () => {
     mark.mockRejectedValue(new Error("offline"));
+    const record = await newestRecord();
     renderRoute();
-    expect(
-      await screen.findByRole("heading", { name: "Guías de finanzas personales para Chile" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: record.title })).toBeTruthy();
     await waitFor(() => expect(mark).toHaveBeenCalled());
     expect(auth.refreshUser).not.toHaveBeenCalled();
   });
