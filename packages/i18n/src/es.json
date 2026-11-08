@@ -2341,6 +2341,7 @@
         "done": "Listo",
         "disableTitle": "Desactivar verificación en dos pasos",
         "disableHint": "Ingresa tu contraseña actual para confirmar.",
+        "disableStepUpHint": "Para desactivar la verificación en dos pasos, confirma que eres tú.",
         "disableConfirm": "Desactivar",
         "disablePasswordLabel": "Contraseña actual",
         "download": "Descargar .txt",

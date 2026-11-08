@@ -77,6 +77,10 @@ describe("Security notices HTTP (e2e)", () => {
       .set("Cookie", cookies)
       .send({ code: totpCodeFor(enroll.body.secret) });
     await waitForEmail(outbox, email, "security-notice", "Activaste la verificación");
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "totp", code: totpCodeFor(enroll.body.secret) });
 
     const disabled = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/disable")

@@ -133,6 +133,7 @@ describe("Remembered device HTTP (e2e)", () => {
     expect((await login(app, b.rut, first.trusted)).body.mfaRequired).toBe(true);
 
     const second = await rememberDevice(b, secretB);
+    expect((await stepUpTotp(app, second.session, secretB)).status).toBe(200);
     const off = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/disable")
       .set("Cookie", second.session)

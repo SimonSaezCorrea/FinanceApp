@@ -2341,6 +2341,7 @@
         "done": "Done",
         "disableTitle": "Disable two-factor verification",
         "disableHint": "Enter your current password to confirm.",
+        "disableStepUpHint": "To turn off two-step verification, confirm it's you.",
         "disableConfirm": "Disable",
         "disablePasswordLabel": "Current password",
         "download": "Download .txt",

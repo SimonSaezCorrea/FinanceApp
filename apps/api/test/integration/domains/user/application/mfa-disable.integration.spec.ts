@@ -71,7 +71,9 @@ describe("MFA disable (integration)", () => {
       sessionRepo,
       prisma,
       new PrismaTrustedDeviceRepository(prisma),
+      sessionRepo,
     );
+    await sessionRepo.markSteppedUp(userId, a.sessionId, new Date());
     await handler.execute(new DisableMfaCommand(userId, { password: "correct-pw" }, a.sessionId));
 
     const row = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -100,7 +102,9 @@ describe("MFA disable (integration)", () => {
       sessionRepo,
       prisma,
       new PrismaTrustedDeviceRepository(prisma),
+      sessionRepo,
     );
+    await sessionRepo.markSteppedUp(userId, a.sessionId, new Date());
     await handler.execute(new DisableMfaCommand(userId, { password: "correct-pw" }, a.sessionId));
 
     const rows = await prisma.session.findMany({

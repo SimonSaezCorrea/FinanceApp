@@ -3,13 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DisableMfaHandler } from "../../../../../../src/domains/user/application/commands/disable-mfa.handler";
 import { DisableMfaCommand } from "../../../../../../src/domains/user/application/commands/disable-mfa.command";
-import { InvalidCurrentPasswordError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  InvalidCurrentPasswordError,
+  StepUpRequiredError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
-import { fakeTrustedDevices } from "../../../../support/fake-ports";
+import { fakeSessionStepUp, fakeTrustedDevices } from "../../../../support/fake-ports";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -114,6 +117,7 @@ describe("DisableMfaHandler", () => {
       sessions,
       fakePrisma(),
       fakeTrustedDevices(),
+      fakeSessionStepUp(),
     );
 
     await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a"));
@@ -139,6 +143,7 @@ describe("DisableMfaHandler", () => {
       sessions,
       fakePrisma(),
       fakeTrustedDevices(),
+      fakeSessionStepUp(),
     );
 
     await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a"));
@@ -164,6 +169,7 @@ describe("DisableMfaHandler", () => {
       sessions,
       fakePrisma(),
       fakeTrustedDevices(),
+      fakeSessionStepUp(),
     );
 
     await expect(
@@ -194,6 +200,7 @@ describe("DisableMfaHandler", () => {
       sessions,
       prisma,
       fakeTrustedDevices(),
+      fakeSessionStepUp(),
     );
 
     await expect(
@@ -202,5 +209,49 @@ describe("DisableMfaHandler", () => {
     // All three writes happen inside the SAME $transaction callback — a real Postgres
     // transaction would roll back `saveWithTx`/`deleteAllForUserWithTx` too (FR-007).
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks for a step-up when the session has none (the password alone is not enough)", async () => {
+    const passwordHash = await hash("correct-pw", 1);
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
+    const handler = new DisableMfaHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+      fakeSessions(),
+      fakePrisma(),
+      fakeTrustedDevices(),
+      fakeSessionStepUp(null),
+    );
+
+    await expect(
+      handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a")),
+    ).rejects.toThrow(StepUpRequiredError);
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
+  });
+
+  it("asks again when the step-up was already spent by a concurrent request", async () => {
+    const passwordHash = await hash("correct-pw", 1);
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
+    const stepUp = fakeSessionStepUp();
+    (stepUp.consumeWithTx as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+    const handler = new DisableMfaHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+      fakeSessions(),
+      fakePrisma(),
+      fakeTrustedDevices(),
+      stepUp,
+    );
+
+    await expect(
+      handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a")),
+    ).rejects.toThrow(StepUpRequiredError);
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
 });

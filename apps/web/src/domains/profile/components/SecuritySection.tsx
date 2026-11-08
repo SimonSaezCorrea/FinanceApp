@@ -16,6 +16,7 @@ import { FormNotice } from "@finance/ui/src/shared/ui/form/FormNotice";
 import { Input } from "@finance/ui/src/shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hooks/useProfile";
+import { useStepUp } from "../hooks/useStepUp";
 import { MfaEnrollmentPanel } from "./MfaEnrollmentPanel";
 import { RegenerateRecoveryCodesFlow } from "./RegenerateRecoveryCodesFlow";
 import { PasskeySection } from "./PasskeySection";
@@ -199,6 +200,9 @@ function DisableMfaModal({
   const { disableMfa } = useProfileMutations();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // The server also asks for a recent step-up (the second factor, never the password): on
+  // STEP_UP_REQUIRED the panel opens and, once verified, the same request runs again.
+  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.security.mfa.disableStepUpHint"));
 
   function close(next: boolean) {
     if (!next) {
@@ -214,38 +218,44 @@ function DisableMfaModal({
       await disableMfa.mutateAsync({ password });
       close(false);
     } catch (err) {
+      if (needsStepUp(err, () => void handleDisable())) return;
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
     }
   }
 
   return (
-    <ConfirmModal
-      open={open}
-      onOpenChange={close}
-      onConfirm={() => void handleDisable()}
-      title={t("profile.security.mfa.disableTitle")}
-      description={t("profile.security.mfa.disableHint")}
-      confirmLabel={t("profile.security.mfa.disableConfirm")}
-      loading={disableMfa.isPending}
-    >
-      <div className="flex flex-col gap-4">
-        <FormNotice tone="warning">{t("profile.security.sessions.revokeOthersWarning")}</FormNotice>
-        <Field
-          label={t("profile.security.mfa.disablePasswordLabel")}
-          htmlFor="mfa-disable-password"
-          error={error}
-        >
-          <Input
-            id="mfa-disable-password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </Field>
-      </div>
-    </ConfirmModal>
+    <>
+      <ConfirmModal
+        open={open}
+        onOpenChange={close}
+        onConfirm={() => void handleDisable()}
+        title={t("profile.security.mfa.disableTitle")}
+        description={t("profile.security.mfa.disableHint")}
+        confirmLabel={t("profile.security.mfa.disableConfirm")}
+        loading={disableMfa.isPending}
+      >
+        <div className="flex flex-col gap-4">
+          <FormNotice tone="warning">
+            {t("profile.security.sessions.revokeOthersWarning")}
+          </FormNotice>
+          <Field
+            label={t("profile.security.mfa.disablePasswordLabel")}
+            htmlFor="mfa-disable-password"
+            error={error}
+          >
+            <Input
+              id="mfa-disable-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Field>
+        </div>
+      </ConfirmModal>
+      {stepUpPanel}
+    </>
   );
 }
 

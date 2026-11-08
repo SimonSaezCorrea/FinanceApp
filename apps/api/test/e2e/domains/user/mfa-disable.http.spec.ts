@@ -24,6 +24,7 @@ describe("MFA disable HTTP (e2e)", () => {
   const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
+  let secret = "";
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -50,12 +51,25 @@ describe("MFA disable HTTP (e2e)", () => {
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", cookies)
       .send({ code: totpCodeFor(enroll.body.secret) });
+    secret = enroll.body.secret;
   });
 
   afterAll(async () => {
     await prisma.mfaRecoveryCode.deleteMany({ where: { user: { email } } });
     await prisma.user.deleteMany({ where: { email } });
     await app.close();
+  });
+
+  it("asks for a step-up first: the password alone does not disable MFA", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/disable")
+      .set("Cookie", cookies)
+      .send({ password });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("STEP_UP_REQUIRED");
+
+    const me = await request(app.getHttpServer()).get("/api/v1/auth/me").set("Cookie", cookies);
+    expect(me.body.mfaEnabled).toBe(true);
   });
 
   it("rejects disabling with the wrong password, MFA stays active", async () => {
@@ -73,14 +87,7 @@ describe("MFA disable HTTP (e2e)", () => {
   it("disables MFA with the correct password: revokes every other session, keeps this one, and a subsequent login needs no second step", async () => {
     // A second, unrelated login (specs/024) — must be locked out immediately once MFA
     // is disabled from `cookies`, while `cookies` itself keeps working.
-    const enroll = await request(app.getHttpServer())
-      .post("/api/v1/auth/me/mfa/enroll")
-      .set("Cookie", cookies);
-    const totpCode = totpCodeFor(enroll.body.secret);
-    await request(app.getHttpServer())
-      .post("/api/v1/auth/me/mfa/confirm")
-      .set("Cookie", cookies)
-      .send({ code: totpCode });
+    // MFA is on since beforeAll (TOTP, `secret`).
     const secondLoginStart = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password });
@@ -88,8 +95,13 @@ describe("MFA disable HTTP (e2e)", () => {
     const secondLogin = await request(app.getHttpServer())
       .post("/api/v1/auth/login/mfa-verify")
       .set("Cookie", secondLoginStart.get("Set-Cookie") ?? [])
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: totpCodeFor(secret) });
     const cookiesOther = secondLogin.get("Set-Cookie") ?? [];
+    const stepUp = await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "totp", code: totpCodeFor(secret) });
+    expect(stepUp.status).toBe(200);
 
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/disable")
