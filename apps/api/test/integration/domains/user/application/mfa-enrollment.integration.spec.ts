@@ -47,11 +47,12 @@ describe("MFA enrollment (integration)", () => {
     const startHandler = new StartMfaEnrollmentHandler(
       { publish: () => {} } as never,
       userRepo,
-      {} as never,
+      // A fresh step-up on the caller's session (GHSA-jhp2-jfjr-fqfq).
+      { steppedUpAt: async () => new Date() } as never,
       { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
     );
     const { secret } = (await startHandler.execute(
-      new StartMfaEnrollmentCommand(userId),
+      new StartMfaEnrollmentCommand(userId, {}, "sess"),
     )) as Extract<auth.StartMfaEnrollmentResponse, { secret: string }>;
 
     // The raw column must never equal the plaintext secret.

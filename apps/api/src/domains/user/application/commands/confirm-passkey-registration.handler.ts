@@ -13,9 +13,15 @@ import {
   type PasskeyRepositoryPort,
 } from "../../../passkey/domain/ports/passkey.repository.port";
 import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
+import {
   PasskeyAuthenticatorCompromisedError,
   PasskeyChallengeInvalidError,
+  StepUpRequiredError,
 } from "../../domain/errors";
+import { assertRecentStepUp } from "../step-up";
 import { AuthenticatorCatalog } from "../authenticator-catalog";
 import { PasskeyAttestation, type AttestationOutcome } from "../passkey-attestation";
 import { passkeyToContract } from "../passkey-dto";
@@ -36,11 +42,15 @@ export class ConfirmPasskeyRegistrationHandler extends BaseCommandHandler<
     private readonly prisma: PrismaService,
     private readonly attestation: PasskeyAttestation,
     private readonly catalog: AuthenticatorCatalog,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
   ) {
     super(eventBus);
   }
 
-  protected async loadContext(): Promise<null> {
+  protected async loadContext(command: ConfirmPasskeyRegistrationCommand): Promise<null> {
+    // Checked again here, not only when the options were issued (GHSA-jhp2-jfjr-fqfq).
+    if (!command.sessionId) throw new StepUpRequiredError();
+    await assertRecentStepUp(this.stepUp, command.userId, command.sessionId);
     return null;
   }
 

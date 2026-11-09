@@ -70,10 +70,22 @@ describe("Passkey registration (integration)", () => {
       prisma,
       new PasskeyAttestation(catalog),
       catalog,
+      // A fresh step-up on the caller's session (GHSA-jhp2-jfjr-fqfq); the gate has its own tests.
+      {
+        markSteppedUp: async () => {},
+        consumeWithTx: async () => true,
+        steppedUpAt: async () => new Date(),
+      },
     );
 
     const created = await handler.execute(
-      new ConfirmPasskeyRegistrationCommand(userId, "Integration Test Device", {}, "any-challenge"),
+      new ConfirmPasskeyRegistrationCommand(
+        userId,
+        "Integration Test Device",
+        {},
+        "any-challenge",
+        "sess",
+      ),
     );
 
     const row = await prisma.passkey.findUniqueOrThrow({ where: { id: created.id } });

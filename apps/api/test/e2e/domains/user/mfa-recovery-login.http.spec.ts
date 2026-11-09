@@ -11,6 +11,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
+import { stepUp } from "../../support/mfa";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -43,6 +44,7 @@ describe("MFA recovery-code login HTTP (e2e)", () => {
       identifierValue: rut,
     });
     const cookies = registered.get("Set-Cookie") ?? [];
+    await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);

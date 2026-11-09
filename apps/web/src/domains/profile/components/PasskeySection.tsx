@@ -11,6 +11,7 @@ import { ConfirmModal, SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { FormTextField } from "../../../shared/ui/form";
 import { SectionLabel } from "../../../shared/ui/section-label";
 import { usePasskeysQuery, useProfileMutations } from "../hooks/useProfile";
+import { useStepUp } from "../hooks/useStepUp";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 
 function lastUsedLabel(
@@ -44,11 +45,21 @@ export function PasskeySection({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.security.passkey.stepUpHint"));
 
   async function handleAdd() {
     setError(null);
+    let options: Awaited<ReturnType<typeof startPasskeyRegistration.mutateAsync>>["options"];
     try {
-      const { options } = await startPasskeyRegistration.mutateAsync();
+      ({ options } = await startPasskeyRegistration.mutateAsync());
+    } catch (err) {
+      // Adding a passkey needs a recent step-up (GHSA-jhp2-jfjr-fqfq): verify, then start again.
+      if (needsStepUp(err, () => void handleAdd())) return;
+      const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+      setError(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+      return;
+    }
+    try {
       const credential = await navigator.credentials.create(toCreateOptions(options));
       if (!credential) return; // user cancelled
       const response = serializeCreateResponse(credential);
@@ -75,6 +86,8 @@ export function PasskeySection({
       setName("");
       toast.success(t("profile.security.passkey.added"));
     } catch (err) {
+      // The step-up lapsed while the person named the key: verify, then save the same one.
+      if (needsStepUp(err, () => void handleConfirmName())) return;
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
     }
@@ -109,241 +122,246 @@ export function PasskeySection({
   const removing = passkeys?.find((p) => p.id === removingId) ?? null;
 
   return (
-    <SidePanel
-      open={open}
-      onOpenChange={close}
-      eyebrow={t("profile.security.title")}
-      title={t("profile.security.passkey.label")}
-      description={t("profile.security.passkey.hint")}
-      footer={
-        naming ? (
-          <div className="flex gap-2">
+    <>
+      <SidePanel
+        open={open}
+        onOpenChange={close}
+        eyebrow={t("profile.security.title")}
+        title={t("profile.security.passkey.label")}
+        description={t("profile.security.passkey.hint")}
+        footer={
+          naming ? (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="accent"
+                className="flex-1"
+                disabled={name.trim().length === 0 || confirmPasskeyRegistration.isPending}
+                onClick={() => void handleConfirmName()}
+              >
+                {t("profile.security.passkey.save")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setPendingResponse(null);
+                  setError(null);
+                }}
+              >
+                {t("profile.security.passkey.cancel")}
+              </Button>
+            </div>
+          ) : (
             <Button
               type="button"
               variant="accent"
-              className="flex-1"
-              disabled={name.trim().length === 0 || confirmPasskeyRegistration.isPending}
-              onClick={() => void handleConfirmName()}
+              className="w-full gap-2"
+              disabled={startPasskeyRegistration.isPending}
+              onClick={() => void handleAdd()}
             >
-              {t("profile.security.passkey.save")}
+              <KeyRound className="h-4 w-4" aria-hidden />
+              {t("profile.security.passkey.add")}
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setPendingResponse(null);
-                setError(null);
-              }}
-            >
-              {t("profile.security.passkey.cancel")}
-            </Button>
+          )
+        }
+      >
+        {naming ? (
+          <div className="flex flex-col gap-7">
+            <div className="flex flex-col items-center gap-3 pt-2 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success">
+                <Check className="h-6 w-6" aria-hidden />
+              </div>
+              <div>
+                <div className="text-base font-semibold">
+                  {t("profile.security.passkey.confirmedTitle")}
+                </div>
+                <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+                  {t("profile.security.passkey.confirmedHint")}
+                </p>
+              </div>
+            </div>
+            <FormTextField
+              id="passkey-name"
+              label={t("profile.security.passkey.nameLabel")}
+              value={name}
+              onChange={setName}
+              placeholder={t("profile.security.passkey.namePlaceholder")}
+              showEditIcon
+              error={error}
+              className="!border-b"
+            />
           </div>
         ) : (
-          <Button
-            type="button"
-            variant="accent"
-            className="w-full gap-2"
-            disabled={startPasskeyRegistration.isPending}
-            onClick={() => void handleAdd()}
-          >
-            <KeyRound className="h-4 w-4" aria-hidden />
-            {t("profile.security.passkey.add")}
-          </Button>
-        )
-      }
-    >
-      {naming ? (
-        <div className="flex flex-col gap-7">
-          <div className="flex flex-col items-center gap-3 pt-2 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success">
-              <Check className="h-6 w-6" aria-hidden />
-            </div>
+          <div className="flex flex-col gap-6">
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
             <div>
-              <div className="text-base font-semibold">
-                {t("profile.security.passkey.confirmedTitle")}
+              <SectionLabel>
+                {t("profile.security.passkey.yourKeys", { count: passkeys?.length ?? 0 })}
+              </SectionLabel>
+              <div className="mt-2.5 flex flex-col gap-2">
+                {isLoading ? (
+                  <SkeletonScreen
+                    label={t("profile.security.passkey.loading")}
+                    className="flex flex-col gap-2"
+                  >
+                    {[0, 1].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
+                      >
+                        <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                          <Skeleton className="h-3.5 w-36" />
+                          <Skeleton className="h-3 w-52 max-w-full" />
+                        </div>
+                      </div>
+                    ))}
+                  </SkeletonScreen>
+                ) : passkeys && passkeys.length > 0 ? (
+                  passkeys.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+                        <KeyRound className="h-[18px] w-[18px]" aria-hidden />
+                      </div>
+                      {renamingId === p.id ? (
+                        <>
+                          <input
+                            autoFocus
+                            className="min-w-0 flex-1 border-b border-border bg-transparent text-sm font-medium outline-none focus:border-primary"
+                            value={renameValue}
+                            maxLength={60}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void handleConfirmRename();
+                              if (e.key === "Escape") setRenamingId(null);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-success/10 hover:text-success disabled:opacity-50"
+                            aria-label={t("profile.security.passkey.rename.save")}
+                            disabled={renameValue.trim().length === 0 || renamePasskey.isPending}
+                            onClick={() => void handleConfirmRename()}
+                          >
+                            <Check className="h-4 w-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
+                            aria-label={t("profile.security.passkey.rename.cancel")}
+                            onClick={() => setRenamingId(null)}
+                          >
+                            <X className="h-4 w-4" aria-hidden />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="truncate text-sm font-medium">{p.name}</span>
+                              {p.status === "verified" ? (
+                                <Badge variant="success" className="shrink-0 gap-1">
+                                  <ShieldCheck className="h-3 w-3" aria-hidden />
+                                  {t("profile.security.passkey.status.verified")}
+                                </Badge>
+                              ) : p.status === "compromised" ? (
+                                <Badge variant="danger" className="shrink-0 gap-1">
+                                  <AlertTriangle className="h-3 w-3" aria-hidden />
+                                  {t("profile.security.passkey.status.compromised")}
+                                </Badge>
+                              ) : null}
+                            </div>
+                            {p.authenticatorName ? (
+                              <div className="truncate text-xs text-muted-foreground">
+                                {t("profile.security.passkey.model", {
+                                  model: p.authenticatorName,
+                                })}
+                              </div>
+                            ) : null}
+                            {p.status === "compromised" ? (
+                              <p className="mt-1 text-xs text-destructive">
+                                {t("profile.security.passkey.compromisedHint")}
+                              </p>
+                            ) : null}
+                            <div className="text-xs text-muted-foreground">
+                              {t("profile.security.passkey.created", {
+                                date: new Date(p.createdAt).toLocaleDateString(),
+                              })}
+                              {" · "}
+                              {lastUsedLabel(t, p.lastUsedAt)}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
+                            aria-label={t("profile.security.passkey.rename.button")}
+                            onClick={() => startRenaming(p.id, p.name)}
+                          >
+                            <Pencil className="h-4 w-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={t("profile.security.passkey.remove.button")}
+                            onClick={() => setRemovingId(p.id)}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("profile.security.passkey.empty")}
+                  </p>
+                )}
               </div>
-              <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-                {t("profile.security.passkey.confirmedHint")}
+            </div>
+
+            <div className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary p-3.5">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {t("profile.security.passkey.alwaysHavePassword")}
               </p>
             </div>
           </div>
-          <FormTextField
-            id="passkey-name"
-            label={t("profile.security.passkey.nameLabel")}
-            value={name}
-            onChange={setName}
-            placeholder={t("profile.security.passkey.namePlaceholder")}
-            showEditIcon
-            error={error}
-            className="!border-b"
-          />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        )}
 
-          <div>
-            <SectionLabel>
-              {t("profile.security.passkey.yourKeys", { count: passkeys?.length ?? 0 })}
-            </SectionLabel>
-            <div className="mt-2.5 flex flex-col gap-2">
-              {isLoading ? (
-                <SkeletonScreen
-                  label={t("profile.security.passkey.loading")}
-                  className="flex flex-col gap-2"
-                >
-                  {[0, 1].map((i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
-                    >
-                      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
-                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                        <Skeleton className="h-3.5 w-36" />
-                        <Skeleton className="h-3 w-52 max-w-full" />
-                      </div>
-                    </div>
-                  ))}
-                </SkeletonScreen>
-              ) : passkeys && passkeys.length > 0 ? (
-                passkeys.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-                      <KeyRound className="h-[18px] w-[18px]" aria-hidden />
-                    </div>
-                    {renamingId === p.id ? (
-                      <>
-                        <input
-                          autoFocus
-                          className="min-w-0 flex-1 border-b border-border bg-transparent text-sm font-medium outline-none focus:border-primary"
-                          value={renameValue}
-                          maxLength={60}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") void handleConfirmRename();
-                            if (e.key === "Escape") setRenamingId(null);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-success/10 hover:text-success disabled:opacity-50"
-                          aria-label={t("profile.security.passkey.rename.save")}
-                          disabled={renameValue.trim().length === 0 || renamePasskey.isPending}
-                          onClick={() => void handleConfirmRename()}
-                        >
-                          <Check className="h-4 w-4" aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
-                          aria-label={t("profile.security.passkey.rename.cancel")}
-                          onClick={() => setRenamingId(null)}
-                        >
-                          <X className="h-4 w-4" aria-hidden />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-sm font-medium">{p.name}</span>
-                            {p.status === "verified" ? (
-                              <Badge variant="success" className="shrink-0 gap-1">
-                                <ShieldCheck className="h-3 w-3" aria-hidden />
-                                {t("profile.security.passkey.status.verified")}
-                              </Badge>
-                            ) : p.status === "compromised" ? (
-                              <Badge variant="danger" className="shrink-0 gap-1">
-                                <AlertTriangle className="h-3 w-3" aria-hidden />
-                                {t("profile.security.passkey.status.compromised")}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          {p.authenticatorName ? (
-                            <div className="truncate text-xs text-muted-foreground">
-                              {t("profile.security.passkey.model", { model: p.authenticatorName })}
-                            </div>
-                          ) : null}
-                          {p.status === "compromised" ? (
-                            <p className="mt-1 text-xs text-destructive">
-                              {t("profile.security.passkey.compromisedHint")}
-                            </p>
-                          ) : null}
-                          <div className="text-xs text-muted-foreground">
-                            {t("profile.security.passkey.created", {
-                              date: new Date(p.createdAt).toLocaleDateString(),
-                            })}
-                            {" · "}
-                            {lastUsedLabel(t, p.lastUsedAt)}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
-                          aria-label={t("profile.security.passkey.rename.button")}
-                          onClick={() => startRenaming(p.id, p.name)}
-                        >
-                          <Pencil className="h-4 w-4" aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          aria-label={t("profile.security.passkey.remove.button")}
-                          onClick={() => setRemovingId(p.id)}
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t("profile.security.passkey.empty")}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary p-3.5">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {t("profile.security.passkey.alwaysHavePassword")}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <ConfirmModal
-        open={removingId !== null}
-        onOpenChange={(next) => !next && setRemovingId(null)}
-        onConfirm={() => void handleRemove(removingId!)}
-        title={t("profile.security.passkey.remove.title")}
-        description={t("profile.security.passkey.remove.description")}
-        confirmLabel={t("profile.security.passkey.remove.confirm")}
-        loading={removePasskey.isPending}
-      >
-        {removing ? (
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-              <KeyRound className="h-4 w-4" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{removing.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {t("profile.security.passkey.created", {
-                  date: new Date(removing.createdAt).toLocaleDateString(),
-                })}
-                {" · "}
-                {lastUsedLabel(t, removing.lastUsedAt)}
+        <ConfirmModal
+          open={removingId !== null}
+          onOpenChange={(next) => !next && setRemovingId(null)}
+          onConfirm={() => void handleRemove(removingId!)}
+          title={t("profile.security.passkey.remove.title")}
+          description={t("profile.security.passkey.remove.description")}
+          confirmLabel={t("profile.security.passkey.remove.confirm")}
+          loading={removePasskey.isPending}
+        >
+          {removing ? (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+                <KeyRound className="h-4 w-4" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{removing.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("profile.security.passkey.created", {
+                    date: new Date(removing.createdAt).toLocaleDateString(),
+                  })}
+                  {" · "}
+                  {lastUsedLabel(t, removing.lastUsedAt)}
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
-      </ConfirmModal>
-    </SidePanel>
+          ) : null}
+        </ConfirmModal>
+      </SidePanel>
+      {stepUpPanel}
+    </>
   );
 }

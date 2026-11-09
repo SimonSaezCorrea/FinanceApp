@@ -51,13 +51,12 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
     user: User,
   ): Promise<HandleResult<auth.StartMfaEnrollmentResponse>> {
     const method = command.input.method === "email" ? "EMAIL" : "TOTP";
-    if (user.mfaEnabled) {
-      if (user.mfaMethodOrDefault() === method) throw new MfaSameMethodError();
-      // A CHANGE of method (specs/040 R12): a stolen session must not be able to move the second
-      // factor somewhere the attacker controls.
-      if (!command.sessionId) throw new StepUpRequiredError();
-      await assertRecentStepUp(this.stepUp, user.id, command.sessionId);
-    }
+    if (user.mfaEnabled && user.mfaMethodOrDefault() === method) throw new MfaSameMethodError();
+    // Always, not only on a CHANGE of method (specs/040 R12): the first second factor becomes the
+    // account's step-up method, so a stolen session must not be able to enrol one it controls
+    // (GHSA-jhp2-jfjr-fqfq).
+    if (!command.sessionId) throw new StepUpRequiredError();
+    await assertRecentStepUp(this.stepUp, user.id, command.sessionId);
 
     if (method === "EMAIL") {
       if (!user.email || !user.emailVerified) throw new MfaEmailNotVerifiedError();

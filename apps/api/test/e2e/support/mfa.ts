@@ -44,11 +44,40 @@ export async function registerConfirmed(
   return { email, rut, cookies: registered.get("Set-Cookie") ?? [] };
 }
 
+/**
+ * A password step-up of `cookies`' session, which adding a passkey or a second factor needs
+ * (GHSA-jhp2-jfjr-fqfq). Allowed only while the account has no other factor; once it has one,
+ * the test steps up with that factor instead (a step-up stays valid for its window, so a
+ * refused call here leaves an earlier one in place).
+ */
+export async function stepUp(
+  app: INestApplication,
+  cookies: string[],
+  password: string = PASSWORD,
+): Promise<void> {
+  await request(app.getHttpServer())
+    .post("/api/v1/auth/sessions/step-up")
+    .set("Cookie", cookies)
+    .send({ method: "password", password });
+}
+
+/**
+ * Clears every step-up of the account's sessions, so a test can check a gate "without a recent
+ * step-up" after a setup that needed one to enrol the factor.
+ */
+export async function forgetStepUp(
+  prisma: { session: { updateMany(args: unknown): Promise<unknown> } },
+  email: string,
+): Promise<void> {
+  await prisma.session.updateMany({ where: { user: { email } }, data: { stepUpAt: null } });
+}
+
 /** Turns on the authenticator app; returns its secret and the 10 recovery codes. */
 export async function enableTotp(
   app: INestApplication,
   cookies: string[],
 ): Promise<{ secret: string; recoveryCodes: string[] }> {
+  await stepUp(app, cookies);
   const enroll = await request(app.getHttpServer())
     .post("/api/v1/auth/me/mfa/enroll")
     .set("Cookie", cookies)

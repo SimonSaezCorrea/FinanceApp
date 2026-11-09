@@ -11,6 +11,8 @@ import {
 } from "../../../../../../src/domains/user/domain/errors";
 import type { PasskeyRepositoryPort } from "../../../../../../src/domains/passkey/domain/ports/passkey.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { StepUpRequiredError } from "../../../../../../src/domains/user/domain/errors";
+import { fakeSessionStepUp } from "../../../../support/fake-ports";
 
 function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRepositoryPort {
   return {
@@ -50,7 +52,12 @@ const VERIFIED = {
   },
 };
 
-function setup(opts: { outcome?: unknown; throws?: boolean; compromised?: string | null }) {
+function setup(opts: {
+  outcome?: unknown;
+  throws?: boolean;
+  compromised?: string | null;
+  stepUpAgeMs?: number | null;
+}) {
   const passkeys = fakePasskeys();
   const publish = vi.fn();
   const attestation = {
@@ -68,10 +75,17 @@ function setup(opts: { outcome?: unknown; throws?: boolean; compromised?: string
     {} as unknown as PrismaService,
     attestation,
     catalog,
+    fakeSessionStepUp(opts.stepUpAgeMs === undefined ? 0 : opts.stepUpAgeMs),
   );
   const run = () =>
     handler.execute(
-      new ConfirmPasskeyRegistrationCommand("u1", "MacBook", { fake: "response" }, "challenge123"),
+      new ConfirmPasskeyRegistrationCommand(
+        "u1",
+        "MacBook",
+        { fake: "response" },
+        "challenge123",
+        "sess",
+      ),
     );
   return { passkeys, publish, run };
 }
@@ -133,5 +147,11 @@ describe("ConfirmPasskeyRegistrationHandler", () => {
   it("rejects when the library throws (e.g. bad challenge/origin)", async () => {
     const { run } = setup({ throws: true });
     await expect(run()).rejects.toThrow(PasskeyChallengeInvalidError);
+  });
+
+  it("refuses without a recent step-up and saves nothing (GHSA-jhp2-jfjr-fqfq)", async () => {
+    const { passkeys, run } = setup({ stepUpAgeMs: null });
+    await expect(run()).rejects.toThrow(StepUpRequiredError);
+    expect(passkeys.createWithTx).not.toHaveBeenCalled();
   });
 });

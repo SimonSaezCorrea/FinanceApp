@@ -22,6 +22,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
+import { stepUp } from "../../support/mfa";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -54,6 +55,7 @@ describe("Passkey login HTTP (e2e)", () => {
     });
     const cookies = registered.get("Set-Cookie") ?? [];
 
+    await stepUp(app, cookies);
     const options = await request(app.getHttpServer())
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", cookies);
@@ -153,6 +155,20 @@ describe("Passkey login HTTP (e2e)", () => {
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password });
     const sessionCookies = login.get("Set-Cookie") ?? [];
+    // The account already has a passkey, so enrolling MFA needs a passkey step-up
+    // (GHSA-jhp2-jfjr-fqfq): the password is no longer an accepted method.
+    const stepUpOptions = await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up/passkey-options")
+      .set("Cookie", sessionCookies);
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValueOnce({
+      verified: true,
+      authenticationInfo: { newCounter: 1 },
+    } as never);
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up/passkey-verify")
+      .set("Cookie", [...sessionCookies, ...(stepUpOptions.get("Set-Cookie") ?? [])])
+      .send({ response: { id: credentialId } })
+      .expect(200);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", sessionCookies);

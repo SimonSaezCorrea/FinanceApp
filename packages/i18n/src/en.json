@@ -2397,7 +2397,8 @@
           "title": "Switch to {{method}}",
           "stepUpHint": "To change the verification method, confirm it's you.",
           "done": "Done: you now use {{method}}. Your recovery codes still work."
-        }
+        },
+        "activateStepUpHint": "To turn on two-step verification, confirm it's you."
       },
       "passkey": {
         "label": "Passkey",
@@ -2442,7 +2443,8 @@
           "unverified": "Unverified",
           "verified": "Verified",
           "compromised": "Compromised"
-        }
+        },
+        "stepUpHint": "To add a passkey, confirm it's you."
       },
       "sessions": {
         "title": "Sessions & devices",

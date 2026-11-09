@@ -2397,7 +2397,8 @@
           "title": "Cambiar a {{method}}",
           "stepUpHint": "Para cambiar el método de verificación, confirma que eres tú.",
           "done": "Listo: ahora usas {{method}}. Tus códigos de recuperación siguen sirviendo."
-        }
+        },
+        "activateStepUpHint": "Para activar la verificación en dos pasos, confirma que eres tú."
       },
       "passkey": {
         "label": "Llave de acceso (passkey)",
@@ -2442,7 +2443,8 @@
           "unverified": "Sin verificar",
           "verified": "Verificada",
           "compromised": "Comprometida"
-        }
+        },
+        "stepUpHint": "Para agregar una llave de acceso, confirma que eres tú."
       },
       "sessions": {
         "title": "Sesiones y dispositivos",

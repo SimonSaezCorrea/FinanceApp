@@ -13,6 +13,7 @@ import {
   totpCodeFor,
   verifyMfa,
   type TestAccount,
+  forgetStepUp,
 } from "../../support/mfa";
 
 /** E2E (specs/040 US1): new recovery codes without turning MFA off. */
@@ -32,6 +33,7 @@ describe("Regenerate recovery codes HTTP (e2e)", () => {
     prisma = app.get(PrismaService);
     account = await registerConfirmed(app, outbox, "regen");
     ({ secret, recoveryCodes: oldCodes } = await enableTotp(app, account.cookies));
+    await forgetStepUp(prisma, account.email);
   });
 
   afterAll(async () => {

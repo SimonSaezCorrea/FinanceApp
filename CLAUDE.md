@@ -2430,7 +2430,7 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     (TOTP answers `mfaMethod: "totp"`); `POST /auth/login/mfa-resend` (pending cookie); verification,
     step-up (`POST /auth/sessions/step-up/email-code` + `{ method: "email", code }`) and the 5/15-min
     lockout share one counter; a recovery code never completes a step-up. `POST /auth/me/mfa/enroll`
-    takes `{ method? }` (absent = totp): with MFA on it is a METHOD CHANGE behind a recent step-up
+    takes `{ method? }` (absent = totp) and ALWAYS needs a recent step-up of the caller's session (since 2026-11-09, GHSA-jhp2-jfjr-fqfq: the first factor becomes the step-up method, so a session holding only a cookie must not enrol one it controls); with MFA on it is a METHOD CHANGE
     (`MFA_SAME_METHOD` for the active one; `MFA_EMAIL_NOT_VERIFIED`); confirming a change keeps the
     recovery codes (`recoveryCodes: null`), drops the TOTP secret when moving to email, forgets the
     remembered devices and sends `MFA_METHOD_CHANGED`. **Remember this device**: `rememberDevice` on
@@ -2445,7 +2445,7 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     `LoginForm` "Recordar este dispositivo" + "Reenviar código" countdown; "Descargar mis datos"
     includes remembered devices. Privacy policy `2026-11-05`.
   - **Passkey attestation against the FIDO catalog** (specs/041, 2026-11-05; policy: informative +
-    block compromised): registration asks `attestationType: "direct"` and never requires it.
+    block compromised): registration asks `attestationType: "direct"` and never requires it. Both `me/passkeys/register-options` and `register-verify` need a recent step-up of the caller's session (2026-11-09, GHSA-jhp2-jfjr-fqfq: a passkey signs in without password or MFA and counts as a step-up method); web `PasskeySection` reopens `StepUpPanel` on `STEP_UP_REQUIRED` (e2e: `support/mfa.ts`'s `stepUp`/`forgetStepUp`; regression `step-up-bootstrap.http.spec.ts`).
     Table-domain **`authenticator-model`** (global, no `userId`): the FIDO MDS3 catalog, one row per
     AAGUID (`description`, `statement` JSON, `compromisedStatus` = the latest report when it is
     `REVOKED`/`USER_VERIFICATION_BYPASS`/`ATTESTATION_KEY_COMPROMISE`/`USER_KEY_*_COMPROMISE`,

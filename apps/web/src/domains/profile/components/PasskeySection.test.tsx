@@ -277,4 +277,15 @@ describe("PasskeySection", () => {
     expect(screen.getByText(i18n.t("profile.security.passkey.status.compromised"))).toBeDefined();
     expect(screen.getByText(i18n.t("profile.security.passkey.compromisedHint"))).toBeDefined();
   });
+
+  it("adding a passkey without a recent step-up asks for one first, never the device", async () => {
+    startRegistration.mockRejectedValueOnce(new ApiRequestError("STEP_UP_REQUIRED", 403));
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.security.passkey.add") }),
+    );
+
+    expect(await screen.findByText(i18n.t("profile.security.passkey.stepUpHint"))).toBeDefined();
+    expect(navigator.credentials.create).not.toHaveBeenCalled();
+  });
 });

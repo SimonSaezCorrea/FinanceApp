@@ -38,7 +38,14 @@ export function MfaEnrollmentPanel({
   const { t } = useTranslation();
   const { user } = useAuth();
   const { startMfaEnrollment, confirmMfaEnrollment } = useProfileMutations();
-  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.security.mfa.change.stepUpHint"));
+  // Turning it on asks for a step-up too, not only a change (GHSA-jhp2-jfjr-fqfq).
+  const { needsStepUp, stepUpPanel } = useStepUp(
+    t(
+      mode === "change"
+        ? "profile.security.mfa.change.stepUpHint"
+        : "profile.security.mfa.activateStepUpHint",
+    ),
+  );
   const [step, setStep] = useState<Step>("choose");
   const [method, setMethod] = useState<Method>("totp");
   const [code, setCode] = useState("");

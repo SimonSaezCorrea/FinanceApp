@@ -12,7 +12,12 @@ import {
   PASSKEY_REPOSITORY,
   type PasskeyRepositoryPort,
 } from "../../../passkey/domain/ports/passkey.repository.port";
-import { UnauthorizedError } from "../../domain/errors";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
+import { StepUpRequiredError, UnauthorizedError } from "../../domain/errors";
+import { assertRecentStepUp } from "../step-up";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { StartPasskeyRegistrationCommand } from "./start-passkey-registration.command";
@@ -31,6 +36,7 @@ export class StartPasskeyRegistrationHandler extends BaseCommandHandler<
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
     @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
     private readonly config: ConfigService,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
   ) {
     super(eventBus);
   }
@@ -38,6 +44,10 @@ export class StartPasskeyRegistrationHandler extends BaseCommandHandler<
   protected async loadContext(command: StartPasskeyRegistrationCommand): Promise<User> {
     const user = await this.repo.findById(command.userId);
     if (!user) throw new UnauthorizedError();
+    // A passkey signs in without password or second factor and counts as a step-up method, so a
+    // session that only holds a cookie must prove itself before adding one (GHSA-jhp2-jfjr-fqfq).
+    if (!command.sessionId) throw new StepUpRequiredError();
+    await assertRecentStepUp(this.stepUp, user.id, command.sessionId);
     return user;
   }
 

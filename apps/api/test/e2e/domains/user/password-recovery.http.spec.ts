@@ -10,6 +10,7 @@ import { tokenFrom } from "../../../../src/infra/email/senders/in-memory-email.s
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { appWithOutbox, lastToken, waitForEmail } from "../../support/email-outbox";
 import { randomValidRut } from "../../support/rut";
+import { stepUp } from "../../support/mfa";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -54,6 +55,7 @@ describe("Password recovery HTTP (e2e)", () => {
       .post("/api/v1/auth/email/verify")
       .send({ token: lastToken(outbox, email, "verify-email") });
 
+    await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);

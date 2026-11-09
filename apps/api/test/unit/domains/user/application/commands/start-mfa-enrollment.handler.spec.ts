@@ -75,10 +75,9 @@ describe("StartMfaEnrollmentHandler", () => {
       fakeMfaCodes(),
     );
 
-    const result = (await handler.execute(new StartMfaEnrollmentCommand("u1"))) as Extract<
-      auth.StartMfaEnrollmentResponse,
-      { secret: string }
-    >;
+    const result = (await handler.execute(
+      new StartMfaEnrollmentCommand("u1", {}, "sess"),
+    )) as Extract<auth.StartMfaEnrollmentResponse, { secret: string }>;
 
     expect(result.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
     expect(result.secret).toMatch(/^[A-Z2-7]+$/);
@@ -101,10 +100,9 @@ describe("StartMfaEnrollmentHandler", () => {
       fakeMfaCodes(),
     );
 
-    const result = (await handler.execute(new StartMfaEnrollmentCommand("u1"))) as Extract<
-      auth.StartMfaEnrollmentResponse,
-      { secret: string }
-    >;
+    const result = (await handler.execute(
+      new StartMfaEnrollmentCommand("u1", {}, "sess"),
+    )) as Extract<auth.StartMfaEnrollmentResponse, { secret: string }>;
 
     const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
     expect(saved.mfaSecret).not.toBe("OLDSECRETXXXXXXX");
@@ -126,7 +124,7 @@ describe("StartMfaEnrollmentHandler", () => {
       fakeMfaCodes(),
     );
 
-    await expect(handler.execute(new StartMfaEnrollmentCommand("u1"))).rejects.toThrow(
+    await expect(handler.execute(new StartMfaEnrollmentCommand("u1", {}, "sess"))).rejects.toThrow(
       MfaSameMethodError,
     );
     expect(repo.save).not.toHaveBeenCalled();
@@ -141,9 +139,9 @@ describe("StartMfaEnrollmentHandler", () => {
       fakeMfaCodes(),
     );
 
-    await expect(handler.execute(new StartMfaEnrollmentCommand("gone"))).rejects.toThrow(
-      UnauthorizedError,
-    );
+    await expect(
+      handler.execute(new StartMfaEnrollmentCommand("gone", {}, "sess")),
+    ).rejects.toThrow(UnauthorizedError);
   });
 });
 
@@ -163,7 +161,9 @@ describe("StartMfaEnrollmentHandler - email and method change (specs/040 US3)", 
 
   it("email: sends an ENROLL code to the confirmed address and saves the pending method", async () => {
     const { handler, repo, mfaCodes } = setup(baseProps(verified));
-    const result = await handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" }));
+    const result = await handler.execute(
+      new StartMfaEnrollmentCommand("u1", { method: "email" }, "sess"),
+    );
     expect(result).toEqual({ method: "email", codeSent: true });
     expect(mfaCodes.issueAndSendOrThrow).toHaveBeenCalledWith(
       expect.objectContaining({ email: "a@b.com", emailVerified: true }),
@@ -177,7 +177,7 @@ describe("StartMfaEnrollmentHandler - email and method change (specs/040 US3)", 
   it("email: refuses an unconfirmed address", async () => {
     const { handler } = setup(baseProps());
     await expect(
-      handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" })),
+      handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" }, "sess")),
     ).rejects.toThrow(MfaEmailNotVerifiedError);
   });
 
@@ -193,5 +193,18 @@ describe("StartMfaEnrollmentHandler - email and method change (specs/040 US3)", 
     await expect(
       fresh.handler.execute(new StartMfaEnrollmentCommand("u1", { method: "email" }, "sess")),
     ).resolves.toEqual({ method: "email", codeSent: true });
+  });
+
+  it("the FIRST enrolment also needs a recent step-up (GHSA-jhp2-jfjr-fqfq)", async () => {
+    const stale = setup(baseProps(verified), null);
+    await expect(
+      stale.handler.execute(new StartMfaEnrollmentCommand("u1", {}, "sess")),
+    ).rejects.toThrow(StepUpRequiredError);
+    expect(stale.repo.save).not.toHaveBeenCalled();
+
+    const noSession = setup(baseProps(verified), 0);
+    await expect(noSession.handler.execute(new StartMfaEnrollmentCommand("u1"))).rejects.toThrow(
+      StepUpRequiredError,
+    );
   });
 });

@@ -17,6 +17,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
+import { stepUp } from "../../support/mfa";
 
 describe("Passkey management HTTP (e2e)", () => {
   let app: INestApplication;
@@ -27,6 +28,7 @@ describe("Passkey management HTTP (e2e)", () => {
   let cookies: string[] = [];
 
   async function registerPasskey(name: string) {
+    await stepUp(app, cookies);
     const options = await request(app.getHttpServer())
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", cookies);

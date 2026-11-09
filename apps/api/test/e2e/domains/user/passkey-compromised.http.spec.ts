@@ -20,7 +20,7 @@ import { ReviewCompromisedPasskeysCommand } from "../../../../src/domains/user/a
 import type { InMemoryEmailSender } from "../../../../src/infra/email/senders/in-memory-email.sender";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { waitForEmail } from "../../support/email-outbox";
-import { cookiePairs, registerConfirmed, type TestAccount } from "../../support/mfa";
+import { cookiePairs, registerConfirmed, type TestAccount, stepUp } from "../../support/mfa";
 import {
   appWithCatalog,
   attestedResponse,
@@ -68,6 +68,7 @@ describe("Compromised passkey HTTP (e2e)", () => {
     account = await registerConfirmed(app, outbox, "passkey_compromised");
 
     // A verified passkey (the library's attestation check is stubbed: no real authenticator).
+    await stepUp(app, account.cookies);
     const options = await http()
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", account.cookies);

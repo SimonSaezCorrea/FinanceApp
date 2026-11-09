@@ -15,6 +15,8 @@ import {
   totpCodeFor,
   verifyMfa,
   type TestAccount,
+  stepUp,
+  forgetStepUp,
 } from "../../support/mfa";
 import { randomValidRut } from "../../support/rut";
 
@@ -46,6 +48,7 @@ describe("Email second factor HTTP (e2e)", () => {
   }
 
   async function enableEmail(account: TestAccount): Promise<string[]> {
+    await stepUp(app, account.cookies);
     const enroll = await http()
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", account.cookies)
@@ -89,6 +92,7 @@ describe("Email second factor HTTP (e2e)", () => {
       birthDate: "1990-01-01",
       identifierValue: randomValidRut(),
     });
+    await stepUp(app, registered.get("Set-Cookie") ?? []);
     const res = await http()
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", registered.get("Set-Cookie") ?? [])
@@ -160,6 +164,7 @@ describe("Email second factor HTTP (e2e)", () => {
   });
 
   it("changes to the app after a step-up, keeping the recovery codes", async () => {
+    await forgetStepUp(prisma, b.email);
     const without = await http()
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", b.cookies)

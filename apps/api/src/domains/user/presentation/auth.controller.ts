@@ -376,7 +376,7 @@ export class AuthController {
     const { options } = await this.commandBus.execute<
       StartPasskeyRegistrationCommand,
       auth.StartPasskeyRegistrationResponse
-    >(new StartPasskeyRegistrationCommand(user.id));
+    >(new StartPasskeyRegistrationCommand(user.id, user.sessionId));
     const challenge = (options as { challenge: string }).challenge;
     res.cookie(
       PASSKEY_CHALLENGE_COOKIE,
@@ -416,7 +416,13 @@ export class AuthController {
       throw new PasskeyChallengeInvalidError();
     }
     const created = await this.commandBus.execute<ConfirmPasskeyRegistrationCommand, auth.Passkey>(
-      new ConfirmPasskeyRegistrationCommand(user.id, body.name, body.response, challenge),
+      new ConfirmPasskeyRegistrationCommand(
+        user.id,
+        body.name,
+        body.response,
+        challenge,
+        user.sessionId,
+      ),
     );
     res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
     return created;

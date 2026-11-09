@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { StartPasskeyRegistrationHandler } from "../../../../../../src/domains/user/application/commands/start-passkey-registration.handler";
 import { StartPasskeyRegistrationCommand } from "../../../../../../src/domains/user/application/commands/start-passkey-registration.command";
-import { UnauthorizedError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  StepUpRequiredError,
+  UnauthorizedError,
+} from "../../../../../../src/domains/user/domain/errors";
+import { fakeSessionStepUp } from "../../../../support/fake-ports";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { PasskeyRepositoryPort } from "../../../../../../src/domains/passkey/domain/ports/passkey.repository.port";
@@ -103,9 +107,10 @@ describe("StartPasskeyRegistrationHandler", () => {
       repo,
       passkeys,
       config(),
+      fakeSessionStepUp(),
     );
 
-    const result = await handler.execute(new StartPasskeyRegistrationCommand("u1"));
+    const result = await handler.execute(new StartPasskeyRegistrationCommand("u1", "sess"));
 
     expect(result.options).toBeDefined();
     const options = result.options as {
@@ -126,10 +131,34 @@ describe("StartPasskeyRegistrationHandler", () => {
       repo,
       fakePasskeys(),
       config(),
+      fakeSessionStepUp(),
     );
 
-    await expect(handler.execute(new StartPasskeyRegistrationCommand("gone"))).rejects.toThrow(
-      UnauthorizedError,
+    await expect(
+      handler.execute(new StartPasskeyRegistrationCommand("gone", "sess")),
+    ).rejects.toThrow(UnauthorizedError);
+  });
+
+  it("refuses without a recent step-up of the session (GHSA-jhp2-jfjr-fqfq)", async () => {
+    const stale = new StartPasskeyRegistrationHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())) }),
+      fakePasskeys(),
+      config(),
+      fakeSessionStepUp(10 * 60 * 1000),
+    );
+    await expect(stale.execute(new StartPasskeyRegistrationCommand("u1", "sess"))).rejects.toThrow(
+      StepUpRequiredError,
+    );
+    const noSession = new StartPasskeyRegistrationHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())) }),
+      fakePasskeys(),
+      config(),
+      fakeSessionStepUp(),
+    );
+    await expect(noSession.execute(new StartPasskeyRegistrationCommand("u1"))).rejects.toThrow(
+      StepUpRequiredError,
     );
   });
 });

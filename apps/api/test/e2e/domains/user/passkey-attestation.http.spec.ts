@@ -14,7 +14,7 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import type { InMemoryEmailSender } from "../../../../src/infra/email/senders/in-memory-email.sender";
 import { waitForEmail } from "../../support/email-outbox";
-import { registerConfirmed, type TestAccount } from "../../support/mfa";
+import { registerConfirmed, type TestAccount, stepUp } from "../../support/mfa";
 import {
   appWithCatalog,
   attestedResponse,
@@ -36,6 +36,7 @@ describe("Passkey attestation HTTP (e2e)", () => {
 
   /** register-options → (stubbed library) → register-verify. */
   async function register(name: string, response: unknown, aaguid: string) {
+    await stepUp(app, account.cookies);
     const options = await http()
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", account.cookies);
@@ -77,6 +78,7 @@ describe("Passkey attestation HTTP (e2e)", () => {
   });
 
   it("asks the browser for the maker's attestation", async () => {
+    await stepUp(app, account.cookies);
     const options = await http()
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", account.cookies);

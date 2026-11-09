@@ -22,6 +22,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
+import { stepUp as passwordStepUp } from "../../support/mfa";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -174,6 +175,7 @@ describe("Step-up before closing sessions HTTP (e2e)", () => {
       identifierValue: rut,
     });
     const regCookies = registered.get("Set-Cookie") ?? [];
+    await passwordStepUp(app, regCookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", regCookies);
@@ -229,6 +231,7 @@ describe("Step-up before closing sessions HTTP (e2e)", () => {
     });
     const regCookies = registered.get("Set-Cookie") ?? [];
 
+    await passwordStepUp(app, regCookies);
     const regOptions = await request(app.getHttpServer())
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", regCookies);

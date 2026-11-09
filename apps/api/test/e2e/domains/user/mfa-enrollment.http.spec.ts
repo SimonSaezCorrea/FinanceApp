@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { stepUp } from "../../support/mfa";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -68,6 +69,7 @@ describe("MFA enrollment HTTP (e2e)", () => {
   });
 
   it("rejects confirm with an invalid code, leaving MFA inactive", async () => {
+    await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);
@@ -86,6 +88,7 @@ describe("MFA enrollment HTTP (e2e)", () => {
   });
 
   it("activates MFA on a valid code and returns 10 recovery codes exactly once", async () => {
+    await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);
@@ -109,6 +112,7 @@ describe("MFA enrollment HTTP (e2e)", () => {
   });
 
   it("rejects enrolling the active method again, and a confirm with nothing pending", async () => {
+    await stepUp(app, cookies);
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);

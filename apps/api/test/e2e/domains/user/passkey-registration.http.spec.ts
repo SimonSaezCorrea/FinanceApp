@@ -16,6 +16,7 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { stepUp } from "../../support/mfa";
 
 describe("Passkey registration HTTP (e2e)", () => {
   let app: INestApplication;
@@ -63,6 +64,7 @@ describe("Passkey registration HTTP (e2e)", () => {
   });
 
   it("register-options returns WebAuthn options and sets the challenge cookie", async () => {
+    await stepUp(app, cookies);
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", cookies);
@@ -73,6 +75,7 @@ describe("Passkey registration HTTP (e2e)", () => {
   });
 
   it("register-verify creates the passkey on a verified response, and the list reflects it", async () => {
+    await stepUp(app, cookies);
     const options = await request(app.getHttpServer())
       .post("/api/v1/auth/me/passkeys/register-options")
       .set("Cookie", cookies);

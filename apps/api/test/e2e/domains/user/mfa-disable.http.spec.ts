@@ -11,6 +11,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
+import { stepUp, forgetStepUp } from "../../support/mfa";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -44,6 +45,7 @@ describe("MFA disable HTTP (e2e)", () => {
       identifierValue: rut,
     });
     cookies = registered.get("Set-Cookie") ?? [];
+    await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);
@@ -52,6 +54,7 @@ describe("MFA disable HTTP (e2e)", () => {
       .set("Cookie", cookies)
       .send({ code: totpCodeFor(enroll.body.secret) });
     secret = enroll.body.secret;
+    await forgetStepUp(prisma, email);
   });
 
   afterAll(async () => {
@@ -126,6 +129,7 @@ describe("MFA disable HTTP (e2e)", () => {
   });
 
   it("reactivating generates a completely new secret and recovery codes", async () => {
+    await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);

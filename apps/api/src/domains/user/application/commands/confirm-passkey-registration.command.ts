@@ -10,5 +10,7 @@ export class ConfirmPasskeyRegistrationCommand implements UserScopedCommand {
     public readonly response: unknown,
     /** Resolved by the controller from the challenge cookie — never client-supplied. */
     public readonly expectedChallenge: string,
+    /** The caller's session: adding a passkey needs its recent step-up (GHSA-jhp2-jfjr-fqfq). */
+    public readonly sessionId?: string,
   ) {}
 }
