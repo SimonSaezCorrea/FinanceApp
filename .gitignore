@@ -55,3 +55,6 @@ apps/api/skills-lock.json
 
 # Local state of `wrangler pages dev` (Cloudflare Pages emulator)
 .wrangler/
+
+# Security audit reports (may describe unfixed vulnerabilities; this repo is public)
+.security/

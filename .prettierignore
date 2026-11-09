@@ -9,3 +9,5 @@ graphify-out
 .agents
 .aider-desk
 apps/api/.agents
+# Vendored third-party skill (cloudflare/security-audit-skill), kept byte-for-byte
+.claude/skills/security-audit
