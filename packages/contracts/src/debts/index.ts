@@ -90,6 +90,8 @@ export type CreateDebt = z.infer<typeof createDebtSchema>;
 // reset currency/totalInstallments/frequency/frequencyInterval to their
 // create-time defaults. Re-declared without defaults here.
 export const updateDebtSchema = createDebtSchema.partial().extend({
+  /** `null` removes the due date (a debt need not have one). */
+  dueAt: z.string().datetime().nullable().optional(),
   currency: z.string().trim().length(3).optional(),
   totalInstallments: z.number().int().min(1).optional(),
   frequency: installmentFrequency.optional(),

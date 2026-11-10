@@ -72,7 +72,7 @@ export type DebtPatch = Partial<{
   principal: string;
   currency: string;
   openedAt: Date;
-  dueAt: Date;
+  dueAt: Date | null;
   interestApr: string | null;
   title: string | null;
   notes: string | null;

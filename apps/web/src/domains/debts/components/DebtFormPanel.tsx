@@ -221,6 +221,7 @@ export function DebtFormPanel({
             icon={CalendarClock}
             value={value.dueAt}
             onChange={(dueAt) => onChange({ dueAt })}
+            clearable
           />
 
           {hasInstallments ? (
@@ -251,7 +252,11 @@ export function DebtFormPanel({
         </div>
 
         <FormNotice icon={CalendarClock}>
-          {hasInstallments ? t("debts.form.scheduleNoteMulti") : t("debts.form.scheduleNoteSingle")}
+          {hasInstallments
+            ? t("debts.form.scheduleNoteMulti")
+            : value.dueAt
+              ? t("debts.form.scheduleNoteSingle")
+              : t("debts.form.scheduleNoteNoDate")}
         </FormNotice>
 
         <FormTextareaField
@@ -292,13 +297,13 @@ export function emptyDebtForm(
 }
 
 /** The form as it opens on an existing debt. */
-export function debtFormFrom(debt: debts.Debt, today: string): DebtFormValue {
+export function debtFormFrom(debt: debts.Debt, _today?: string): DebtFormValue {
   return {
     direction: debt.direction,
     counterparty: debt.counterparty,
     amount: debt.principal,
     currency: debt.currency,
-    dueAt: debt.dueAt ? debt.dueAt.slice(0, 10) : today,
+    dueAt: debt.dueAt ? debt.dueAt.slice(0, 10) : "",
     totalInstallments: debt.totalInstallments,
     frequency: debt.frequency,
     frequencyInterval: debt.frequencyInterval,

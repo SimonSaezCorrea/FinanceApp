@@ -252,7 +252,12 @@ export function DebtsRoute() {
       counterparty: formValue.counterparty.trim(),
       principal: formValue.amount.trim(),
       currency: formValue.currency.trim().toUpperCase(),
-      dueAt: formValue.dueAt ? new Date(formValue.dueAt).toISOString() : undefined,
+      // Optional: empty = no due date (sent as null on an edit, so clearing it sticks).
+      dueAt: formValue.dueAt
+        ? new Date(`${formValue.dueAt}T00:00:00`).toISOString()
+        : form.mode === "edit"
+          ? null
+          : undefined,
       totalInstallments: formValue.totalInstallments,
       frequency: formValue.frequency,
       frequencyInterval: formValue.frequencyInterval,
@@ -276,7 +281,7 @@ export function DebtsRoute() {
     }
 
     create.mutate(
-      { ...body, openedAt: new Date().toISOString() },
+      { ...body, dueAt: body.dueAt ?? undefined, openedAt: new Date().toISOString() },
       {
         onSuccess: () => {
           toast.success(t("debts.created"));
