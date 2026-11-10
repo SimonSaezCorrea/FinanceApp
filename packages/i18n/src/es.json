@@ -441,6 +441,7 @@
       "action": "Traspasar a {{currency}}",
       "description": "El banco convirtió esta deuda vencida y la cargó a tu próxima facturación en {{currency}}. Escribe el cargo tal como aparece en tu estado de cuenta.",
       "owed": "Deuda que se traspasa",
+      "date": "Fecha del traspaso",
       "amountLabel": "Cargo en {{currency}}",
       "amountHint": "Sugerido con el valor del dólar de hoy; usa el de tu estado de cuenta.",
       "consequence": "Se registra un cargo del emisor en la facturación abierta en {{currency}} y esta facturación queda traspasada. Puedes deshacerlo mientras esa facturación no esté pagada.",
@@ -457,7 +458,7 @@
     "undoPayment": {
       "action": "Deshacer pago",
       "confirm": "¿Deshacer este pago?",
-      "refund": "Se eliminan el pago de {{amount}} y su movimiento, y la plata vuelve a {{account}}.",
+      "refund": "Se eliminan el pago de {{amount}} y sus dos movimientos (uno en cada cuenta), y la plata vuelve a {{account}}.",
       "refundForeign": "Se eliminan el pago de {{amount}} y sus dos movimientos, y los pesos que costó vuelven a {{account}}.",
       "restoresCredit": "Ese monto vuelve a contar como cupo usado, y las cuotas que liquidó quedan facturadas sin pagar.",
       "carryOver": "El saldo de {{amount}} que pasó a la próxima facturación se quita de ella.",
@@ -1205,6 +1206,7 @@
         "YEARLY_one": "año",
         "YEARLY_other": "años"
       },
+      "scheduleNoteNoDate": "Sin fecha de vencimiento: se paga cuando se pueda.",
       "scheduleNoteSingle": "Se registrará como un pago único en la fecha indicada.",
       "scheduleNoteMulti": "El calendario de cuotas se genera automáticamente a partir del primer vencimiento y la periodicidad.",
       "directionOptions": {

@@ -353,8 +353,8 @@ export class CreditStatement {
     fromAccountId: string,
     paymentTransactionId: string,
     when: Date,
-    /** Spec 030: the INCOME that settled this period's limit on the card — only a period in
-     * ANOTHER currency has one (the account-currency pool needs no movement to move). */
+    /** The settlement INCOME on the credit account (spec 030 for another currency, where it
+     * lowers that limit; in the account's own currency it only shows the payment arriving). */
     settlementTransactionId: string | null = null,
   ): { event: StatementPaidEvent; carryOver: string } {
     if (!this.state.canPay()) {

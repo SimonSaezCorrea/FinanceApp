@@ -211,7 +211,10 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         command.fromAccountId,
         context.paymentTransactionId,
         context.occurredAt,
-        settlement ? context.settlementTransactionId : null,
+        // Both currencies get the settlement INCOME on the credit account: in another currency it
+        // lowers that limit's usage; in the account's own it only shows the payment arriving
+        // there (the pool moves through `creditUsed`, below), never counting towards a period.
+        context.settlementTransactionId,
       );
       // What leaves the source must fit its rules (prepaid never negative, overdraft floor),
       // exactly like paying an instalment — checked before anything is written.
@@ -254,6 +257,25 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
           // The user's reference for this payment (a transfer number, say) rides on
           // the movement itself, where they'll look for it later.
           observation: context.reference,
+        });
+        // The same payment seen from the credit account: what arrived there. Like the foreign
+        // settlement it carries `settlesStatementId` and no period, so no period sum, pool tally
+        // or card usage counts it (`EXCLUDE_SETTLEMENTS`/`STILL_OWED`); undoing the payment
+        // deletes it with the EXPENSE.
+        await this.transactions.createWithTx(tx, {
+          id: context.settlementTransactionId,
+          userId: context.account.userId,
+          bankAccountId: context.account.id,
+          type: "INCOME",
+          amount,
+          currency: context.account.snapshot().currency,
+          occurredAt: context.occurredAt,
+          categoryId: await this.categories.idForSystemCode("STATEMENT_PAYMENT"),
+          description: context.fromAccount.name,
+          observation: context.reference,
+          cardId: null,
+          creditStatementId: null,
+          settlesStatementId: statement.id,
         });
         // Paying is when the cash actually leaves: the purchases themselves moved
         // no balance (they were charged to the credit line, see `cashDelta`), so

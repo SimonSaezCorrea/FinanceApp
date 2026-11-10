@@ -479,6 +479,10 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
           const paid = st.paidAmount ?? total;
           if (!toMoney(paid).greaterThan(0)) continue; // nothing owed: nothing to settle
           let carryOver = "0";
+          // Paid from an account like the "Pagar" button: the same settlement INCOME on the
+          // credit account that button writes, so the payment shows on both sides.
+          const settlementId =
+            st.paymentTransactionId && st.paidFromAccountId ? generateRowId() : null;
           try {
             carryOver =
               st.paymentTransactionId && st.paidFromAccountId
@@ -488,6 +492,7 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
                     id(st.paidFromAccountId),
                     st.paymentTransactionId,
                     st.paidAt,
+                    settlementId,
                   ).carryOver
                 : open.settleImported(total, paid, st.paidAt).carryOver;
           } catch (error) {
@@ -499,6 +504,22 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
               "statements",
               st.row,
             );
+          }
+          if (settlementId) {
+            await this.writer.createWithTx(tx, {
+              id: settlementId,
+              userId: command.userId,
+              bankAccountId: accountId,
+              type: "INCOME",
+              amount: paid,
+              currency: st.currency,
+              occurredAt: st.paidAt,
+              categoryId: await this.categories.idForSystemCode("STATEMENT_PAYMENT"),
+              description: null,
+              cardId: null,
+              creditStatementId: null,
+              settlesStatementId: open.id,
+            });
           }
           if (toMoney(carryOver).greaterThan(0)) {
             open.markCarriedTo(next.id);

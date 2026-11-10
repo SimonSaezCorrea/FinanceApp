@@ -9,6 +9,7 @@ import { currencyScale, formatMoney, toMoney } from "@finance/money";
 import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
+import { FormDateField } from "../../../shared/ui/form";
 import {
   formatTypedAmount,
   groupingLocaleFor,
@@ -48,14 +49,18 @@ export function TransferStatementPanel({
   const idempotencyKey = useIdempotencyKey();
   // Reopening on another period starts from its own suggestion.
   const [seenStatementId, setSeenStatementId] = useState<string | null>(null);
+  // The day the bank charged it (YYYY-MM-DD, local) — it dates the charge and picks the period
+  // of the account's currency that receives it.
+  const [transferredOn, setTransferredOn] = useState(localDay);
   const charge = useSuggestedAmount({
     amount: statement?.remainingAmount ?? "",
     fromCurrency: statement?.currency ?? account.currency,
     toCurrency: account.currency,
-    date: localDay(),
+    date: transferredOn || localDay(),
   });
   if (statement && statement.id !== seenStatementId) {
     setSeenStatementId(statement.id);
+    setTransferredOn(localDay());
     idempotencyKey.reset();
   }
   if (!statement) return null;
@@ -65,7 +70,7 @@ export function TransferStatementPanel({
     currency: statement.currency,
   });
   const locale = groupingLocaleFor(account.currency, i18n.language);
-  const valid = toMoney(asMoney(charge.value)).greaterThan(0);
+  const valid = toMoney(asMoney(charge.value)).greaterThan(0) && transferredOn !== "";
 
   return (
     <FormSurface
@@ -86,7 +91,12 @@ export function TransferStatementPanel({
           {
             id: account.id,
             statementId: statement.id,
-            body: { amount: asMoney(charge.value) },
+            body: {
+              amount: asMoney(charge.value),
+              // Start of the chosen day in the person's zone — a bare "YYYY-MM-DD" would be
+              // read as UTC midnight, the previous evening in Chile.
+              transferredAt: new Date(`${transferredOn}T00:00:00`).toISOString(),
+            },
             idempotencyKey: idempotencyKey.current(),
           },
           {
@@ -139,6 +149,13 @@ export function TransferStatementPanel({
               : t("accounts.transfer.amountHint")}
           </p>
         </div>
+
+        <FormDateField
+          id="transfer-date"
+          label={t("accounts.transfer.date")}
+          value={transferredOn}
+          onChange={setTransferredOn}
+        />
 
         <p className="border-l-2 border-brand/40 pl-3 text-xs text-muted-foreground">
           {t("accounts.transfer.consequence", { currency: account.currency })}

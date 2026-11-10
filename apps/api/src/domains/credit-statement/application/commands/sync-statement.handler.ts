@@ -189,8 +189,15 @@ export class SyncStatementHandler extends BaseCommandHandler<
           );
         }
       } else if (paymentId && context.statement.paidAt) {
-        // Only a settled period has a payment movement to keep in step.
+        // Only a settled period has a payment movement to keep in step — both sides of it.
         await this.transactions.updateAmountWithTx(tx, paymentId, context.statement.paidAmount);
+        if (settlementId) {
+          await this.transactions.updateAmountWithTx(
+            tx,
+            settlementId,
+            context.statement.paidAmount,
+          );
+        }
         // That movement is an EXPENSE on the source account, so its balance
         // follows the correction — the same rule the manual payment correction
         // applies (`UpdateStatementPaymentHandler`).

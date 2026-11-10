@@ -85,6 +85,19 @@ describe("TransferStatementPanel (spec 028 US3)", () => {
     await waitFor(() => expect(accountsApi.transferCreditStatement).toHaveBeenCalled());
     const [accountId, statementId, body] = vi.mocked(accountsApi.transferCreditStatement).mock
       .calls[0]!;
-    expect([accountId, statementId, body]).toEqual(["acc_credit", "st_usd", { amount: "47350" }]);
+    expect([accountId, statementId, body]).toEqual([
+      "acc_credit",
+      "st_usd",
+      // The chosen day (today by default), as the start of that day in the person's zone.
+      { amount: "47350", transferredAt: expect.any(String) },
+    ]);
+    const sent = new Date(body.transferredAt!);
+    const today = new Date();
+    expect([sent.getFullYear(), sent.getMonth(), sent.getDate(), sent.getHours()]).toEqual([
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      0,
+    ]);
   });
 });

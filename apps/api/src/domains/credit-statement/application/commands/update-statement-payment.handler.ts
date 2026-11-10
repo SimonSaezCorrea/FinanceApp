@@ -197,10 +197,10 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
             : context.statement.paidAmount,
         );
       }
-      // The USD settlement INCOME is what lowers that limit's usage: it follows the paid
-      // amount, in the period's own currency.
+      // The settlement INCOME on the credit account follows the paid amount, in the period's own
+      // currency (in another currency it is what lowers that limit's usage).
       const settlementId = context.statement.settlementTransactionId;
-      if (foreign && settlementId) {
+      if (settlementId) {
         await this.transactions.updateAmountWithTx(tx, settlementId, context.statement.paidAmount);
       }
       // The payment is an EXPENSE on the source account: a bigger payment means a

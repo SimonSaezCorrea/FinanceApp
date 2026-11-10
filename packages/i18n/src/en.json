@@ -441,6 +441,7 @@
       "action": "Transfer to {{currency}}",
       "description": "The bank converted this overdue debt and charged it to your next {{currency}} statement. Type the charge as it appears on your statement.",
       "owed": "Debt being transferred",
+      "date": "Transfer date",
       "amountLabel": "Charge in {{currency}}",
       "amountHint": "Suggested with today's dollar rate; use the one on your statement.",
       "consequence": "An issuer charge is recorded on the open {{currency}} statement and this statement becomes transferred. You can undo it while that statement isn't paid.",
@@ -457,7 +458,7 @@
     "undoPayment": {
       "action": "Undo payment",
       "confirm": "Undo this payment?",
-      "refund": "The {{amount}} payment and its movement are deleted, and the money goes back to {{account}}.",
+      "refund": "The {{amount}} payment and its two movements (one per account) are deleted, and the money goes back to {{account}}.",
       "refundForeign": "The {{amount}} payment and its two movements are deleted, and the pesos it cost go back to {{account}}.",
       "restoresCredit": "That amount counts as used credit again, and the instalments it settled are billed and unpaid again.",
       "carryOver": "The {{amount}} balance it carried into the next statement is taken out of it.",
@@ -1205,6 +1206,7 @@
         "YEARLY_one": "year",
         "YEARLY_other": "years"
       },
+      "scheduleNoteNoDate": "No due date: paid whenever it can be.",
       "scheduleNoteSingle": "This will be recorded as a one-time payment on the date above.",
       "scheduleNoteMulti": "The installment calendar is generated automatically from the first due date and the frequency.",
       "directionOptions": {

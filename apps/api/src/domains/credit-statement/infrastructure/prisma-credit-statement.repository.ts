@@ -296,9 +296,11 @@ export class PrismaCreditStatementRepository
         dueDate: state.dueDate,
         plannedCloseAt: state.plannedCloseAt ?? null,
         paidAt: state.paidAt,
-        // Frozen only once settled; while unpaid the amount stays live (the sum
-        // of the period's transactions plus whatever was carried into it).
-        amount: state.paidAt ? state.amount : undefined,
+        // Frozen only once settled — paid OR transferred (spec 028 US3: a transferred period
+        // has no `paidAt`, and leaving its total unwritten made it read "0" and undoing the
+        // transfer promise "0" back); while unsettled the amount stays live (the sum of the
+        // period's transactions plus whatever was carried into it).
+        amount: state.paidAt || state.transferredAt ? state.amount : undefined,
         paidAmount: state.paidAmount,
         carriedOverAmount: state.carriedOverAmount,
         // Unlike `amount`, always a real (never derived) figure — written every

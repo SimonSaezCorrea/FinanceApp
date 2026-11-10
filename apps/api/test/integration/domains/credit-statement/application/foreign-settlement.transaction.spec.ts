@@ -473,6 +473,9 @@ describe("Settling a statement in another currency (integration)", () => {
     });
     expect(await creditUsed()).toBe("47000");
     expect(await limitUsage()).toBe(0);
+    // The period's total is frozen in the row too — what the list reads back (it showed "0").
+    const stored = await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } });
+    expect(stored.amount?.toFixed(2)).toBe("50.00");
 
     const charge = await prisma.transaction.findFirstOrThrow({
       where: { userId, currency: "CLP", financeCharge: true },
