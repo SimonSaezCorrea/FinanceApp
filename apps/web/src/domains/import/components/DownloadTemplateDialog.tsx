@@ -111,7 +111,8 @@ export function DownloadTemplateDialog({
         {content === "prefilled" ? (
           <p className="flex gap-2 rounded-lg bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-px h-4 w-4 shrink-0" aria-hidden />
-            {withBrand(t("import.template.content.prefilled.note"))}
+            {/* One span: in a flex row each text node and the italic brand would be its own column. */}
+            <span>{withBrand(t("import.template.content.prefilled.note"))}</span>
           </p>
         ) : null}
       </div>
