@@ -1206,6 +1206,7 @@
         "YEARLY_one": "año",
         "YEARLY_other": "años"
       },
+      "noDueAt": "Sin vencimiento",
       "scheduleNoteNoDate": "Sin fecha de vencimiento: se paga cuando se pueda.",
       "scheduleNoteSingle": "Se registrará como un pago único en la fecha indicada.",
       "scheduleNoteMulti": "El calendario de cuotas se genera automáticamente a partir del primer vencimiento y la periodicidad.",
@@ -2087,6 +2088,7 @@
         "unknownRef": "no hay ninguna fila con la referencia «{{value}}»"
       },
       "ui": {
+        "previewFailed": "No pudimos revisar el archivo.",
         "modeTitle": "¿Qué hacemos con tus datos?",
         "modeMerge": "Agregar",
         "modeMergeHint": "Suma lo que traiga el archivo a lo que ya tienes.",

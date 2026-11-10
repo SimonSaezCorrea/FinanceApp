@@ -1206,6 +1206,7 @@
         "YEARLY_one": "year",
         "YEARLY_other": "years"
       },
+      "noDueAt": "No due date",
       "scheduleNoteNoDate": "No due date: paid whenever it can be.",
       "scheduleNoteSingle": "This will be recorded as a one-time payment on the date above.",
       "scheduleNoteMulti": "The installment calendar is generated automatically from the first due date and the frequency.",
@@ -2087,6 +2088,7 @@
         "unknownRef": "no row has the reference “{{value}}”"
       },
       "ui": {
+        "previewFailed": "We couldn't check the file.",
         "modeTitle": "What do we do with your data?",
         "modeMerge": "Add",
         "modeMergeHint": "Adds what the file holds to what you already have.",

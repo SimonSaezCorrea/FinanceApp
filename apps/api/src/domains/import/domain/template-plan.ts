@@ -1160,12 +1160,26 @@ export function planTemplateImport(
   // Running usage of each card's own limit, per currency: a card's USD limit and
   // its CLP one are separate caps.
   const cardUsage = new Map<string, { income: string; expense: string }>();
-  const usageKey = (e: MoneyEvent) => `${e.card!.id}|${e.currency}`;
+  // Whose limit the row spends: its own card's, except in another currency when that card has no
+  // sub-limit there — then it spends the ACCOUNT's credit, which the primary carries (spec 039).
+  // Tracking it on the additional card read a limit it doesn't have (preview crashed with a 500).
+  const limitOwner = (e: MoneyEvent): TemplateCard => {
+    const card = e.card!;
+    const accountCurrency = lookup.accounts.get(e.accountId)!.currency;
+    if (e.currency === accountCurrency || card.otherLimits[e.currency!]) return card;
+    return (
+      [...lookup.cards.values()].find(
+        (c) => c.accountId === e.accountId && c.kind === "CREDIT" && c.isPrimary,
+      ) ?? card
+    );
+  };
+  const usageKey = (e: MoneyEvent) => `${limitOwner(e).id}|${e.currency}`;
   const initialUsage = (e: MoneyEvent) => {
     const accountCurrency = lookup.accounts.get(e.accountId)!.currency;
-    return e.currency === accountCurrency
-      ? { ...e.card!.usage }
-      : { ...e.card!.otherLimits[e.currency!]!.usage };
+    const owner = limitOwner(e);
+    if (e.currency === accountCurrency) return { ...owner.usage };
+    const line = owner.otherLimits[e.currency!];
+    return line ? { ...line.usage } : { income: "0", expense: "0" };
   };
   for (const e of events) {
     if (e.kind === "settle") {

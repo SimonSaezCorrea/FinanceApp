@@ -275,6 +275,92 @@ describe("pre-filled template", () => {
   }, 30_000);
 });
 
+describe("pre-filled template — a period transferred to pesos", () => {
+  it("goes out as a USD period paid by bookkeeping plus its pesos charge on Movimientos", () => {
+    const base = {
+      id: "x",
+      type: "EXPENSE",
+      currency: "CLP",
+      bankAccountId: TC,
+      cardId: null,
+      categoryId: null,
+      description: "BCI Visa",
+      observation: null,
+      emisor: null,
+      receptor: null,
+      lugar: null,
+      financeCharge: false,
+      transferGroupId: null,
+      installmentPlanId: null,
+      debtId: null,
+      recurringExpenseId: null,
+      savingsEntryId: null,
+      savingsGoalId: null,
+      paidStatementId: null,
+      paidStatementAccountId: null,
+      prepaymentStatementId: null,
+      prepaymentAccountId: null,
+      settlesStatementId: null,
+      transferStatementId: null,
+    };
+    const data = {
+      accounts: refs.accounts.map((a) => ({ ...a, cards: [] })),
+      transactions: [
+        // The pesos charge the transfer wrote on the card account.
+        {
+          ...base,
+          id: "charge",
+          amount: "19840",
+          occurredAt: localStart("2026-11-05"),
+          financeCharge: true,
+          transferStatementId: "st-usd",
+        },
+        // Its USD settlement: bookkeeping, never a row of its own.
+        {
+          ...base,
+          id: "settle",
+          type: "INCOME",
+          amount: "20",
+          currency: "USD",
+          occurredAt: localStart("2026-11-05"),
+          settlesStatementId: "st-usd",
+        },
+      ],
+      debts: [],
+      plans: [],
+      recurring: [],
+      goals: [],
+      entries: [],
+      categories: refs.categories,
+      statements: [
+        {
+          id: "st-usd",
+          accountId: TC,
+          currency: "USD",
+          periodStart: localStart("2026-09-18"),
+          closedAt: localStart("2026-10-21"),
+          dueDate: localStart("2026-11-05"),
+          paidAt: null,
+          paidAmount: "0",
+          amount: "20",
+          transferredAt: localStart("2026-11-05"),
+        },
+      ],
+    } as unknown as ExistingData;
+
+    const rows = existingRows(data, es);
+    expect(rows.movements.map((r) => [r.id, r.cells.amount, r.cells.financeCharge])).toEqual([
+      ["charge", 19840, es("import.template.values.yesNo.YES")],
+    ]);
+    expect(rows.statements[0]!.cells).toMatchObject({
+      currency: "USD",
+      paidAmount: 20,
+      paidFrom: null,
+    });
+    expect(rows.statements[0]!.cells.paidAt).not.toBeNull();
+  });
+});
+
 describe("parseTemplateSheets", () => {
   it("refuses a workbook without the marker, and one of another version", () => {
     expect(() => parseTemplateSheets([{ name: "Hoja1", matrix: [["a"]] }], labelers)).toThrow(

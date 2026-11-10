@@ -51,6 +51,11 @@ const MOVEMENT_SOURCES = new Set([
   // A plan's interest is an issuer charge on the card account: the plan is
   // exported without its rate, so re-importing it doesn't charge it twice.
   "INSTALLMENT_INTEREST",
+  // The pesos charge of a period transferred to the account's currency (spec 028 US3) is,
+  // to the template, what the bank's statement shows: an issuer charge on the card account.
+  // Its USD period goes out as paid without "Pagada desde" (see the Facturaciones rows), which
+  // frees that limit on import — together they rebuild the transfer.
+  "CURRENCY_TRANSFER",
 ]);
 
 /** A stored instant as the date cell the template reads (a day at UTC midnight,
@@ -407,8 +412,10 @@ export function existingRows(
           periodStart: day(st.periodStart),
           closedAt: day(st.closedAt),
           dueDate: day(st.dueDate ?? st.closedAt),
-          paidAt: day(st.paidAt),
-          paidAmount: st.paidAt ? money(st.paidAmount) : null,
+          // A transferred period was settled by the transfer: paid on that day for what it owed,
+          // bookkeeping only (no "Pagada desde"), with its pesos charge on Movimientos.
+          paidAt: day(st.paidAt ?? st.transferredAt),
+          paidAmount: st.paidAt ? money(st.paidAmount) : st.transferredAt ? money(st.amount) : null,
           paidFrom: payment ? accountName(payment.bankAccountId) : null,
         },
       };

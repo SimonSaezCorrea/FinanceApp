@@ -515,7 +515,9 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
               currency: st.currency,
               occurredAt: st.paidAt,
               categoryId: await this.categories.idForSystemCode("STATEMENT_PAYMENT"),
-              description: null,
+              // Named after where the money came from, like the "Pagar" button's.
+              description:
+                plan.newAccounts.find((a) => a.tempId === st.paidFromAccountId)?.plan.name ?? null,
               cardId: null,
               creditStatementId: null,
               settlesStatementId: open.id,

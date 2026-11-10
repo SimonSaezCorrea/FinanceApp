@@ -319,6 +319,43 @@ describe("planTemplateImport — movements and transfers (US2)", () => {
     ]);
   });
 
+  it("an additional card with no limit of its own in USD spends the account's USD credit", () => {
+    // Spec 039: the primary carries the account's USD line; an additional card without a
+    // sub-limit there spends from it. The preview used to crash reading the additional
+    // card's (missing) USD limit.
+    const ADDITIONAL = "01900000-0000-7000-8000-0000000000ad";
+    const additional: TemplateCard = {
+      id: ADDITIONAL,
+      kind: "CREDIT",
+      isPrimary: false,
+      limit: null,
+      usage: noUsage,
+      accountId: TC,
+      otherLimits: {},
+    };
+    const withAdditional = lookup({ cards: new Map([...cards, [ADDITIONAL, additional]]) });
+    const result = planTemplateImport(
+      req({
+        balanceModes: [{ accountId: TC, mode: "ADD" }],
+        movements: [
+          movement({
+            row: 2,
+            bankAccountId: TC,
+            amount: "60",
+            currency: "USD",
+            cardId: ADDITIONAL,
+          }),
+          // Same line: 60 + 50 = 110 > 100.
+          movement({ row: 3, bankAccountId: TC, amount: "50", currency: "USD" }),
+        ],
+      }),
+      withAdditional,
+      options(),
+    );
+    expect(codes(result)).toEqual(["movements:3:CARD_SUBLIMIT_EXCEEDED"]);
+    expect(result.movements.map((m) => m.cardId)).toEqual([ADDITIONAL, PRIMARY]);
+  });
+
   it("caps foreign-currency charges by that limit, and refuses a currency with no limit", () => {
     const result = planTemplateImport(
       req({

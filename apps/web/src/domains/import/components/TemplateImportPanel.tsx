@@ -329,9 +329,9 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 pb-2">
           {read ? (
-            <section className="flex flex-col gap-2">
+            <section className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4">
               <h3 className="text-sm font-medium">{t("import.template.ui.modeTitle")}</h3>
               <Segmented
                 size="sm"
@@ -377,6 +377,29 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {preview.isError && !result ? (
+            <section
+              role="alert"
+              className="flex flex-col items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4"
+            >
+              <p className="flex items-start gap-2 text-sm text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>
+                  {t("import.template.ui.previewFailed")}{" "}
+                  {t(
+                    `errors.${preview.error instanceof ApiRequestError ? preview.error.code : "INTERNAL_ERROR"}`,
+                    { defaultValue: t("errors.INTERNAL_ERROR") },
+                  )}
+                </span>
+              </p>
+              {read ? (
+                <Button variant="outline" size="sm" onClick={() => apply(read, importMode)}>
+                  {t("common.retry")}
+                </Button>
+              ) : null}
             </section>
           ) : null}
 
