@@ -16,6 +16,8 @@ interface Props {
   /** Adds a "Borrar" action so the field can go back to empty — for a date
    * that's genuinely optional (e.g. no plazo at all), not just unset yet. */
   clearable?: boolean;
+  /** What an empty field reads as (default "Elegir fecha"). */
+  placeholder?: string;
   className?: string;
 }
 
@@ -29,6 +31,7 @@ export function FormDateField({
   icon = CalendarDays,
   disabled,
   clearable = false,
+  placeholder,
   className,
 }: Readonly<Props>) {
   return (
@@ -41,6 +44,7 @@ export function FormDateField({
         icon={icon}
         disabled={disabled}
         clearable={clearable}
+        placeholder={placeholder}
         aria-label={label}
       />
     </DetailRow>

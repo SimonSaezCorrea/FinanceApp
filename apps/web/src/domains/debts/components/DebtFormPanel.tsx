@@ -222,6 +222,7 @@ export function DebtFormPanel({
             value={value.dueAt}
             onChange={(dueAt) => onChange({ dueAt })}
             clearable
+            placeholder={t("debts.form.noDueAt")}
           />
 
           {hasInstallments ? (
@@ -271,13 +272,13 @@ export function DebtFormPanel({
   );
 }
 
-/** A blank debt, dated today. `currency` defaults to the user's own
+/** A blank debt, with no due date (it is optional). `currency` defaults to the user's own
  * `preferredCurrency` (falling back to CLP) instead of a hardcoded value — the
  * same convention `AccountsRoute`'s `primaryCurrency` already uses.
  * `paymentAccountId` defaults to the caller's own choice (e.g. the first
  * account in that currency) — see `DebtsRoute.openCreate`. */
 export function emptyDebtForm(
-  today: string,
+  _today: string,
   currency = "CLP",
   paymentAccountId = "",
 ): DebtFormValue {
@@ -286,7 +287,7 @@ export function emptyDebtForm(
     counterparty: "",
     amount: "",
     currency,
-    dueAt: today,
+    dueAt: "",
     totalInstallments: 1,
     frequency: "MONTHLY",
     frequencyInterval: 1,
