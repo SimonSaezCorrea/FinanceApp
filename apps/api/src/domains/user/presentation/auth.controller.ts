@@ -280,7 +280,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.updateProfileRequestSchema)) body: auth.UpdateProfileRequest,
   ): Promise<auth.CurrentUser> {
-    return this.commandBus.execute(new UpdateProfileCommand(user.id, body));
+    return this.commandBus.execute(new UpdateProfileCommand(user.id, body, user.sessionId));
   }
 
   @Post("me/password")
@@ -447,7 +447,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(passkeyIdParamsSchema)) params: { id: string },
   ): Promise<void> {
-    return this.commandBus.execute(new RemovePasskeyCommand(user.id, params.id));
+    return this.commandBus.execute(new RemovePasskeyCommand(user.id, params.id, user.sessionId));
   }
 
   @Patch("me/passkeys/:id")

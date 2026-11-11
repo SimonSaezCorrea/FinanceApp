@@ -60,6 +60,7 @@ function setup(userProps: UserProps, passkeyCount = 0, mfaCodes = fakeMfaCodes()
     create: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn().mockResolvedValue(undefined),
+    saveFields: vi.fn().mockResolvedValue(undefined),
     // Each lock re-reads a fresh copy, like the real row lock would.
     findByIdForUpdateWithTx: vi.fn(async () => User.fromPersistence({ ...userProps })),
     countryName: vi.fn(),

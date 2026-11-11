@@ -91,6 +91,11 @@ export const en: EmailCatalog = {
         title: "Your email changed",
         body: "Your mifik account email is now {detail}. This address no longer receives our emails and can no longer recover the account.",
       },
+      IDENTIFIER_CHANGED: {
+        subject: "Your mifik account RUT changed",
+        title: "Your RUT changed",
+        body: "The RUT you use to sign in to mifik and recover your password was changed from your profile. From now on, sign in with the new one.",
+      },
       RECOVERY_CODES_REGENERATED: {
         subject: "You generated new recovery codes in mifik",
         title: "New recovery codes",

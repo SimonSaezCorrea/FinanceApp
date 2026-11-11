@@ -63,6 +63,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     create: vi.fn(),
     save: vi.fn().mockResolvedValue(undefined),
     saveWithTx: vi.fn().mockResolvedValue(undefined),
+    saveFields: vi.fn().mockResolvedValue(undefined),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     findByIdentifierValue: vi.fn(),
@@ -288,6 +289,7 @@ describe("VerifyMfaLoginHandler — remember this device (specs/040 US2)", () =>
     const repo = fakeRepo({
       findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user),
       saveWithTx: vi.fn().mockResolvedValue(undefined),
+      saveFields: vi.fn().mockResolvedValue(undefined),
     });
     const devices = fakeTrustedDevices();
     const publish = vi.fn();
@@ -341,6 +343,7 @@ describe("VerifyMfaLoginHandler — email method (specs/040 US3)", () => {
     const repo = fakeRepo({
       findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user),
       saveWithTx: vi.fn().mockResolvedValue(undefined),
+      saveFields: vi.fn().mockResolvedValue(undefined),
     });
     const mfaCodes = fakeMfaCodes({ verifyWithTx: vi.fn().mockResolvedValue(verified) });
     const handler = new VerifyMfaLoginHandler(

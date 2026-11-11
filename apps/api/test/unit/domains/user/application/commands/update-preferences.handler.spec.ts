@@ -60,6 +60,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     create: vi.fn(),
     save: vi.fn().mockResolvedValue(undefined),
     saveWithTx: vi.fn().mockResolvedValue(undefined),
+    saveFields: vi.fn().mockResolvedValue(undefined),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     findByIdentifierValue: vi.fn(),
@@ -104,7 +105,7 @@ describe("UpdatePreferencesHandler", () => {
     );
 
     expect(result.extraCurrencies).toEqual(["USD", "EUR"]);
-    expect(repo.save).toHaveBeenCalledTimes(1);
+    expect(repo.saveFields).toHaveBeenCalledTimes(1);
   });
 
   it("removing a currency nothing uses is accepted", async () => {
@@ -116,7 +117,7 @@ describe("UpdatePreferencesHandler", () => {
     );
 
     expect(result.extraCurrencies).toEqual([]);
-    expect(repo.save).toHaveBeenCalledTimes(1);
+    expect(repo.saveFields).toHaveBeenCalledTimes(1);
   });
 
   it("removing a currency still in use is rejected and never saved", async () => {
@@ -126,7 +127,7 @@ describe("UpdatePreferencesHandler", () => {
     await expect(
       handler.execute(new UpdatePreferencesCommand("u1", { extraCurrencies: [] })),
     ).rejects.toThrow(CurrencyInUseError);
-    expect(repo.save).not.toHaveBeenCalled();
+    expect(repo.saveFields).not.toHaveBeenCalled();
   });
 
   it("removing several currencies at once rejects the whole patch if any one is in use", async () => {
@@ -164,7 +165,7 @@ describe("UpdatePreferencesHandler", () => {
     await expect(
       handler.execute(new UpdatePreferencesCommand("u1", { extraCurrencies: [] })),
     ).rejects.toThrow(CurrencyInUseError);
-    expect(repo.save).not.toHaveBeenCalled();
+    expect(repo.saveFields).not.toHaveBeenCalled();
   });
 
   it("a patch that doesn't touch extraCurrencies never checks usage", async () => {
@@ -176,6 +177,6 @@ describe("UpdatePreferencesHandler", () => {
     );
 
     expect(result.hideBalances).toBe(true);
-    expect(repo.save).toHaveBeenCalledTimes(1);
+    expect(repo.saveFields).toHaveBeenCalledTimes(1);
   });
 });

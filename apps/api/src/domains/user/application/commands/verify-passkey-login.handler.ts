@@ -97,6 +97,14 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
       // The session remembers its passkey: if the model turns compromised, it is closed (041).
       { userAgent: command.device?.userAgent, ip: command.device?.ip, passkeyId: stored.id },
     );
+    // The compromise review may have marked this passkey after the check above (run-2): read it
+    // again now that the session exists. Either the review's own close saw the session, or this
+    // read sees the mark; the review's sweep of sessions on marked passkeys covers the rest.
+    const current = await this.passkeys.findByIdOwned(user.id, stored.id);
+    if (!current || current.compromisedAt) {
+      await this.sessionIssuer.revoke(tokens.sessionId);
+      throw current ? new PasskeyCompromisedError() : new InvalidCredentialsError();
+    }
     // Never routes through mfa_pending_token / VerifyMfaLoginCommand, even if user.mfaEnabled —
     // the passkey is its own strong authentication (specs/022 FR-007).
     return { result: { tokens, user: user.toContract() }, events: [] };

@@ -55,6 +55,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     create: vi.fn(),
     save: vi.fn().mockResolvedValue(undefined),
     saveWithTx: vi.fn().mockResolvedValue(undefined),
+    saveFields: vi.fn().mockResolvedValue(undefined),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     findByIdentifierValue: vi.fn(),
@@ -81,8 +82,8 @@ describe("StartMfaEnrollmentHandler", () => {
 
     expect(result.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
     expect(result.secret).toMatch(/^[A-Z2-7]+$/);
-    expect(repo.save).toHaveBeenCalledTimes(1);
-    const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
+    expect(repo.saveFields).toHaveBeenCalledTimes(1);
+    const saved = (repo.saveFields as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
     expect(saved.mfaEnabled).toBe(false);
     expect(saved.mfaSecret).toBe(result.secret);
   });
@@ -104,7 +105,7 @@ describe("StartMfaEnrollmentHandler", () => {
       new StartMfaEnrollmentCommand("u1", {}, "sess"),
     )) as Extract<auth.StartMfaEnrollmentResponse, { secret: string }>;
 
-    const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
+    const saved = (repo.saveFields as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
     expect(saved.mfaSecret).not.toBe("OLDSECRETXXXXXXX");
     expect(saved.mfaSecret).toBe(result.secret);
   });
@@ -127,7 +128,7 @@ describe("StartMfaEnrollmentHandler", () => {
     await expect(handler.execute(new StartMfaEnrollmentCommand("u1", {}, "sess"))).rejects.toThrow(
       MfaSameMethodError,
     );
-    expect(repo.save).not.toHaveBeenCalled();
+    expect(repo.saveFields).not.toHaveBeenCalled();
   });
 
   it("throws UNAUTHORIZED when the user no longer exists", async () => {
@@ -169,7 +170,7 @@ describe("StartMfaEnrollmentHandler - email and method change (specs/040 US3)", 
       expect.objectContaining({ email: "a@b.com", emailVerified: true }),
       "ENROLL",
     );
-    const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
+    const saved = (repo.saveFields as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;
     expect(saved.mfaPendingMethod).toBe("EMAIL");
     expect(saved.mfaEnabled).toBe(false);
   });
@@ -200,7 +201,7 @@ describe("StartMfaEnrollmentHandler - email and method change (specs/040 US3)", 
     await expect(
       stale.handler.execute(new StartMfaEnrollmentCommand("u1", {}, "sess")),
     ).rejects.toThrow(StepUpRequiredError);
-    expect(stale.repo.save).not.toHaveBeenCalled();
+    expect(stale.repo.saveFields).not.toHaveBeenCalled();
 
     const noSession = setup(baseProps(verified), 0);
     await expect(noSession.handler.execute(new StartMfaEnrollmentCommand("u1"))).rejects.toThrow(

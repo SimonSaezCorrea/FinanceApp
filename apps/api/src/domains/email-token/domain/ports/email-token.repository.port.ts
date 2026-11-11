@@ -16,6 +16,10 @@ export interface EmailTokenRepositoryPort {
   countSince(userId: string, purpose: EmailTokenPurpose, since: Date): Promise<number>;
   /** The account's unused link of a purpose, if any (the 60 s resend window). */
   findActive(userId: string, purpose: EmailTokenPurpose): Promise<EmailTokenProps | null>;
+  /** Whether a link is still usable right now (unknown, expired, used or replaced: false). A
+   * cheap read that lets a caller refuse a bogus link before doing expensive work (run-2); the
+   * atomic `consumeWithTx` still decides. */
+  isUsable(tokenHash: string, purpose: EmailTokenPurpose, now: Date): Promise<boolean>;
   /**
    * Consumes a link atomically: `UPDATE … SET usedAt = now WHERE tokenHash = ? AND purpose = ?
    * AND usedAt IS NULL AND expiresAt > now`. Two simultaneous uses: exactly one gets the row,

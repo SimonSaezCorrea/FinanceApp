@@ -43,8 +43,16 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
     super(eventBus);
   }
 
-  /** bcrypt is slow on purpose — computed before opening the transaction. */
-  protected loadContext(command: ResetPasswordCommand): Promise<string> {
+  /** bcrypt is slow on purpose — computed before opening the transaction, and only for a link
+   * that is usable right now (run-2): a bogus token is refused with one indexed read instead of
+   * costing ~300 ms of CPU. The transaction still consumes it atomically. */
+  protected async loadContext(command: ResetPasswordCommand): Promise<string> {
+    const usable = await this.tokens.isUsable(
+      hashToken(command.token),
+      "RESET_PASSWORD",
+      new Date(),
+    );
+    if (!usable) throw new EmailTokenInvalidError();
     return hash(command.newPassword, 12);
   }
 

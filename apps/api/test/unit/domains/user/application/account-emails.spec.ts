@@ -19,6 +19,7 @@ function tokens(overrides: Partial<EmailTokenRepositoryPort> = {}): EmailTokenRe
     issue: vi.fn().mockResolvedValue({ issued: true, id: "t1" }),
     countSince: vi.fn().mockResolvedValue(0),
     findActive: vi.fn().mockResolvedValue(null),
+    isUsable: vi.fn().mockResolvedValue(true),
     consumeWithTx: vi.fn(),
     revokeActiveWithTx: vi.fn(),
     deleteAllForUserWithTx: vi.fn(),

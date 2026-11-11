@@ -94,8 +94,18 @@ export function PasskeySection({
   }
 
   async function handleRemove(id: string) {
-    await removePasskey.mutateAsync(id);
-    setRemovingId(null);
+    try {
+      await removePasskey.mutateAsync(id);
+      setRemovingId(null);
+    } catch (err) {
+      // Removing a passkey needs a recent step-up too (run-2): verify, then remove the same one.
+      if (needsStepUp(err, () => void handleRemove(id))) {
+        setRemovingId(null);
+        return;
+      }
+      const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+      toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+    }
   }
 
   function startRenaming(id: string, currentName: string) {

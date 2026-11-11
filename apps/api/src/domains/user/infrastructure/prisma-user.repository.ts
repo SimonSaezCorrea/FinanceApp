@@ -13,7 +13,7 @@ import {
 import { decryptMfaSecret, encryptMfaSecret } from "../application/mfa-secret-cipher";
 import { EmailTakenError, IdentifierTakenError } from "../domain/errors";
 import { User, type UserProps } from "../domain/user.aggregate";
-import type { UserRepositoryPort } from "../domain/ports/user.repository.port";
+import type { UserRepositoryPort, UserWriteField } from "../domain/ports/user.repository.port";
 
 /** Maps a Postgres unique-constraint violation to the right domain error by WHICH column
  * collided — `email` and `identifierValue` are both unique, and conflating them would tell the
@@ -138,61 +138,77 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   async saveWithTx(tx: unknown, user: User): Promise<void> {
     const client = tx as PrismaService;
-    const snap = user.snapshot();
-    const mfaEncryptionKey = getMfaEncryptionKey(this.config);
     try {
-      await client.user.update({
-        where: { id: snap.id },
-        data: {
-          name: snap.name,
-          email: snap.email,
-          passwordHash: snap.passwordHash,
-          status: snap.status,
-          deletedAt: snap.deletedAt,
-          preferredCurrency: snap.preferredCurrency,
-          locale: snap.locale,
-          theme: snap.theme,
-          countryId: snap.countryId,
-          addressStreet: snap.addressStreet,
-          addressCity: snap.addressCity,
-          addressRegion: snap.addressRegion,
-          addressPostalCode: snap.addressPostalCode,
-          birthDate: snap.birthDate,
-          identifierType: snap.identifierType,
-          // Normalized here too — a profile edit must keep the same canonical form the login
-          // lookup expects, or a RUT re-typed with different dots/dash breaks its own login.
-          identifierValue:
-            snap.identifierType === "RUT" && snap.identifierValue
-              ? auth.normalizeRut(snap.identifierValue)
-              : snap.identifierValue,
-          phone: snap.phone,
-          hideBalances: snap.hideBalances,
-          extraCurrencies: snap.extraCurrencies,
-          budgetAlertThreshold: snap.budgetAlertThreshold,
-          mfaEnabled: snap.mfaEnabled,
-          // Encrypted here, at the adapter boundary — the domain layer only ever holds plaintext.
-          mfaSecretEncrypted: snap.mfaSecret
-            ? encryptMfaSecret(snap.mfaSecret, mfaEncryptionKey)
-            : null,
-          mfaFailedAttempts: snap.mfaFailedAttempts,
-          mfaLockedUntil: snap.mfaLockedUntil,
-          mfaMethod: snap.mfaMethod ?? null,
-          mfaPendingMethod: snap.mfaPendingMethod ?? null,
-          loginFailedAttempts: snap.loginFailedAttempts,
-          loginLockedUntil: snap.loginLockedUntil,
-          // Written only when the aggregate knows it (fixtures that predate specs/032 leave it
-          // undefined, which Prisma treats as "don't touch").
-          emailVerified: snap.emailVerifiedAt,
-          onboardingClosedAt: snap.onboardingClosedAt,
-          releaseNotesSeenVersion: snap.releaseNotesSeenVersion,
-        },
-      });
+      await client.user.update({ where: { id: user.id }, data: this.toWriteData(user) });
     } catch (err) {
       // Defense-in-depth against a concurrent email/RUT change racing the
       // application layer's pre-check (mirrors the pre-migration
       // `AuthService.updateProfile`'s `P2002` catch).
       rethrowUniqueViolation(err);
     }
+  }
+
+  async saveFields(user: User, fields: readonly UserWriteField[], tx?: unknown): Promise<void> {
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const all = this.toWriteData(user);
+    const data = Object.fromEntries(
+      fields.map((f) => [f, all[f]]),
+    ) as Prisma.UserUncheckedUpdateInput;
+    try {
+      await client.user.update({ where: { id: user.id }, data });
+    } catch (err) {
+      rethrowUniqueViolation(err);
+    }
+  }
+
+  /** Every column the aggregate owns, as written. `saveFields` picks from it, so a partial save
+   * writes exactly the same values a full one would. */
+  private toWriteData(user: User) {
+    const snap = user.snapshot();
+    const mfaEncryptionKey = getMfaEncryptionKey(this.config);
+    return {
+      name: snap.name,
+      email: snap.email,
+      passwordHash: snap.passwordHash,
+      status: snap.status,
+      deletedAt: snap.deletedAt,
+      preferredCurrency: snap.preferredCurrency,
+      locale: snap.locale,
+      theme: snap.theme,
+      countryId: snap.countryId,
+      addressStreet: snap.addressStreet,
+      addressCity: snap.addressCity,
+      addressRegion: snap.addressRegion,
+      addressPostalCode: snap.addressPostalCode,
+      birthDate: snap.birthDate,
+      identifierType: snap.identifierType,
+      // Normalized here too — a profile edit must keep the same canonical form the login
+      // lookup expects, or a RUT re-typed with different dots/dash breaks its own login.
+      identifierValue:
+        snap.identifierType === "RUT" && snap.identifierValue
+          ? auth.normalizeRut(snap.identifierValue)
+          : snap.identifierValue,
+      phone: snap.phone,
+      hideBalances: snap.hideBalances,
+      extraCurrencies: snap.extraCurrencies,
+      budgetAlertThreshold: snap.budgetAlertThreshold,
+      mfaEnabled: snap.mfaEnabled,
+      // Encrypted here, at the adapter boundary — the domain layer only ever holds plaintext.
+      mfaSecretEncrypted: snap.mfaSecret
+        ? encryptMfaSecret(snap.mfaSecret, mfaEncryptionKey)
+        : null,
+      mfaFailedAttempts: snap.mfaFailedAttempts,
+      mfaLockedUntil: snap.mfaLockedUntil,
+      mfaMethod: snap.mfaMethod ?? null,
+      mfaPendingMethod: snap.mfaPendingMethod ?? null,
+      loginFailedAttempts: snap.loginFailedAttempts,
+      loginLockedUntil: snap.loginLockedUntil,
+      // Written only when the aggregate knows it (fixtures that predate specs/032 leave it
+      // undefined, which Prisma treats as "don't touch").
+      emailVerified: snap.emailVerifiedAt,
+      onboardingClosedAt: snap.onboardingClosedAt,
+      releaseNotesSeenVersion: snap.releaseNotesSeenVersion,
+    };
   }
 
   async findByIdForUpdateWithTx(tx: unknown, id: string): Promise<User | null> {

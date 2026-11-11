@@ -386,7 +386,17 @@ export class User {
     );
   }
 
+  /** A lock that already ran out starts the count again (run-2): otherwise the counter stays at
+   * the threshold and ONE wrong password after each expiry re-locks the account, which lets
+   * anyone who knows a RUT keep its owner out indefinitely. */
   recordLoginFailure(threshold: number, lockMinutes: number, now: Date): void {
+    if (
+      this.props.loginLockedUntil !== null &&
+      this.props.loginLockedUntil.getTime() <= now.getTime()
+    ) {
+      this.props.loginFailedAttempts = 0;
+      this.props.loginLockedUntil = null;
+    }
     this.props.loginFailedAttempts += 1;
     if (this.props.loginFailedAttempts >= threshold) {
       this.props.loginLockedUntil = new Date(now.getTime() + lockMinutes * 60_000);

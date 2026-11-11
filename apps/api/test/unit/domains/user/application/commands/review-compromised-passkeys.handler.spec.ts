@@ -29,6 +29,7 @@ function setup(opts: {
   } as unknown as PasskeyRepositoryPort;
   const sessions = {
     closeByPasskeysWithTx: vi.fn().mockResolvedValue(opts.marked?.length ?? 0),
+    closeOnCompromisedPasskeysWithTx: vi.fn().mockResolvedValue(0),
   } as unknown as SessionRepositoryPort;
   const prisma = {
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn({})),

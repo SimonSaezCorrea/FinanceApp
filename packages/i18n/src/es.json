@@ -2656,7 +2656,7 @@
       "removeTitle": "¿Borrar este correo?",
       "removeDescription": "{{address}} deja de aparecer en tu cuenta. Si estaba pendiente, su enlace deja de servir.",
       "removeConfirm": "Borrar",
-      "stepUp": "Para cambiar o borrar un correo de tu cuenta, confirma que eres tú. No te lo volveremos a pedir por 5 minutos."
+      "stepUp": "Para cambiar tu RUT, o cambiar o borrar un correo de tu cuenta, confirma que eres tú. No te lo volveremos a pedir por 5 minutos."
     },
     "export": {
       "title": "Descargar mis datos",
@@ -2739,6 +2739,7 @@
     "INVALID_CREDENTIALS": "RUT o contraseña incorrectos.",
     "EMAIL_TAKEN": "Ese correo ya está registrado.",
     "IDENTIFIER_TAKEN": "Ese RUT ya está registrado.",
+    "IDENTIFIER_REQUIRED": "Tu RUT es con lo que entras a la cuenta: puedes cambiarlo, pero no dejarlo vacío.",
     "INVALID_MFA_CODE": "Código incorrecto. Inténtalo de nuevo.",
     "MFA_LOCKED": "Demasiados intentos. Espera unos minutos antes de volver a intentarlo.",
     "MFA_NOT_PENDING": "No hay una activación pendiente que confirmar.",

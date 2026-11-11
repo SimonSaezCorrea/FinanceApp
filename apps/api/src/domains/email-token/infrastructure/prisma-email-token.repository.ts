@@ -55,6 +55,13 @@ export class PrismaEmailTokenRepository implements EmailTokenRepositoryPort {
     return row ? rowToProps(row) : null;
   }
 
+  async isUsable(tokenHash: string, purpose: EmailTokenPurpose, now: Date): Promise<boolean> {
+    const found = await this.prisma.emailToken.count({
+      where: { tokenHash, purpose, usedAt: null, expiresAt: { gt: now } },
+    });
+    return found > 0;
+  }
+
   async consumeWithTx(
     tx: unknown,
     tokenHash: string,

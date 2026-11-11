@@ -57,6 +57,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     create: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),
+    saveFields: vi.fn().mockResolvedValue(undefined),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     findByIdentifierValue: vi.fn(),
@@ -100,6 +101,7 @@ function makeHandler(
     findByIdentifierValue: vi.fn().mockResolvedValue(user),
     findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user),
     saveWithTx: vi.fn().mockResolvedValue(undefined),
+    saveFields: vi.fn().mockResolvedValue(undefined),
   });
   const prisma = {
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn({})),
@@ -183,6 +185,29 @@ describe("LoginHandler", () => {
     expect(user.snapshot().loginFailedAttempts).toBe(0);
     expect(user.snapshot().loginLockedUntil).toBeNull();
     expect(repo.saveWithTx).toHaveBeenCalledTimes(1);
+  });
+
+  it("after an expired lock, one wrong password counts from zero and doesn't re-lock (run-2)", async () => {
+    const user = await userWith({
+      loginFailedAttempts: 5,
+      loginLockedUntil: new Date(Date.now() - 60_000),
+    });
+    const { handler } = makeHandler(user);
+    await expect(handler.execute(attempt("wrong"))).rejects.toThrow(InvalidCredentialsError);
+    expect(user.snapshot().loginFailedAttempts).toBe(1);
+    expect(user.snapshot().loginLockedUntil).toBeNull();
+  });
+
+  it("refuses without counting when the password changed between the check and the lock", async () => {
+    const read = await userWith();
+    const locked = User.fromPersistence({
+      ...read.snapshot(),
+      passwordHash: await hash("other", 1),
+    });
+    const { handler, repo } = makeHandler(read);
+    vi.mocked(repo.findByIdForUpdateWithTx).mockResolvedValue(locked);
+    await expect(handler.execute(attempt("secret123"))).rejects.toThrow(InvalidCredentialsError);
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
 
   it("rejects a DISABLED account with ACCOUNT_DISABLED even with the correct password", async () => {

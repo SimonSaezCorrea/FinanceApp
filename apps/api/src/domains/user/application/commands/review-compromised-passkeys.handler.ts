@@ -75,7 +75,10 @@ export class ReviewCompromisedPasskeysHandler extends BaseCommandHandler<
         rows.map((r) => r.id),
         command.now,
       );
-      return { marked: rows, sessionsClosed: closed };
+      // Also any session still open on a passkey marked by an EARLIER review: a passkey login
+      // racing that review could open one after it closed the rest (run-2).
+      const stragglers = await this.sessions.closeOnCompromisedPasskeysWithTx(tx, command.now);
+      return { marked: rows, sessionsClosed: closed + stragglers };
     });
 
     return {

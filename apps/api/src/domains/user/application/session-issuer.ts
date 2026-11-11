@@ -39,6 +39,11 @@ export class SessionIssuer {
     private readonly geoIp: GeoIpLookup,
   ) {}
 
+  /** Closes a session this issuer just opened (run-2: its passkey turned out compromised). */
+  async revoke(sessionId: string): Promise<void> {
+    await this.sessions.closeById(sessionId);
+  }
+
   async establish(
     user: { id: string; email: string | null },
     opts: EstablishSessionOptions = {},

@@ -155,6 +155,8 @@ describe("Compromised passkey HTTP (e2e)", () => {
       .set("Cookie", account.cookies)
       .send({ name: "Vieja" });
     expect(renamed.body).toMatchObject({ name: "Vieja", status: "compromised" });
+    // A compromised passkey counts for nothing, so the password steps up (run-2: removing needs it).
+    await stepUp(app, account.cookies);
     const removed = await http()
       .delete(`/api/v1/auth/me/passkeys/${id}`)
       .set("Cookie", account.cookies);

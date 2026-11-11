@@ -32,6 +32,14 @@ export class IdentifierTakenError extends DomainError {
   }
 }
 
+/** The RUT is how the account signs in and recovers its password: it can change (after a
+ * step-up) but never be cleared (run-2). */
+export class IdentifierRequiredError extends DomainError {
+  constructor() {
+    super("IDENTIFIER_REQUIRED", 400, "identifierValue");
+  }
+}
+
 export class InvalidCredentialsError extends DomainError {
   constructor() {
     super("INVALID_CREDENTIALS", 401);

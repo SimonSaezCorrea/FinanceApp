@@ -46,6 +46,10 @@ type Outcome = { kind: "invalid" } | { kind: "locked" } | { kind: "success"; use
 interface Context {
   userId: string;
   maskedRut: string;
+  /** The hash the password was compared against, outside any lock. */
+  passwordHash: string;
+  /** Whether the read (unlocked) found the account locked: no bcrypt is spent then. */
+  lockedAtRead: boolean;
 }
 
 /**
@@ -58,6 +62,11 @@ interface Context {
  * concurrent guesses count N times instead of all reading the same stale counter. The
  * transaction returns an `Outcome` instead of throwing, because throwing would roll back the
  * incremented counter this path exists to keep; the domain error is raised after the commit.
+ *
+ * bcrypt runs BEFORE that transaction, on the hash read without a lock (run-2): computing it with
+ * the row locked held one pooled connection per concurrent login of the same account, starving
+ * everyone else's requests. Inside the lock only the outcome is recorded; if the hash changed
+ * meanwhile (a password change or reset), the attempt is refused without counting.
  *
  * An unknown RUT is refused before any lock with the same `INVALID_CREDENTIALS` as a wrong
  * password (there is no row to count against).
@@ -89,15 +98,25 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
       this.logger.warn(`failed login attempt for ${maskedRut}`);
       throw new InvalidCredentialsError();
     }
-    return { userId: user.id, maskedRut };
+    return {
+      userId: user.id,
+      maskedRut,
+      passwordHash: user.passwordHash,
+      lockedAtRead: user.isLoginLocked(new Date()),
+    };
   }
 
   protected async handle(
     command: LoginCommand,
     context: Context,
   ): Promise<HandleResult<LoginResult>> {
+    if (context.lockedAtRead) {
+      this.logger.warn(`login refused, account locked: ${context.maskedRut}`);
+      throw new LoginLockedError();
+    }
+    const matches = await compare(command.input.password, context.passwordHash);
     const outcome = await this.prisma.$transaction((tx) =>
-      this.checkPasswordLocked(tx, context.userId, command.input.password),
+      this.recordOutcomeLocked(tx, context, matches),
     );
 
     if (outcome.kind === "locked") {
@@ -162,18 +181,20 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     return true;
   }
 
-  private async checkPasswordLocked(
+  private async recordOutcomeLocked(
     tx: unknown,
-    userId: string,
-    password: string,
+    context: Context,
+    matches: boolean,
   ): Promise<Outcome> {
-    const user = await this.repo.findByIdForUpdateWithTx(tx, userId);
+    const user = await this.repo.findByIdForUpdateWithTx(tx, context.userId);
     if (!user?.passwordHash) return { kind: "invalid" };
 
     const now = new Date();
     if (user.isLoginLocked(now)) return { kind: "locked" };
+    // The password changed between the read and the lock: what was checked is no longer it.
+    if (user.passwordHash !== context.passwordHash) return { kind: "invalid" };
 
-    if (!(await compare(password, user.passwordHash))) {
+    if (!matches) {
       user.recordLoginFailure(LOGIN_LOCKOUT_THRESHOLD, LOGIN_LOCKOUT_MINUTES, now);
       await this.repo.saveWithTx(tx, user);
       return { kind: user.isLoginLocked(now) ? "locked" : "invalid" };

@@ -144,11 +144,25 @@ export class PrismaSessionRepository
     tx: unknown,
     passkeyIds: readonly string[],
     now: Date,
+    exceptSessionId?: string,
   ): Promise<number> {
     if (passkeyIds.length === 0) return 0;
     const client = tx as PrismaService;
     const result = await client.session.updateMany({
-      where: { passkeyId: { in: [...passkeyIds] }, closedAt: null },
+      where: {
+        passkeyId: { in: [...passkeyIds] },
+        closedAt: null,
+        ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}),
+      },
+      data: { closedAt: now },
+    });
+    return result.count;
+  }
+
+  async closeOnCompromisedPasskeysWithTx(tx: unknown, now: Date): Promise<number> {
+    const client = tx as PrismaService;
+    const result = await client.session.updateMany({
+      where: { closedAt: null, passkey: { compromisedAt: { not: null } } },
       data: { closedAt: now },
     });
     return result.count;

@@ -29,6 +29,11 @@ export interface UserRepositoryPort {
   /** Same as `save`, inside the caller's transaction — for the two MFA flows that must save
    * `User` atomically alongside `MfaRecoveryCode` rows (confirm enrollment, disable). */
   saveWithTx(tx: unknown, user: User): Promise<void>;
+  /** Writes ONLY these columns (run-2): a write that loaded the user without a lock (profile,
+   * preferences, onboarding, release notes, starting an MFA setup) must never put back the stale
+   * security state it read — login and MFA counters, lockouts, the password or the second factor
+   * changed meanwhile by a locked write. `tx` runs it inside the caller's transaction. */
+  saveFields(user: User, fields: readonly UserWriteField[], tx?: unknown): Promise<void>;
   /** `SELECT ... FOR UPDATE` inside the caller's transaction — a second concurrent call for the
    * SAME id blocks until the first transaction commits, instead of both reading the
    * pre-mutation row and one silently clobbering the other's write. What actually closes the
@@ -43,3 +48,26 @@ export interface UserRepositoryPort {
    * `saveWithTx` with an already-scrubbed `User` instead. */
   deleteWithTx(tx: unknown, id: string): Promise<void>;
 }
+
+/** The user columns a partial save can name (see `saveFields`). */
+export type UserWriteField =
+  | "name"
+  | "countryId"
+  | "addressStreet"
+  | "addressCity"
+  | "addressRegion"
+  | "addressPostalCode"
+  | "birthDate"
+  | "identifierType"
+  | "identifierValue"
+  | "phone"
+  | "preferredCurrency"
+  | "locale"
+  | "theme"
+  | "hideBalances"
+  | "extraCurrencies"
+  | "budgetAlertThreshold"
+  | "mfaSecretEncrypted"
+  | "mfaPendingMethod"
+  | "onboardingClosedAt"
+  | "releaseNotesSeenVersion";

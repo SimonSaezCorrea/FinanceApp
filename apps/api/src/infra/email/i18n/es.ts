@@ -93,6 +93,11 @@ export const es = {
         title: "Tu correo cambió",
         body: "El correo de tu cuenta de mifik ahora es {detail}. Esta dirección dejó de recibir nuestros correos y ya no sirve para recuperar la cuenta.",
       },
+      IDENTIFIER_CHANGED: {
+        subject: "Cambió el RUT de tu cuenta de mifik",
+        title: "Tu RUT cambió",
+        body: "El RUT con que entras a tu cuenta de mifik y recuperas tu contraseña se cambió desde tu perfil. Desde ahora debes usar el nuevo para entrar.",
+      },
       RECOVERY_CODES_REGENERATED: {
         subject: "Generaste códigos de recuperación nuevos en mifik",
         title: "Códigos de recuperación nuevos",

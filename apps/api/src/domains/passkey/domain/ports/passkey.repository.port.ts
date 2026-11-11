@@ -21,8 +21,9 @@ export interface PasskeyRepositoryPort {
     counter: number,
     lastUsedAt: Date,
   ): Promise<void>;
-  /** Returns whether a row was actually deleted (ownership-scoped). */
-  deleteOwned(userId: string, id: string): Promise<boolean>;
+  /** Returns whether a row was actually deleted (ownership-scoped). `tx` runs it inside the
+   * caller's transaction (removing a passkey closes the sessions opened with it, run-2). */
+  deleteOwned(userId: string, id: string, tx?: unknown): Promise<boolean>;
   /** Hard-deletes every passkey of a user — used only by account deletion, where the
    * credential itself must stop being a way back in. */
   deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;

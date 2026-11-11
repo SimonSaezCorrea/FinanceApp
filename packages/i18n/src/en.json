@@ -2656,7 +2656,7 @@
       "removeTitle": "Delete this email?",
       "removeDescription": "{{address}} stops showing on your account. If it was pending, its link stops working.",
       "removeConfirm": "Delete",
-      "stepUp": "To change or delete an email of your account, confirm it’s you. We won’t ask again for 5 minutes."
+      "stepUp": "To change your RUT, or change or delete an email of your account, confirm it’s you. We won’t ask again for 5 minutes."
     },
     "export": {
       "title": "Download my data",
@@ -2739,6 +2739,7 @@
     "INVALID_CREDENTIALS": "Incorrect RUT or password.",
     "EMAIL_TAKEN": "That email is already registered.",
     "IDENTIFIER_TAKEN": "That RUT is already registered.",
+    "IDENTIFIER_REQUIRED": "Your RUT is how you sign in: you can change it, but not leave it empty.",
     "INVALID_MFA_CODE": "Incorrect code. Try again.",
     "MFA_LOCKED": "Too many attempts. Wait a few minutes before trying again.",
     "MFA_NOT_PENDING": "There's no pending activation to confirm.",

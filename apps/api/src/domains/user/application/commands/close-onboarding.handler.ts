@@ -47,6 +47,7 @@ export class CloseOnboardingHandler extends BaseCommandHandler<
   }
 
   protected override async persist(context: Context): Promise<void> {
-    if (context.changed) await this.repo.save(context.user);
+    // Only its own column: never put back stale security state (run-2).
+    if (context.changed) await this.repo.saveFields(context.user, ["onboardingClosedAt"]);
   }
 }

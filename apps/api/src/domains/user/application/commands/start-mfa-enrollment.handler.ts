@@ -89,6 +89,14 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
   }
 
   protected override async persist(user: User): Promise<void> {
-    await this.repo.save(user);
+    // Only the pending setup: the user was read without a lock, so a full save could put back
+    // counters, lockouts or a password changed meanwhile (run-2). A pending EMAIL setup leaves
+    // the stored TOTP secret alone (the active TOTP keeps working until it is confirmed).
+    await this.repo.saveFields(
+      user,
+      user.mfaPendingMethod === "TOTP"
+        ? ["mfaSecretEncrypted", "mfaPendingMethod"]
+        : ["mfaPendingMethod"],
+    );
   }
 }

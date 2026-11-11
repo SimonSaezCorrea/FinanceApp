@@ -2472,6 +2472,24 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     datos". e2e use an in-memory catalog (`test/e2e/support/passkey-attestation.ts`) since other files
     replace the global table. Migration `20261105234508_passkey_attestation`. Privacy policy
     `2026-11-05`.
+  - **Security run-2 fixes** (2026-11-10, `.security/run-2`, not yet published): **removing a
+    passkey needs a recent step-up** (`RemovePasskeyHandler`, `SESSION_STEP_UP`; it was the way to
+    lower the step-up to the password) and, in the same transaction, closes the OTHER open sessions
+    opened with it (`closeByPasskeysWithTx(…, exceptSessionId)`; the caller's stays). **`PATCH
+/auth/me` changing the RUT needs a recent step-up**, can't clear it (`IDENTIFIER_REQUIRED`, 400)
+    and sends the `IDENTIFIER_CHANGED` notice; re-sending the same RUT in another format is no
+    change. **Unlocked user writes save only their own columns** — `UserRepositoryPort.saveFields`
+    (`UserWriteField`): profile, preferences, onboarding, release notes and starting an MFA setup no
+    longer put back stale counters/lockouts/password (a full `save`/`saveWithTx` is only for a row
+    locked with `findByIdForUpdateWithTx`). **Login** runs bcrypt BEFORE the locked transaction (on
+    the hash read unlocked; a hash changed meanwhile = refused without counting; already locked at
+    read = no bcrypt), and an expired lockout restarts the count (`recordLoginFailure`), so one
+    wrong password per 15 min no longer keeps someone else's account locked. **`password/reset`**
+    checks the link with `EmailTokenRepositoryPort.isUsable` before hashing. **Passkey login**
+    re-reads its passkey after opening the session (marked meanwhile → session closed,
+    `PASSKEY_COMPROMISED`), and the compromise review also sweeps sessions still open on passkeys
+    marked earlier (`closeOnCompromisedPasskeysWithTx`). Web: `PasskeySection`'s delete reopens
+    `StepUpPanel` on `STEP_UP_REQUIRED`. Still open: no per-IP throttle on public auth routes.
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

@@ -141,6 +141,7 @@ const NOTICE_NAMES: Record<SecurityNoticeKind, string> = {
   PASSKEY_ADDED: "Llave de acceso agregada",
   PASSKEY_REMOVED: "Llave de acceso eliminada",
   EMAIL_CHANGED: "Correo cambiado (a la dirección anterior)",
+  IDENTIFIER_CHANGED: "RUT cambiado",
   ACCOUNT_DELETED: "Cuenta eliminada",
   RECOVERY_CODES_REGENERATED: "Códigos de recuperación nuevos",
   TRUSTED_DEVICE_ADDED: "Dispositivo recordado",

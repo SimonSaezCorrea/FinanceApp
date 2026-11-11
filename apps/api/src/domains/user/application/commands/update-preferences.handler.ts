@@ -20,8 +20,21 @@ import {
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { CurrencyInUseError, UnauthorizedError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
-import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+  type UserWriteField,
+} from "../../domain/ports/user.repository.port";
 import { UpdatePreferencesCommand } from "./update-preferences.command";
+
+const PREFERENCE_FIELDS: readonly UserWriteField[] = [
+  "preferredCurrency",
+  "locale",
+  "theme",
+  "hideBalances",
+  "extraCurrencies",
+  "budgetAlertThreshold",
+];
 
 @Injectable()
 @CommandHandler(UpdatePreferencesCommand)
@@ -85,7 +98,8 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<
   }
 
   protected override async persist(user: User): Promise<void> {
-    await this.repo.save(user);
+    // Only the preferences: never put back the stale security state read without a lock (run-2).
+    await this.repo.saveFields(user, PREFERENCE_FIELDS);
   }
 
   /** FR-004a: a currency can only leave `extraCurrencies` once nothing of the

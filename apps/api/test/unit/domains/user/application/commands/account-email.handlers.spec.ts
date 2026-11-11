@@ -310,20 +310,24 @@ describe("ForgotPasswordHandler.recover", () => {
 });
 
 describe("ResetPasswordHandler", () => {
-  function setup(consumed: boolean) {
+  function setup(consumed: boolean, usable = consumed) {
     const u = user();
+    const tokens = {
+      isUsable: vi.fn().mockResolvedValue(usable),
+      consumeWithTx: vi.fn().mockResolvedValue(consumed ? { userId: "u1" } : null),
+    };
     const sessions = { closeAllForUserWithTx: vi.fn() };
     const users = { findByIdForUpdateWithTx: vi.fn().mockResolvedValue(u), saveWithTx: vi.fn() };
     const publish = vi.fn();
     const handler = new ResetPasswordHandler(
       { publish } as never,
       users as never,
-      { consumeWithTx: vi.fn().mockResolvedValue(consumed ? { userId: "u1" } : null) } as never,
+      tokens as never,
       sessions as never,
       prisma,
       fakeTrustedDevices(),
     );
-    return { handler, u, sessions, users, publish };
+    return { handler, u, sessions, users, publish, tokens };
   }
 
   it("sets the new password, closes every session and publishes PASSWORD_RESET", async () => {
@@ -337,6 +341,23 @@ describe("ResetPasswordHandler", () => {
 
   it("refuses an invalid link and changes nothing", async () => {
     const { handler, sessions } = setup(false);
+    await expect(handler.execute(new ResetPasswordCommand(TOKEN, "Nuev4Clave!x"))).rejects.toThrow(
+      EmailTokenInvalidError,
+    );
+    expect(sessions.closeAllForUserWithTx).not.toHaveBeenCalled();
+  });
+
+  it("refuses a bogus link before hashing the new password (run-2)", async () => {
+    const { handler, u, tokens } = setup(false);
+    await expect(handler.execute(new ResetPasswordCommand(TOKEN, "Nuev4Clave!x"))).rejects.toThrow(
+      EmailTokenInvalidError,
+    );
+    expect(tokens.consumeWithTx).not.toHaveBeenCalled();
+    expect(u.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it("still refuses when the link is used between the check and the transaction", async () => {
+    const { handler, sessions } = setup(false, true);
     await expect(handler.execute(new ResetPasswordCommand(TOKEN, "Nuev4Clave!x"))).rejects.toThrow(
       EmailTokenInvalidError,
     );

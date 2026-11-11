@@ -17,7 +17,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
-import { stepUp } from "../../support/mfa";
+import { forgetStepUp, stepUp } from "../../support/mfa";
 
 describe("Passkey management HTTP (e2e)", () => {
   let app: INestApplication;
@@ -86,6 +86,43 @@ describe("Passkey management HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(list.body).toHaveLength(1);
     expect(list.body[0].id).toBe(idB);
+  });
+
+  it("deleting a passkey without a recent step-up answers STEP_UP_REQUIRED (run-2)", async () => {
+    const id = await registerPasskey("Guarded");
+    await forgetStepUp(prisma, email);
+
+    const del = await request(app.getHttpServer())
+      .delete(`/api/v1/auth/me/passkeys/${id}`)
+      .set("Cookie", cookies);
+    expect(del.status).toBe(403);
+    expect(del.body.error.code).toBe("STEP_UP_REQUIRED");
+    expect(await prisma.passkey.count({ where: { id } })).toBe(1);
+    // The account now has passkeys, so a password step-up is refused: restore the session's
+    // step-up directly for the tests that follow.
+    await prisma.session.updateMany({ where: { user: { email } }, data: { stepUpAt: new Date() } });
+  });
+
+  it("deleting a passkey closes the other sessions opened with it, not the caller's", async () => {
+    const id = await registerPasskey("Cloned");
+    const user = await prisma.user.findFirstOrThrow({ where: { email } });
+    const other = await prisma.session.create({
+      data: {
+        userId: user.id,
+        passkeyId: id,
+        deviceLabel: "clone",
+        expiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
+
+    const del = await request(app.getHttpServer())
+      .delete(`/api/v1/auth/me/passkeys/${id}`)
+      .set("Cookie", cookies);
+    expect(del.status).toBe(204);
+    const after = await prisma.session.findUniqueOrThrow({ where: { id: other.id } });
+    expect(after.closedAt).not.toBeNull();
+    const me = await request(app.getHttpServer()).get("/api/v1/auth/me").set("Cookie", cookies);
+    expect(me.status).toBe(200);
   });
 
   it("deleting an already-deleted passkey responds PASSKEY_NOT_FOUND", async () => {
