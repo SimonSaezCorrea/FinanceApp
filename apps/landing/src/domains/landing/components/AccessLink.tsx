@@ -31,6 +31,7 @@ export function AccessLink({
     <a
       href={`?acceso=${mode}`}
       data-access={mode}
+      rel="nofollow"
       className={buttonClasses({ variant, size, className })}
     >
       {children}

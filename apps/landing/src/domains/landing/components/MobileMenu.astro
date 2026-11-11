@@ -80,12 +80,13 @@ const other: Language = lang === "es" ? "en" : "es";
     </div>
 
     <div data-access-slot="menu" class="flex flex-col gap-2 border-t px-4 py-4">
-      <a href="?acceso=registro" data-access="registro" class={buttonClasses({ size: "lg", className: "w-full" })}>
+      <a href="?acceso=registro" data-access="registro" rel="nofollow" class={buttonClasses({ size: "lg", className: "w-full" })}>
         {t(lang, "auth.createAccount")}
       </a>
       <a
         href="?acceso=login"
         data-access="login"
+        rel="nofollow"
         class={buttonClasses({ size: "lg", variant: "outline", className: "w-full" })}
       >
         {t(lang, "auth.signIn")}
