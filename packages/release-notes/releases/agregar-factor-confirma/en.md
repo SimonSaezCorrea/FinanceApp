@@ -1,5 +1,5 @@
 ---
-title: Adding a passkey or turning on two-step verification asks you to confirm it's you
+title: Adding a passkey or turning on two-step verification asks to confirm it's you
 summary: Before adding a new way into your account, you confirm it's you.
 ---
 
