@@ -48,7 +48,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
 }
 
 function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPort {
-  return {
+  const repo: UserRepositoryPort = {
     findByEmail: vi.fn(),
     findById: vi.fn(),
     create: vi.fn(),
@@ -61,6 +61,11 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
+  // The locked read returns what `findById` returns unless a test says otherwise.
+  if (!overrides.findByIdForUpdateWithTx) {
+    repo.findByIdForUpdateWithTx = vi.fn((_tx: unknown, id: string) => repo.findById(id));
+  }
+  return repo;
 }
 
 function fakeDeletionLog(
@@ -116,7 +121,11 @@ describe("DeleteAccountHandler", () => {
     await expect(
       handler.execute(new DeleteAccountCommand("u1", { password: "wrong" })),
     ).rejects.toThrow(InvalidCurrentPasswordError);
-    expect(repo.saveWithTx).not.toHaveBeenCalled();
+    // Only the failure count is written (security run-3), nothing the request asked for.
+    expect(repo.saveWithTx).toHaveBeenCalledTimes(1);
+    expect(
+      (vi.mocked(repo.saveWithTx).mock.calls[0][1] as User).snapshot().loginFailedAttempts,
+    ).toBe(1);
     expect(repo.deleteWithTx).not.toHaveBeenCalled();
   });
 
@@ -127,7 +136,8 @@ describe("DeleteAccountHandler", () => {
 
     await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
 
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // The counted password check runs its own transaction before this one (security run-3).
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(repo.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
     expect(repo.saveWithTx).not.toHaveBeenCalled();
   });

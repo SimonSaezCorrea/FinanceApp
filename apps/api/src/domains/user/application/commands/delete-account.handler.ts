@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { ConfigService } from "@nestjs/config";
-import { compare } from "bcryptjs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -13,7 +12,8 @@ import {
   ACCOUNT_DELETION_LOG_REPOSITORY,
   type AccountDeletionLogRepositoryPort,
 } from "../../../account-deletion-log/domain/ports/account-deletion-log.repository.port";
-import { InvalidCurrentPasswordError } from "../../domain/errors";
+import { UnauthorizedError } from "../../domain/errors";
+import { verifyPasswordCounted } from "../password-check";
 import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
@@ -46,10 +46,14 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
   }
 
   protected async loadContext(command: DeleteAccountCommand): Promise<Context> {
+    // Counted like a login attempt (security run-3): a stolen session can't guess it freely.
+    await verifyPasswordCounted(
+      { prisma: this.prisma, users: this.repo },
+      command.userId,
+      command.input.password,
+    );
     const user = await this.repo.findById(command.userId);
-    if (!user?.passwordHash || !(await compare(command.input.password, user.passwordHash))) {
-      throw new InvalidCurrentPasswordError();
-    }
+    if (!user) throw new UnauthorizedError();
     return {
       user,
       identifierValueAtRequest: user.identifierValue,

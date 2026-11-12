@@ -35,6 +35,9 @@ interface Context {
   recoveryCodeHashes?: string[];
   /** Set when this confirmed a METHOD CHANGE: remembered devices are forgotten in `persist()`. */
   changed?: boolean;
+  /** The pending setup the code was checked against (set by `handle()`). */
+  pendingMethod?: User["mfaPendingMethod"];
+  pendingSecret?: User["mfaSecret"];
 }
 
 const RECOVERY_CODE_BCRYPT_ROUNDS = 10;
@@ -85,6 +88,9 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
         : isValidTotp(user.mfaSecret, code);
     if (!valid) throw new InvalidMfaCodeError();
 
+    // What `persist()` checks the locked row still holds before confirming it.
+    context.pendingMethod = user.mfaPendingMethod;
+    context.pendingSecret = user.mfaSecret;
     const outcome = user.confirmMfaEnrollment();
     const now = new Date();
     if (outcome === "CHANGED") {
@@ -108,7 +114,19 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
 
   protected override async persist(context: Context): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      await this.repo.saveWithTx(tx, context.user);
+      // Re-read locked and confirmed on that copy (security run-3): saving the one read before
+      // would put back counters and lockouts written meanwhile. The pending setup must still be
+      // the one whose code was checked; otherwise nothing is confirmed.
+      const user = await this.repo.findByIdForUpdateWithTx(tx, context.user.id);
+      if (!user) throw new UnauthorizedError();
+      if (
+        user.mfaPendingMethod !== context.pendingMethod ||
+        user.mfaSecret !== context.pendingSecret
+      ) {
+        throw new MfaNotPendingError();
+      }
+      user.confirmMfaEnrollment();
+      await this.repo.saveWithTx(tx, user);
       if (context.changed) {
         await this.devices.deleteAllForUserWithTx(tx, context.user.id);
       } else {

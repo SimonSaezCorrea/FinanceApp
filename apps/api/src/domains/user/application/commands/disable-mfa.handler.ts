@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
-import { compare } from "bcryptjs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
@@ -20,7 +19,8 @@ import {
   SESSION_STEP_UP,
   type SessionStepUpPort,
 } from "../../../session/domain/ports/session-step-up.port";
-import { InvalidCurrentPasswordError, StepUpRequiredError } from "../../domain/errors";
+import { StepUpRequiredError, UnauthorizedError } from "../../domain/errors";
+import { verifyPasswordCounted } from "../password-check";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { stepUpExpiry } from "../step-up";
@@ -51,12 +51,16 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
   }
 
   protected async loadContext(command: DisableMfaCommand): Promise<Context> {
-    const user = await this.repo.findById(command.userId);
     // Same guard "Eliminar cuenta" already uses: re-entering the current password is what
-    // authorizes this, not merely holding a valid session.
-    if (!user?.passwordHash || !(await compare(command.input.password, user.passwordHash))) {
-      throw new InvalidCurrentPasswordError();
-    }
+    // authorizes this, not merely holding a valid session. Counted like a login attempt
+    // (security run-3).
+    await verifyPasswordCounted(
+      { prisma: this.prisma, users: this.repo },
+      command.userId,
+      command.input.password,
+    );
+    const user = await this.repo.findById(command.userId);
+    if (!user) throw new UnauthorizedError();
     // The password alone is not enough (2026-11-08): with the session and the password, someone
     // could turn MFA off and enrol their own method, skipping the step-up a method CHANGE asks
     // for. So disabling also needs a recent step-up of this session — with MFA on that is the
@@ -92,7 +96,12 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
         context.steppedUpAt,
       );
       if (!spent) throw new StepUpRequiredError();
-      await this.repo.saveWithTx(tx, context.user);
+      // Re-read locked and disabled on that copy (security run-3): saving the one read before
+      // would put back the login counter and lockout written meanwhile.
+      const user = await this.repo.findByIdForUpdateWithTx(tx, context.user.id);
+      if (!user) throw new UnauthorizedError();
+      user.disableMfa();
+      await this.repo.saveWithTx(tx, user);
       await this.recoveryCodes.deleteAllForUserWithTx(tx, context.user.id);
       await this.sessions.closeAllExceptForUserWithTx(
         tx,

@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
-import { compare } from "bcryptjs";
 
 import { auth } from "@finance/contracts";
 
@@ -15,7 +14,6 @@ import {
   type SessionStepUpPort,
 } from "../../../session/domain/ports/session-step-up.port";
 import {
-  InvalidCurrentPasswordError,
   InvalidMfaCodeError,
   MfaLockedError,
   StepUpMethodNotAllowedError,
@@ -26,6 +24,7 @@ import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/use
 import { stepUpExpiry } from "../step-up";
 import { isValidTotp, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
 import { VerifyStepUpCommand } from "./verify-step-up.command";
+import { verifyPasswordCounted } from "../password-check";
 import { MfaCodeService } from "../mfa-code-service";
 
 type CodeOutcome = "ok" | "invalid" | "locked" | "unauthorized";
@@ -74,9 +73,13 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     user: User,
   ): Promise<HandleResult<auth.StepUpResponse>> {
     if (command.input.method === "password") {
-      if (!user.passwordHash || !(await compare(command.input.password, user.passwordHash))) {
-        throw new InvalidCurrentPasswordError();
-      }
+      // Counted like a login attempt (security run-3): unlimited guesses here let a stolen
+      // session find the password and pass the step-up that guards changing the email.
+      await verifyPasswordCounted(
+        { prisma: this.prisma, users: this.users },
+        user.id,
+        command.input.password,
+      );
     } else {
       const input = command.input;
       const outcome = await this.verifyCode(user.id, (tx, locked, now) =>

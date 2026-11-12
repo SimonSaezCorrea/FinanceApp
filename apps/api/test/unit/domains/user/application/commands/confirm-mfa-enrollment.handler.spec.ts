@@ -50,7 +50,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
 }
 
 function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPort {
-  return {
+  const repo: UserRepositoryPort = {
     findByEmail: vi.fn(),
     findById: vi.fn(),
     create: vi.fn(),
@@ -63,6 +63,21 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
+  // The locked read returns a FRESH copy of the row as `findById` first read it (the handler
+  // mutates the copy it read; the locked one must be the stored row, like the real lock).
+  if (!overrides.findByIdForUpdateWithTx) {
+    const read = repo.findById;
+    let stored: UserProps | null = null;
+    repo.findById = vi.fn(async (id: string) => {
+      const user = await read(id);
+      if (user && !stored) stored = { ...user.snapshot() };
+      return user;
+    });
+    repo.findByIdForUpdateWithTx = vi.fn(async () =>
+      stored ? User.fromPersistence({ ...stored }) : null,
+    );
+  }
+  return repo;
 }
 
 function fakeRecoveryCodeRepo(

@@ -2489,7 +2489,19 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     re-reads its passkey after opening the session (marked meanwhile → session closed,
     `PASSKEY_COMPROMISED`), and the compromise review also sweeps sessions still open on passkeys
     marked earlier (`closeOnCompromisedPasskeysWithTx`). Web: `PasskeySection`'s delete reopens
-    `StepUpPanel` on `STEP_UP_REQUIRED`. Still open: no per-IP throttle on public auth routes.
+    `StepUpPanel` on `STEP_UP_REQUIRED`. **Run-2 deferred areas 2–3 (2026-11-11):** re-entering
+    the password from inside a session — step-up by password, `POST /auth/me/password`,
+    `disable-mfa`, `delete-account` — goes through `user/application/password-check.ts`'s
+    `verifyPasswordCounted`, which counts on LOGIN's counter and lockout (bcrypt before the
+    locked transaction, outcome recorded under `findByIdForUpdateWithTx`, `LOGIN_LOCKED` 429 while
+    locked, the right password included); before, a stolen session could guess the password
+    without limit and pass the step-up. Change-password, disable-mfa and confirm-mfa-enrollment
+    re-read the user row LOCKED inside their write transaction and apply the change there (no
+    user write saves an unlocked copy any more); change-password refuses if the hash changed
+    since it was checked, confirm-mfa if the pending setup changed (`MFA_NOT_PENDING`). e2e
+    `password-guess-limit.http.spec.ts`. Still open: no per-IP throttle on public auth routes,
+    and run-2 deferred areas 1, 4, 5 (recovery-code/passkey login volume, email change as an
+    identity change, authenticated volume).
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

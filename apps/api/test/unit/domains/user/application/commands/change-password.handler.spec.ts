@@ -46,7 +46,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
 }
 
 function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPort {
-  return {
+  const repo: UserRepositoryPort = {
     findByEmail: vi.fn(),
     findById: vi.fn(),
     create: vi.fn(),
@@ -59,6 +59,11 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
+  // The locked read returns what `findById` returns unless a test says otherwise.
+  if (!overrides.findByIdForUpdateWithTx) {
+    repo.findByIdForUpdateWithTx = vi.fn((_tx: unknown, id: string) => repo.findById(id));
+  }
+  return repo;
 }
 
 function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRepositoryPort {
@@ -111,7 +116,11 @@ describe("ChangePasswordHandler", () => {
         ),
       ),
     ).rejects.toThrow(InvalidCurrentPasswordError);
-    expect(repo.saveWithTx).not.toHaveBeenCalled();
+    // Only the failure count is written (security run-3), nothing the request asked for.
+    expect(repo.saveWithTx).toHaveBeenCalledTimes(1);
+    expect(
+      (vi.mocked(repo.saveWithTx).mock.calls[0][1] as User).snapshot().loginFailedAttempts,
+    ).toBe(1);
     expect(sessions.closeAllExceptForUserWithTx).not.toHaveBeenCalled();
   });
 
@@ -204,6 +213,7 @@ describe("ChangePasswordHandler", () => {
     // Both writes happen inside the SAME $transaction callback — a real Postgres
     // transaction would roll back `saveWithTx` too when the callback throws; this
     // fake only proves both calls are issued through that one callback (FR-007).
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // The counted password check runs its own transaction before this one (security run-3).
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
   });
 });
