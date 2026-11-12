@@ -222,6 +222,18 @@ _Actions → Deploy → Run workflow_ con `changed` / `all` / `api` / `web` / `l
      `CLOUDFLARE_ACCOUNT_ID`.
    - Secret: `CLOUDFLARE_API_TOKEN`, un token de cuenta con **Cloudflare Pages · Edit** y nada más.
 3. La primera imagen del API tarda ~15 min (emulación ARM); después usa caché.
+4. **Documento SSM propio** (recomendado, 2026-11-12): con `AWS-RunShellScript` el rol de GitHub
+   puede correr _cualquier_ comando como root en el servidor. `deploy/aws/fik-deploy-document.json`
+   solo ejecuta `/opt/fik/deploy.sh <tag>`, y el tag debe tener 12 caracteres hex. En este orden,
+   para no cortar ningún despliegue:
+   1. Crear el documento (Ohio):
+      `aws ssm create-document --name fik-deploy --document-type Command --document-format JSON --content file://deploy/aws/fik-deploy-document.json --region us-east-2`
+   2. En el rol `fik-github-deploy`, permitir `ssm:SendCommand` también sobre
+      `arn:aws:ssm:us-east-2:<cuenta>:document/fik-deploy` (dejando por ahora `AWS-RunShellScript`).
+   3. Crear la variable de Actions **`AWS_DEPLOY_DOCUMENT`** = `fik-deploy`. Desde ahí el workflow
+      usa el documento.
+   4. Después de un despliegue que funcione, quitar `AWS-RunShellScript` de la política. Queda como
+      en `deploy/aws/github-deploy-permissions-policy.json`.
 
 **Versiones de Novedades** (spec 038): cuando el despliegue termina bien y publicó novedades que
 ningún tag tiene todavía (`packages/release-notes/releases/<slug>/`), el job `release-tag` crea el tag

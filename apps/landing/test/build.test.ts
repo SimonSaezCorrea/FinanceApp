@@ -93,6 +93,14 @@ describe("public site build", () => {
     expect(new Set(all.map(description)).size).toBe(all.length);
   });
 
+  it("asks for HTTPS and sends the baseline CSP on every page (security run-3)", () => {
+    const headers = readFileSync(join(DIST, "_headers"), "utf8");
+    const all = headers.split(/\n\s*\n/).find((block) => /^\/\*$/m.test(block));
+    expect(all).toContain("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+    expect(all).toContain("object-src 'none'");
+    expect(all).toContain("frame-ancestors 'none'");
+  });
+
   it("never caches or refers on the email-link pages", () => {
     const headers = readFileSync(join(DIST, "_headers"), "utf8");
     for (const page of ["verify-email", "reset-password"]) {

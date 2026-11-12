@@ -61,7 +61,7 @@ services:
   # TLS in front of the API with the Cloudflare origin certificate; only Cloudflare may connect
   # (security group + Authenticated Origin Pulls). See deploy/Caddyfile.
   caddy:
-    image: caddy:2.8-alpine
+    image: caddy:2.11.9-alpine@sha256:0bbb055bda6793c999bde78b1b5ce3e89f829fb031af2cf50056ea1246559fee
     ports:
       - "443:443"
     volumes:
@@ -76,7 +76,7 @@ services:
   # Ships the API's and Caddy's logs to Better Stack (deploy/vector.yaml). Started by deploy.sh
   # only when render-logs-config.sh found its parameters; reads Docker's log files read-only.
   logs:
-    image: timberio/vector:0.60.0-alpine
+    image: timberio/vector:0.60.0-alpine@sha256:1c6a6c4c5c9de08df357fa8adbe72e5a7abcea458b0bd82de0b14ac9b79d5b31
     command: ["--config", "/etc/vector/vector.yaml"]
     volumes:
       - ./logs/vector.yaml:/etc/vector/vector.yaml:ro

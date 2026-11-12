@@ -7,7 +7,8 @@ name: Deploy
 #   landing  -> build apps/landing here and upload it to Cloudflare Pages (fik-landing, mifik.cl).
 # Cloudflare's own Git builds are switched off: nothing reaches production without a green CI on
 # main. Work happens on `dev` (CI runs there too, never deploys); merging into main deploys.
-# Third-party actions are pinned to a commit SHA (version in the comment).
+# Every action, GitHub's own included, is pinned to a commit SHA (version in the comment);
+# Dependabot (github-actions) proposes the updates.
 # Needs: repo variables AWS_DEPLOY_ROLE_ARN, AWS_API_INSTANCE_ID, CLOUDFLARE_ACCOUNT_ID and the
 # secret CLOUDFLARE_API_TOKEN (Account > Cloudflare Pages > Edit) — see docs/DEPLOY.md.
 run-name: Deploy ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -61,7 +62,7 @@ jobs:
       # for the version tag at the end.
       release_date: ${{ steps.day.outputs.value }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
@@ -113,7 +114,7 @@ jobs:
       contents: read
       id-token: write # GitHub OIDC -> the fik-github-deploy AWS role
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.SHA }}
 
@@ -150,12 +151,20 @@ jobs:
         env:
           INSTANCE_ID: ${{ vars.AWS_API_INSTANCE_ID }}
           TAG: ${{ steps.tag.outputs.value }}
+          # deploy/aws/fik-deploy-document.json, once created in SSM (docs/DEPLOY.md): it runs only
+          # deploy.sh with a 12-hex tag. Unset = the generic AWS-RunShellScript, as before.
+          DEPLOY_DOCUMENT: ${{ vars.AWS_DEPLOY_DOCUMENT }}
         run: |
+          if [ -n "$DEPLOY_DOCUMENT" ]; then
+            document=(--document-name "$DEPLOY_DOCUMENT" --parameters "tag=${TAG}")
+          else
+            document=(--document-name AWS-RunShellScript
+              --parameters "commands=[\"/opt/fik/deploy.sh ${TAG}\"],executionTimeout=[\"900\"]")
+          fi
           command_id="$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
+            "${document[@]}" \
             --comment "fik-api ${TAG}" \
-            --parameters "commands=[\"/opt/fik/deploy.sh ${TAG}\"],executionTimeout=[\"900\"]" \
             --query Command.CommandId --output text)"
           echo "SSM command ${command_id}"
           for _ in $(seq 1 120); do
@@ -180,12 +189,12 @@ jobs:
     timeout-minutes: 20
     steps:
       # Full history with tags: Novedades reads which version brought each record from them.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -223,12 +232,12 @@ jobs:
     timeout-minutes: 20
     steps:
       # Full history with tags: Novedades reads which version brought each record from them.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -268,11 +277,11 @@ jobs:
     permissions:
       contents: write # push the tag
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - name: Tag the version

@@ -2538,7 +2538,15 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       step not newer than it (login, step-up, enrolment). e2e helper `totpCodeFor` is `async` and hands out a
       fresh step each call (forgetting the account's last step in the test DB once a window runs out). "Reemplazar
       todo" (`POST /import/template` with `mode: REPLACE`) needs a recent step-up (`ImportTemplateHandler.execute`,
-      before the idempotency key is reserved); the web reopens `StepUpPanel`.
+      before the idempotency key is reserved); the web reopens `StepUpPanel`. (g) Infra (2026-11-12): every GitHub Action is pinned by SHA (GitHub's own
+      too); base images by digest (`node:22-slim` in the API Dockerfile, Caddy **2.11.9** and Vector in
+      `deploy/docker-compose.yml`) with Dependabot `docker`/`docker-compose` entries; `deploy.sh` refuses a tag
+      that isn't 12 hex chars; `deploy.yml` runs the SSM document named by the optional repo variable
+      **`AWS_DEPLOY_DOCUMENT`** (`deploy/aws/fik-deploy-document.json`, only `deploy.sh <tag>`), else
+      `AWS-RunShellScript`; both sites' `_headers` send a baseline CSP (`object-src 'none'; base-uri
+'self'; frame-ancestors 'none'; form-action 'self'`). The bank-account and installment-plan
+      aggregate saves match `userId` as well as `id`. What is still open: `docs/PENDING.md` (Seguridad —
+      pendiente tras la revisión de run-3).
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Deploys one image tag of the fik API on this server (/opt/fik/deploy.sh). The only command the GitHub deploy role may run here: the tag must be a 12-character commit hash, so nothing else can be passed to the shell.",
+  "parameters": {
+    "tag": {
+      "type": "String",
+      "description": "The image tag: the deployed commit, short (12 hex characters).",
+      "allowedPattern": "^[0-9a-f]{12}$"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "deploy",
+      "inputs": {
+        "timeoutSeconds": "900",
+        "runCommand": ["/opt/fik/deploy.sh {{ tag }}"]
+      }
+    }
+  ]
+}

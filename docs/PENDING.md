@@ -1086,3 +1086,29 @@ en el home, endpoint público, rebuild programado). Pendiente:
    respuesta `X-Robots-Tag: noindex, nofollow`. Falta, una vez en producción: comprobar que
    `https://api.mifik.cl/robots.txt` trae el `Disallow` (Cloudflare antepone sus content signals al del
    origen) y apretar "Validar corrección" en Search Console.
+
+## Seguridad — pendiente tras la revisión de run-3 (2026-11-12)
+
+Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Queda:
+
+1. **Certificado propio de Authenticated Origin Pulls** (configuración, no código). El servidor confía
+   en la CA _compartida_ de Cloudflare (`deploy/aws/bootstrap-ec2.sh`): cualquier cuenta de Cloudflare
+   llega al origen saltándose las reglas de la zona. Se cierra con un certificado de cliente propio,
+   subido como AOP de la zona `mifik.cl`, y Caddy confiando solo en esa CA.
+2. **CSP de scripts y estilos** en la app y el landing. Hoy solo va la base (`object-src`,
+   `base-uri`, `frame-ancestors`, `form-action`). La completa necesita los hashes de los scripts inline
+   (el landing tiene `security.csp` de Astro, que también hashea estilos y entonces bloquearía los
+   atributos `style=` de las ilustraciones) y probarse en un navegador: primero en
+   `Content-Security-Policy-Report-Only`.
+3. **`increment*WithTx` por id**: `BankAccountRepositoryPort.incrementBalanceWithTx`/
+   `incrementCreditUsedWithTx` (36 llamadores) y `TransactionWriterRepositoryPort.deleteWithTx` escriben
+   solo por id. Cada llamador ya cargó la fila filtrando por usuario en la misma operación, así que es
+   defensa adicional; agregarles `userId` es un refactor que cruza todos los handlers de dinero.
+4. **Documento SSM `fik-deploy`**: el código ya lo soporta (`AWS_DEPLOY_DOCUMENT`); falta crearlo en
+   AWS y ajustar el rol (`docs/DEPLOY.md` §9 paso 4).
+5. **`deploy/` en el servidor**: `deploy.sh` (valida el tag) y `docker-compose.yml` (Caddy 2.11.9 y
+   Vector fijados por digest) se copian a mano a `/opt/fik`.
+6. **wrangler** se baja con `npx wrangler@<versión exacta>`, fuera del lockfile. Meterlo al lockfile
+   instalaría `workerd` (~100 MB) en cada job de CI; se dejó así a propósito.
+7. **Límite por IP en memoria**: se pierde al reiniciar y, en el minuto de deploy con dos contenedores,
+   un cliente puede llegar al doble. Aceptado con un solo servidor.

@@ -17,6 +17,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 TAG="${1:?usage: deploy.sh <image-tag>}"
+# The tag is a short commit hash (deploy.yml); anything else is refused before it reaches a command.
+if [[ ! "$TAG" =~ ^[0-9a-f]{12}$ ]]; then
+  echo "Refusing image tag \"${TAG}\": expected 12 hex characters." >&2
+  exit 1
+fi
 # shellcheck source=/dev/null
 source ./deploy.env
 : "${AWS_REGION:?missing in deploy.env}" "${ECR_REGISTRY:?missing in deploy.env}"
