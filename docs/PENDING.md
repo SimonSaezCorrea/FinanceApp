@@ -1091,10 +1091,9 @@ en el home, endpoint público, rebuild programado). Pendiente:
 
 Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Queda:
 
-1. **Certificado propio de Authenticated Origin Pulls** (configuración, no código). El servidor confía
-   en la CA _compartida_ de Cloudflare (`deploy/aws/bootstrap-ec2.sh`): cualquier cuenta de Cloudflare
-   llega al origen saltándose las reglas de la zona. Se cierra con un certificado de cliente propio,
-   subido como AOP de la zona `mifik.cl`, y Caddy confiando solo en esa CA.
+1. ~~**Certificado propio de Authenticated Origin Pulls**~~ — **hecho (2026-11-12)**: Cloudflare
+   presenta un certificado de cliente propio de `mifik.cl` (AOP por zona) y Caddy confía solo en él
+   (`deploy/origin-pull-mifik.pem`). **Vence el 2029-11-11**: rotarlo antes (`docs/DEPLOY.md` §7.2).
 2. ~~**CSP de scripts y estilos**~~ — **hecho (2026-11-12)**: después del build, `scripts/csp.mjs` de
    cada app (helper compartido `packages/ui/csp.mjs`) hashea cada script inline de `dist/**/*.html` y
    escribe la política completa en `dist/_headers` (`default-src 'self'`, `script-src 'self'` + hashes,

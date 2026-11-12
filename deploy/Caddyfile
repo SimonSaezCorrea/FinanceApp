@@ -16,7 +16,7 @@ api.mifik.cl {
 	tls /certs/origin.pem /certs/origin.key {
 		client_auth {
 			mode require_and_verify
-			trust_pool file /certs/origin-pull-ca.pem
+			trust_pool file /certs/origin-pull-mifik.pem
 		}
 	}
 

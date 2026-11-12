@@ -2524,9 +2524,10 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       `no-referrer`; `useSecurityHeaders` in `main.ts`); both sites' `_headers` add HSTS (1 year,
       `includeSubDomains`, no preload); `safeReturnPath` refuses control characters (a tab between two
       slashes becomes `//host`); the JSON islands/JSON-LD in `<script>` escape `<` everywhere
-      (`GuideAiTools` used a one-backslash escape that was a no-op). Open, not code: the API trusts
-      Cloudflare's SHARED Authenticated Origin Pulls CA (`bootstrap-ec2.sh`) — any Cloudflare account can
-      reach the origin; a zone-level custom AOP certificate closes it. No CSP on the two sites yet. (f) Tokens and
+      (`GuideAiTools` used a one-backslash escape that was a no-op). Closed 2026-11-12: Authenticated
+      Origin Pulls uses mifik.cl's OWN client certificate (zone-level AOP; `deploy/origin-pull-mifik.pem`,
+      expires 2029-11-11, rotation in `docs/DEPLOY.md` §7.2) and Caddy trusts only it — no longer
+      Cloudflare's shared CA, which let any Cloudflare account reach the origin. Full CSP: see (g). (f) Tokens and
       factors (2026-11-12, migration `20261111120000_token_rotation_totp_replay`, expand only): the two session
       JWTs carry `typ` (`access`/`refresh`; a wrong type is refused, a missing one still accepted for tokens
       issued before) and `TokenIssuer` refuses to boot with equal `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET`; a

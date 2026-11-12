@@ -152,8 +152,37 @@ Después:
    `/opt/fik/certs/origin.pem` y la clave como `/opt/fik/certs/origin.key`
    (`sudo chmod 600 /opt/fik/certs/origin.key`). **La clave no se vuelve a mostrar** y nunca va al
    repo.
-2. **Authenticated Origin Pulls:** _SSL/TLS → Origin Server → Authenticated Origin Pulls_ →
-   **activado** (a nivel de zona).
+2. **Authenticated Origin Pulls con certificado PROPIO** (desde 2026-11-12). Con la CA _compartida_
+   de Cloudflare, cualquier cuenta de Cloudflare podía llegar al origen saltándose las reglas de la
+   zona; ahora Cloudflare presenta un certificado de cliente que es solo de `mifik.cl`, y Caddy confía
+   **solo** en él (`trust_pool file /certs/origin-pull-mifik.pem`). El certificado público está en el
+   repo (`deploy/origin-pull-mifik.pem`, autofirmado, `extendedKeyUsage=clientAuth`, **vence el
+   2029-11-11**) y se copia a `/opt/fik/certs/`; la clave privada solo la tiene Cloudflare.
+   Estado en Cloudflare: la configuración de zona `tls_client_auth` = on, y _AOP por zona_ activada
+   con ese certificado (API `zones/<zona>/origin_tls_client_auth` y `.../settings` → `enabled: true`).
+   **Rotarlo** (antes de que venza, y si la clave pudo filtrarse), sin cortar la API:
+   1. Generar el nuevo (fuera del repo):
+
+      ```sh
+      openssl req -x509 -newkey rsa:2048 -nodes -keyout aop.key -out aop.pem -days 1095 \
+        -subj "/O=mifik/CN=Cloudflare origin pull for mifik.cl" \
+        -addext "basicConstraints=critical,CA:FALSE" \
+        -addext "keyUsage=critical,digitalSignature,keyEncipherment" \
+        -addext "extendedKeyUsage=clientAuth"
+      ```
+
+   2. En el servidor, Caddy confía en el viejo Y el nuevo (`trust_pool file <viejo> <nuevo>`) y se
+      recarga. **Escribir el Caddyfile con `cat nuevo > Caddyfile`, nunca `sed -i`/`mv`**: el contenedor
+      monta ese único archivo por inodo y un archivo nuevo no lo ve (el reload dice "config is
+      unchanged"); comprobarlo con `docker exec fik-caddy-1 grep trust_pool /etc/caddy/Caddyfile`.
+   3. Subir el nuevo a la zona (POST `origin_tls_client_auth` con certificado y clave), esperar
+      `status: active`. Cloudflare usa el más reciente.
+   4. Verificar `https://api.mifik.cl/api/v1/health` = 200 varias veces, dejar solo el nuevo en
+      Caddy, verificar otra vez, borrar el viejo de Cloudflare y la clave local.
+
+   **No** desactivar la AOP por zona dejando un certificado subido: el 2026-11-12 eso dio 520 durante
+   minutos.
+
 3. **DNS:** registro **A** `api` → la Elastic IP, con la nube **naranja** (proxied).
 4. El modo SSL/TLS ya está en **Completo (Estricto)** y "Usar siempre HTTPS" activado.
 

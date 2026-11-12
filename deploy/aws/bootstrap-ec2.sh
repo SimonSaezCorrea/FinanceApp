@@ -36,9 +36,9 @@ for f in "$tmp"/*.pem; do
 done
 rm -rf "$tmp"
 test -s /opt/fik/certs/rds-ca.pem || { echo "No RDS root CA for ${RDS_REGION}" >&2; exit 1; }
-# Cloudflare's CA for Authenticated Origin Pulls (Caddy refuses clients without its certificate).
-curl -fsSL https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem \
-  -o /opt/fik/certs/origin-pull-ca.pem
+# Authenticated Origin Pulls: Caddy trusts only mifik.cl's own client certificate
+# (deploy/origin-pull-mifik.pem in the repo; docs/DEPLOY.md §7.2). Copy it to
+# /opt/fik/certs/origin-pull-mifik.pem with the other files below.
 
 echo "Bootstrap done. Next: copy docker-compose.yml, Caddyfile, deploy.sh, api.env, deploy.env"
-echo "and certs/origin.pem + certs/origin.key into /opt/fik (see docs/DEPLOY.md)."
+echo "certs/origin.pem + certs/origin.key and certs/origin-pull-mifik.pem into /opt/fik (see docs/DEPLOY.md)."
