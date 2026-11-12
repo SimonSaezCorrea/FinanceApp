@@ -4,6 +4,7 @@ import {
   clientKey,
   RateLimitStore,
   rateLimitsEnabled,
+  wideClientKey,
 } from "../../../../src/infra/http/rate-limit";
 
 const config = (values: Record<string, string | undefined>) => ({
@@ -40,6 +41,13 @@ describe("clientKey", () => {
     expect(clientKey("2001:db8:abcd:13::1")).not.toBe(a);
   });
 
+  it("groups an IPv6 client by its /48 too, and an IPv4 one not at all", () => {
+    expect(wideClientKey("2001:db8:abcd:12:1::1")).toBe("2001:db8:abcd::/48");
+    expect(wideClientKey("2001:db8:abcd:ffff::9")).toBe("2001:db8:abcd::/48");
+    expect(wideClientKey("203.0.113.7")).toBeNull();
+    expect(wideClientKey("::ffff:203.0.113.7")).toBeNull();
+  });
+
   it("never throws on a missing address", () => {
     expect(clientKey(undefined)).toBe("unknown");
   });
@@ -66,5 +74,13 @@ describe("RateLimitStore", () => {
     const store = new RateLimitStore(100);
     for (let i = 0; i < 1_000; i++) store.hit(`k${i}`, 3, 600, 1_000_000);
     expect(store.size).toBeLessThanOrEqual(100);
+  });
+
+  it("a flood of new keys never erases a client that is being held back", () => {
+    const store = new RateLimitStore(100);
+    const now = 1_000_000;
+    for (let i = 0; i < 4; i++) store.hit("blocked", 3, 600, now);
+    for (let i = 0; i < 1_000; i++) store.hit(`flood${i}`, 3, 600, now);
+    expect(store.hit("blocked", 3, 600, now + 1_000)).not.toBeNull();
   });
 });

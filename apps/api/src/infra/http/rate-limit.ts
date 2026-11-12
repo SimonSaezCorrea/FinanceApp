@@ -56,16 +56,28 @@ export function clientKey(ip: string | undefined): string {
   const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
   if (mapped) return mapped[1];
   if (!ip.includes(":")) return ip;
+  return `${ipv6Groups(ip, 4)}::/64`;
+}
+
+/** The /48 of an IPv6 address (null for IPv4): a coarser count, so hopping between the 65,536
+ * /64s of one allocation doesn't buy a fresh limit each time. */
+export function wideClientKey(ip: string | undefined): string | null {
+  const key = clientKey(ip);
+  if (!key.endsWith("::/64")) return null;
+  return `${ipv6Groups(ip as string, 3)}::/48`;
+}
+
+function ipv6Groups(ip: string, count: number): string {
   const [head, tail = ""] = ip.split("::");
   const left = head ? head.split(":") : [];
   const right = tail ? tail.split(":") : [];
   const groups = ip.includes("::")
     ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right]
     : left;
-  return `${groups
-    .slice(0, 4)
+  return groups
+    .slice(0, count)
     .map((g) => (g || "0").toLowerCase().replace(/^0+(?=.)/, ""))
-    .join(":")}::/64`;
+    .join(":");
 }
 
 /** Thrown with the shape `AllExceptionsFilter` reads from a domain error, so `details` reaches
@@ -81,6 +93,7 @@ export class RateLimitedError extends Error {
 
 interface Window {
   count: number;
+  limit: number;
   resetAt: number;
 }
 
@@ -96,7 +109,7 @@ export class RateLimitStore {
     this.sweep(now);
     let window = this.windows.get(key);
     if (!window || window.resetAt <= now) {
-      window = { count: 0, resetAt: now + windowSeconds * 1000 };
+      window = { count: 0, limit, resetAt: now + windowSeconds * 1000 };
       this.windows.set(key, window);
     }
     window.count += 1;
@@ -114,12 +127,18 @@ export class RateLimitStore {
     for (const [key, window] of this.windows) {
       if (window.resetAt <= now) this.windows.delete(key);
     }
-    // Still full of live windows (a flood of distinct keys): drop the oldest rather than grow.
+    // Still full of live windows (a flood of distinct keys): make room rather than grow, but
+    // never by forgetting a client that is being held back — dropping the oldest windows first
+    // would let a flood of new keys erase the very count that blocks the flooder. Windows still
+    // under their limit go first; one over it only if nothing else is left.
+    const target = Math.floor(this.maxEntries * 0.9);
     if (this.windows.size >= this.maxEntries) {
-      const excess = this.windows.size - Math.floor(this.maxEntries * 0.9);
-      let dropped = 0;
+      for (const [key, window] of this.windows) {
+        if (this.windows.size <= target) return;
+        if (window.count <= window.limit) this.windows.delete(key);
+      }
       for (const key of this.windows.keys()) {
-        if (dropped++ >= excess) break;
+        if (this.windows.size <= target) return;
         this.windows.delete(key);
       }
     }
@@ -153,13 +172,20 @@ export class RateLimitGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request & { user?: { id: string } }>();
     const who = policy.key === "user" ? req.user?.id : clientKey(req.ip);
     if (!who) return true; // a per-user policy on a route without a user: nothing to count
-    const retryAfter = SHARED_STORE.hit(
-      `${policyName}|${who}`,
-      policy.limit,
-      policy.windowSeconds,
-      Date.now(),
-    );
-    if (retryAfter === null) return true;
+    const now = Date.now();
+    const waits = [
+      SHARED_STORE.hit(`${policyName}|${who}`, policy.limit, policy.windowSeconds, now),
+    ];
+    // An IPv6 client also counts against its /48, with room for a whole household or office.
+    const wide = policy.key === "ip" ? wideClientKey(req.ip) : null;
+    if (wide) {
+      waits.push(
+        SHARED_STORE.hit(`${policyName}|${wide}`, policy.limit * 10, policy.windowSeconds, now),
+      );
+    }
+    const blocked = waits.filter((w): w is number => w !== null);
+    if (blocked.length === 0) return true;
+    const retryAfter = Math.max(...blocked);
     this.logger.warn(`rate limit ${policyName} reached by ${policy.key}`);
     context.switchToHttp().getResponse<Response>().setHeader("Retry-After", String(retryAfter));
     throw new RateLimitedError({ retryAfterSeconds: retryAfter });
