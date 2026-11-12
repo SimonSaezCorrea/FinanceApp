@@ -226,8 +226,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
   async saveWithTx(tx: unknown, aggregate: BankAccount): Promise<void> {
     const client = tx as PrismaService;
     const snap = aggregate.snapshot();
+    // Scoped by owner as well as id (security run-3): a write can only land on a row of the
+    // aggregate's own user, failing closed ("record not found") otherwise.
     await client.bankAccount.update({
-      where: { id: snap.id },
+      where: { id: snap.id, userId: snap.userId },
       data: {
         name: snap.name,
         type: snap.type,

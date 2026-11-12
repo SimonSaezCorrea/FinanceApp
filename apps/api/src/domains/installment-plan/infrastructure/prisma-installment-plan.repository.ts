@@ -163,8 +163,9 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
 
   async save(aggregate: InstallmentPlan): Promise<void> {
     const snap = aggregate.snapshot();
+    // Scoped by owner as well as id (security run-3): fails closed on a row of another user.
     await this.prisma.installmentPlan.update({
-      where: { id: snap.id },
+      where: { id: snap.id, userId: snap.userId },
       data: {
         title: snap.title,
         currency: snap.currency,
@@ -186,7 +187,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     const client = tx as PrismaService;
     const snap = aggregate.snapshot();
     await client.installmentPlan.update({
-      where: { id: snap.id },
+      where: { id: snap.id, userId: snap.userId },
       data: {
         title: snap.title,
         totalPrincipal: snap.totalPrincipal,
