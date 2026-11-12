@@ -3,6 +3,7 @@ title: Un cambio de correo que no pediste se puede detener
 summary: Te avisamos cuando se pide cambiar tu correo, y cambiar tu contraseña lo cancela.
 commits:
   - 5110a015
+  - 95e2d338
 ---
 
 ## Seguridad
