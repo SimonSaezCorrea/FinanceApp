@@ -2519,7 +2519,14 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       same transaction) — its public link could otherwise still take the account after the owner
       reacted — and the current confirmed address gets a new **`EMAIL_CHANGE_REQUESTED`** notice when
       a change is requested (not on a reused resend). e2e `email-change-cancel.http.spec.ts`,
-      `infra/rate-limit.http.spec.ts`.
+      `infra/rate-limit.http.spec.ts`. (e) Web/landing/deploy/CI review (2026-11-11): every API response
+      carries `infra/http/security-headers.ts`'s headers (`nosniff`, `DENY`, `default-src 'none'` CSP, HSTS,
+      `no-referrer`; `useSecurityHeaders` in `main.ts`); both sites' `_headers` add HSTS (1 year,
+      `includeSubDomains`, no preload); `safeReturnPath` refuses control characters (a tab between two
+      slashes becomes `//host`); the JSON islands/JSON-LD in `<script>` escape `<` everywhere
+      (`GuideAiTools` used a one-backslash escape that was a no-op). Open, not code: the API trusts
+      Cloudflare's SHARED Authenticated Origin Pulls CA (`bootstrap-ec2.sh`) — any Cloudflare account can
+      reach the origin; a zone-level custom AOP certificate closes it. No CSP on the two sites yet.
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

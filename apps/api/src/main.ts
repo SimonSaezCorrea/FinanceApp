@@ -14,6 +14,7 @@ import { useCompression } from "./infra/http/compression";
 import { useCors } from "./infra/http/cors";
 import { useJsonBodyLimit } from "./infra/http/body-limit";
 import { useNoIndex } from "./infra/http/no-index";
+import { useSecurityHeaders } from "./infra/http/security-headers";
 import { useTrustProxy } from "./infra/http/trust-proxy";
 
 /**
@@ -47,6 +48,7 @@ async function bootstrap() {
   // Behind Cloudflare + Railway: read the visitor's IP, not the last proxy's (TRUST_PROXY_HOPS).
   useTrustProxy(app, config);
   useNoIndex(app);
+  useSecurityHeaders(app);
   app.setGlobalPrefix("api/v1");
   useCompression(app);
   app.use(cookieParser());

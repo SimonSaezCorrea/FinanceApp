@@ -11,5 +11,9 @@ export const RETURN_PATH_MAX_LENGTH = 2048;
 export function safeReturnPath(value: string | null | undefined): string {
   if (!value || value.length > RETURN_PATH_MAX_LENGTH) return "/";
   if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+  // Browsers drop tabs and line breaks from a URL, so a "/", a tab and "/evil.example" would
+  // become "//evil.example" (another site) after the check above passed it.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(value)) return "/";
   return value;
 }

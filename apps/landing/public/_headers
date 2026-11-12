@@ -1,5 +1,8 @@
 # Cloudflare Pages response headers (copied as-is into the build output).
 /*
+  # HTTPS only for a year, subdomains included (app. and api. are HTTPS-only behind Cloudflare):
+  # without it the first visit by http:// could be intercepted before the redirect.
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

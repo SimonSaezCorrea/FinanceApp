@@ -111,7 +111,7 @@ const structuredData =
             sameAs: FOUNDER.profiles,
           },
         },
-      ])
+      ]).replace(/</g, "\\u003c")
     : null;
 ---
 

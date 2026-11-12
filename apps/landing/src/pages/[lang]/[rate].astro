@@ -92,7 +92,7 @@ const structuredData = JSON.stringify([
       { "@type": "ListItem", position: 2, name: t(lang, `landing.rates.nav.${page}`), item: url },
     ],
   },
-]);
+]).replace(/</g, "\\u003c");
 ---
 
 <PageLayout lang={lang} page={page} title={title} description={description}>

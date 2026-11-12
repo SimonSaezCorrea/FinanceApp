@@ -19,6 +19,12 @@ describe("safeReturnPath", () => {
     expect(safeReturnPath(value)).toBe("/");
   });
 
+  it("refuses a path with a tab or a line break, which browsers would strip into //host", () => {
+    expect(safeReturnPath("/\t/evil.example")).toBe("/");
+    expect(safeReturnPath("/\n/evil.example")).toBe("/");
+    expect(safeReturnPath("/accounts\r")).toBe("/");
+  });
+
   it("sends a missing value to the Panel", () => {
     expect(safeReturnPath(null)).toBe("/");
     expect(safeReturnPath(undefined)).toBe("/");

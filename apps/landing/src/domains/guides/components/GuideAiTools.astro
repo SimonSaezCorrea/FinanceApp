@@ -15,7 +15,9 @@ interface Props {
   markdownPath: string;
 }
 const { lang, markdown, markdownPath } = Astro.props;
-const island = JSON.stringify(markdown).replace(/</g, "\u003c");
+// Two backslashes: the JSON must not contain "<" (a "</script>" in a guide would close this
+// script early); with one, the replacement would be the "<" character itself.
+const island = JSON.stringify(markdown).replace(/</g, "\\u003c");
 const action =
   "inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary/10 px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:min-h-8";
 ---
