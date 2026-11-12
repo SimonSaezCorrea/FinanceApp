@@ -12,6 +12,7 @@ commits:
   - 8fab17b6
   - 3975a371
   - 100a2857
+  - 73dc957c
 ---
 
 ## Seguridad
@@ -32,6 +33,8 @@ commits:
   usar dos veces.
 - **Sesiones con fecha de término**: una sesión se cierra a los 30 días aunque la uses, y si alguien
   intenta usar una copia vieja de ella, se cierra al momento.
+- **Solo corre el código de mifik**: tu navegador ejecuta únicamente el código que publicamos, así
+  que un script metido en una página no se ejecuta.
 
 ## Correcciones
 
