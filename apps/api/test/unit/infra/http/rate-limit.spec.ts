@@ -1,7 +1,11 @@
+import type { ExecutionContext } from "@nestjs/common";
+import type { Reflector } from "@nestjs/core";
 import { describe, expect, it } from "vitest";
 
 import {
   clientKey,
+  RATE_LIMIT_POLICIES,
+  RateLimitGuard,
   RateLimitStore,
   rateLimitsEnabled,
   wideClientKey,
@@ -82,5 +86,46 @@ describe("RateLimitStore", () => {
     for (let i = 0; i < 4; i++) store.hit("blocked", 3, 600, now);
     for (let i = 0; i < 1_000; i++) store.hit(`flood${i}`, 3, 600, now);
     expect(store.hit("blocked", 3, 600, now + 1_000)).not.toBeNull();
+  });
+});
+
+describe("RateLimitGuard with IPv6", () => {
+  const guard = new RateLimitGuard(
+    { getAllAndOverride: () => "authAttempt" } as unknown as Reflector,
+    { get: (key: string) => (key === "RATE_LIMITS_ENABLED" ? "true" : undefined) } as never,
+  );
+  const contextFor = (ip: string) =>
+    ({
+      getHandler: () => null,
+      getClass: () => null,
+      switchToHttp: () => ({
+        getRequest: () => ({ ip }),
+        getResponse: () => ({ setHeader: () => undefined }),
+      }),
+    }) as unknown as ExecutionContext;
+  const allowed = (ip: string) => {
+    try {
+      return guard.canActivate(contextFor(ip));
+    } catch {
+      return false;
+    }
+  };
+  const { limit } = RATE_LIMIT_POLICIES.authAttempt;
+
+  it("one /64 hammering after it was blocked never locks out its /48 neighbours", () => {
+    for (let i = 0; i < limit * 20; i++) allowed("2001:db8:aaaa:1::1");
+    expect(allowed("2001:db8:aaaa:1::1")).toBe(false);
+    expect(allowed("2001:db8:aaaa:2::1")).toBe(true);
+  });
+
+  it("hopping across many /64s of one /48 runs into the /48's own limit", () => {
+    let blocked = false;
+    for (let net = 0; net < 20 && !blocked; net++) {
+      for (let i = 0; i < limit; i++) {
+        if (!allowed(`2001:db8:bbbb:${net.toString(16)}::1`)) blocked = true;
+      }
+    }
+    expect(blocked).toBe(true);
+    expect(allowed("2001:db8:bbbb:ff::1")).toBe(false);
   });
 });

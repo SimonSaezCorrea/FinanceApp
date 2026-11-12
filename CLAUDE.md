@@ -2506,7 +2506,8 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       login, mfa-verify, passkey-options/verify, password/reset, email/verify), `authEmail` (per IP,
       10/h: register, password/forgot, login/mfa-resend), `heavyWrite` (per USER, 20/10 min — after
       `JwtAuthGuard`: import/transactions, import/template[/preview], attachment upload); an IPv6
-      client counts by its /64 and also by its /48 (10× the limit); a full store drops windows still
+      client counts by its /64 and also by its /48 (10× the limit, counting only requests its /64 let through, so one noisy
+      client never locks out its neighbours); a full store drops windows still
       under their limit first, never one holding a client back; ON only with `NODE_ENV=production`, **`RATE_LIMITS_ENABLED=true|false`**
       overrides (tests and local runs share one loopback IP), anything else fails at boot; i18n
       `errors.RATE_LIMITED`. (b) A recovery code is compared OUTSIDE the row lock (up to 10 bcrypt),

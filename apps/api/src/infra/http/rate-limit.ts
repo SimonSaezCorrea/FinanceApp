@@ -72,7 +72,7 @@ function ipv6Groups(ip: string, count: number): string {
   const left = head ? head.split(":") : [];
   const right = tail ? tail.split(":") : [];
   const groups = ip.includes("::")
-    ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right]
+    ? [...left, ...new Array(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right]
     : left;
   return groups
     .slice(0, count)
@@ -173,19 +173,26 @@ export class RateLimitGuard implements CanActivate {
     const who = policy.key === "user" ? req.user?.id : clientKey(req.ip);
     if (!who) return true; // a per-user policy on a route without a user: nothing to count
     const now = Date.now();
-    const waits = [
-      SHARED_STORE.hit(`${policyName}|${who}`, policy.limit, policy.windowSeconds, now),
-    ];
-    // An IPv6 client also counts against its /48, with room for a whole household or office.
-    const wide = policy.key === "ip" ? wideClientKey(req.ip) : null;
+    let retryAfter = SHARED_STORE.hit(
+      `${policyName}|${who}`,
+      policy.limit,
+      policy.windowSeconds,
+      now,
+    );
+    // An IPv6 client also counts against its /48, with room for 10 clients' worth. Only requests
+    // its /64 let through count there: one /64 can add at most `limit` per window, so filling the
+    // /48 takes many /64s (the hopping this exists to catch) and one noisy client can't lock out
+    // its neighbours by hammering after it was blocked.
+    const wide = retryAfter === null && policy.key === "ip" ? wideClientKey(req.ip) : null;
     if (wide) {
-      waits.push(
-        SHARED_STORE.hit(`${policyName}|${wide}`, policy.limit * 10, policy.windowSeconds, now),
+      retryAfter = SHARED_STORE.hit(
+        `${policyName}|${wide}`,
+        policy.limit * 10,
+        policy.windowSeconds,
+        now,
       );
     }
-    const blocked = waits.filter((w): w is number => w !== null);
-    if (blocked.length === 0) return true;
-    const retryAfter = Math.max(...blocked);
+    if (retryAfter === null) return true;
     this.logger.warn(`rate limit ${policyName} reached by ${policy.key}`);
     context.switchToHttp().getResponse<Response>().setHeader("Retry-After", String(retryAfter));
     throw new RateLimitedError({ retryAfterSeconds: retryAfter });
