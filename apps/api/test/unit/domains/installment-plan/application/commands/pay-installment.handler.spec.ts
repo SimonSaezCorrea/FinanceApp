@@ -191,6 +191,7 @@ describe("PayInstallmentHandler", () => {
 
     expect(accounts.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc1",
       "-400.0000",
     );
@@ -353,11 +354,16 @@ describe("UnpayInstallmentHandler", () => {
 
     await handler.execute(new UnpayInstallmentCommand("u1", "p1", 1));
 
-    expect(transactions.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "tx1");
+    expect(transactions.deleteWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "tx1",
+    );
     // "acc9", the account the EXPENSE came from — not the plan's remembered "acc1",
     // which may have been changed since.
     expect(accounts.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc9",
       "400.0000",
     );

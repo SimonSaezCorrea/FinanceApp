@@ -240,6 +240,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         await this.transactions.createWithTx(tx, settlement.income);
         await this.accountRepo.incrementBalanceWithTx(
           tx,
+          command.userId,
           context.fromAccount.id,
           subtractMoney("0", settlement.charged),
         );
@@ -282,6 +283,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         // this single EXPENSE is what the source account's balance must follow.
         await this.accountRepo.incrementBalanceWithTx(
           tx,
+          command.userId,
           context.fromAccount.id,
           subtractMoney("0", amount),
         );

@@ -77,7 +77,7 @@ export async function undoStatementPaymentWithTx(
       reversal.paymentTransactionId,
     );
     if (charged !== null && sourceId) {
-      await deps.accounts.incrementBalanceWithTx(tx, sourceId, charged);
+      await deps.accounts.incrementBalanceWithTx(tx, input.userId, sourceId, charged);
     }
   }
   await deps.transactions.deleteManyWithTx(
@@ -88,7 +88,12 @@ export async function undoStatementPaymentWithTx(
   );
 
   if (reversal.restoresCredit) {
-    await deps.accounts.incrementCreditUsedWithTx(tx, input.accountId, reversal.paidAmount);
+    await deps.accounts.incrementCreditUsedWithTx(
+      tx,
+      input.userId,
+      input.accountId,
+      reversal.paidAmount,
+    );
     await deps.plans.unsettleForStatementWithTx(tx, statement.id);
   }
 

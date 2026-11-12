@@ -95,7 +95,12 @@ describe("CreateSavingsEntryHandler", () => {
       expect.anything(),
       expect.objectContaining({ type: "EXPENSE", amount: "250", bankAccountId: "acc1" }),
     );
-    expect(incrementBalanceWithTx).toHaveBeenCalledWith(expect.anything(), "acc1", "-250.0000");
+    expect(incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "acc1",
+      "-250.0000",
+    );
   });
 
   it("throws SavingsEntryTitleRequiredError for an ahorro-libre aporte with no title", async () => {

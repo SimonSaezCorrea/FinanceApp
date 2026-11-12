@@ -137,6 +137,7 @@ export class RegisterDebtPaymentHandler extends BaseIdempotentCommandHandler<
       });
       await this.accounts.incrementBalanceWithTx(
         tx,
+        command.userId,
         account.id,
         type === "INCOME" ? amount : subtractMoney("0", amount),
       );

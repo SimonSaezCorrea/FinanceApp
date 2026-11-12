@@ -84,8 +84,13 @@ export class RemoveSavingsEntryHandler extends BaseIdempotentCommandHandler<
   ): Promise<HandleResult<void>> {
     await this.prisma.$transaction(async (tx) => {
       if (entry.transactionId && entry.bankAccountId) {
-        await this.transactions.deleteWithTx(tx, entry.transactionId);
-        await this.accounts.incrementBalanceWithTx(tx, entry.bankAccountId, entry.amount);
+        await this.transactions.deleteWithTx(tx, command.userId, entry.transactionId);
+        await this.accounts.incrementBalanceWithTx(
+          tx,
+          command.userId,
+          entry.bankAccountId,
+          entry.amount,
+        );
       }
       const ok = await this.repo.removeWithTx(tx, command.userId, command.id);
       if (!ok) throw new SavingsEntryNotFoundError();

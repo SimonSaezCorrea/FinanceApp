@@ -184,16 +184,23 @@ export class SyncStatementHandler extends BaseCommandHandler<
         if (settlementId && context.statement.paidAt && !toMoney(context.paidDelta).isZero()) {
           await this.transactions.updateAmountWithTx(
             tx,
+            context.account.userId,
             settlementId,
             context.statement.paidAmount,
           );
         }
       } else if (paymentId && context.statement.paidAt) {
         // Only a settled period has a payment movement to keep in step — both sides of it.
-        await this.transactions.updateAmountWithTx(tx, paymentId, context.statement.paidAmount);
+        await this.transactions.updateAmountWithTx(
+          tx,
+          context.account.userId,
+          paymentId,
+          context.statement.paidAmount,
+        );
         if (settlementId) {
           await this.transactions.updateAmountWithTx(
             tx,
+            context.account.userId,
             settlementId,
             context.statement.paidAmount,
           );
@@ -205,6 +212,7 @@ export class SyncStatementHandler extends BaseCommandHandler<
         if (fromAccountId && !toMoney(context.paidDelta).isZero()) {
           await this.accountRepo.incrementBalanceWithTx(
             tx,
+            context.account.userId,
             fromAccountId,
             toMoney(context.paidDelta).negated().toString(),
           );

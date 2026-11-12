@@ -157,7 +157,12 @@ describe("SettleDebtHandler", () => {
       expect.anything(),
       expect.objectContaining({ type: "EXPENSE", amount: "1240.5000", bankAccountId: "acc1" }),
     );
-    expect(incrementBalanceWithTx).toHaveBeenCalledWith(expect.anything(), "acc1", "-1240.5000");
+    expect(incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "acc1",
+      "-1240.5000",
+    );
   });
 
   // Replaces the old "no guard against re-settling" behavior — see
@@ -256,8 +261,13 @@ describe("UnsettleDebtHandler", () => {
       prisma,
     );
     await handler.execute(new UnsettleDebtCommand("u1", "d1", KEY));
-    expect(deleteWithTx).toHaveBeenCalledWith(expect.anything(), "tx1");
+    expect(deleteWithTx).toHaveBeenCalledWith(expect.anything(), expect.any(String), "tx1");
     // YOU_OWE's payment was an EXPENSE — reversing it restores the balance.
-    expect(incrementBalanceWithTx).toHaveBeenCalledWith(expect.anything(), "acc1", "1240.5000");
+    expect(incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "acc1",
+      "1240.5000",
+    );
   });
 });

@@ -218,7 +218,7 @@ export class PayInstallmentHandler extends BaseIdempotentCommandHandler<
         description: `${plan.title} · ${context.sequence}/${plan.installmentCount}`,
         installmentPlanId: plan.id,
       });
-      await this.accountsBalance(tx, account.id, context.chargedAmount);
+      await this.accountsBalance(tx, plan.userId, account.id, context.chargedAmount);
       await this.repo.savePaymentWithTx(tx, context.plan, context.sequence, context.carryDeltas);
       await complete(tx, undefined);
     });
@@ -226,7 +226,12 @@ export class PayInstallmentHandler extends BaseIdempotentCommandHandler<
     return { result: undefined, events: [] };
   }
 
-  private async accountsBalance(tx: unknown, accountId: string, amount: string): Promise<void> {
-    await this.accounts.incrementBalanceWithTx(tx, accountId, subtractMoney("0", amount));
+  private async accountsBalance(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    amount: string,
+  ): Promise<void> {
+    await this.accounts.incrementBalanceWithTx(tx, userId, accountId, subtractMoney("0", amount));
   }
 }

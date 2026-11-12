@@ -231,11 +231,13 @@ describe("RemoveAccountHandler", () => {
     ]);
     expect(accountsRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "b",
       "-50000.0000",
     );
     expect(accountsRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "c",
       "120000.0000",
     );
@@ -254,6 +256,7 @@ describe("RemoveAccountHandler", () => {
     expect(transactions.deleteManyWithTx).toHaveBeenCalledWith(expect.anything(), ["inst"]);
     expect(accountsRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "b",
       "30000.0000",
     );

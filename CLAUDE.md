@@ -2545,7 +2545,10 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       **`AWS_DEPLOY_DOCUMENT`** (`deploy/aws/fik-deploy-document.json`, only `deploy.sh <tag>`), else
       `AWS-RunShellScript`; both sites' `_headers` send a baseline CSP (`object-src 'none'; base-uri
 'self'; frame-ancestors 'none'; form-action 'self'`). The bank-account and installment-plan
-      aggregate saves match `userId` as well as `id`. What is still open: `docs/PENDING.md` (Seguridad —
+      aggregate saves match `userId` as well as `id`. So do the money writes other domains enlist by id (2026-11-12):
+      `BankAccountRepositoryPort.incrementBalanceWithTx`/`incrementCreditUsedWithTx`/`adjustOpeningWithTx`
+      and the transaction ports' `updateAmountWithTx`/`deleteWithTx`/`saveUpdateWithTx`/`removeWithTx`
+      take `userId` right after `tx`; someone else's row throws (P2025) and rolls the caller back. What is still open: `docs/PENDING.md` (Seguridad —
       pendiente tras la revisión de run-3).
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's

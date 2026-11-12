@@ -286,6 +286,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       const ok = await this.prisma.$transaction(async (tx) => {
         const removed = await this.repo.removeWithTx(
           tx,
+          command.userId,
           command.id,
           context.creditUsedDelta,
           balanceDeltas,
@@ -374,13 +375,13 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       statement.changePrepayment(grossTotal, income.amount, "0");
       await this.statements.saveWithTx(tx, statement);
 
-      const removedExpense = await this.repo.removeWithTx(tx, expense.id, null, [
+      const removedExpense = await this.repo.removeWithTx(tx, userId, expense.id, null, [
         {
           accountId: expense.bankAccountId!,
           delta: reverseBalanceDelta("EXPENSE", expense.amount),
         },
       ]);
-      const removedIncome = await this.repo.removeWithTx(tx, income.id, null, []);
+      const removedIncome = await this.repo.removeWithTx(tx, userId, income.id, null, []);
       if (!removedExpense || !removedIncome) throw new TransactionNotFoundError();
     });
   }

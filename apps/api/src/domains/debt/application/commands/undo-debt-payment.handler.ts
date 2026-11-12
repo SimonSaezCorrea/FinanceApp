@@ -78,12 +78,12 @@ export class UndoDebtPaymentHandler extends BaseIdempotentCommandHandler<
       const direction = debt.direction;
       const reversed = debt.undoPayment();
       if (reversed) {
-        await this.transactions.deleteWithTx(tx, reversed.transactionId);
+        await this.transactions.deleteWithTx(tx, command.userId, reversed.transactionId);
         // OWED_TO_YOU's payment was an INCOME (money came in) — reversing it
         // takes that back out; YOU_OWE's was an EXPENSE — reversing restores it.
         const delta =
           direction === "OWED_TO_YOU" ? subtractMoney("0", reversed.amount) : reversed.amount;
-        await this.accounts.incrementBalanceWithTx(tx, reversed.accountId, delta);
+        await this.accounts.incrementBalanceWithTx(tx, command.userId, reversed.accountId, delta);
       }
       const contract = debt.toContract();
       await this.repo.saveWithTx(tx, debt);

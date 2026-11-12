@@ -161,7 +161,12 @@ describe("RegisterDebtPaymentHandler", () => {
       expect.anything(),
       expect.objectContaining({ type: "EXPENSE", amount: "400.0000", bankAccountId: "acc1" }),
     );
-    expect(incrementBalanceWithTx).toHaveBeenCalledWith(expect.anything(), "acc1", "-400.0000");
+    expect(incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "acc1",
+      "-400.0000",
+    );
   });
 
   it("auto-settles when the last payment is registered", async () => {
@@ -295,8 +300,13 @@ describe("UndoDebtPaymentHandler", () => {
       prisma,
     );
     await handler.execute(new UndoDebtPaymentCommand("u1", "d1", KEY));
-    expect(deleteWithTx).toHaveBeenCalledWith(expect.anything(), "tx1");
+    expect(deleteWithTx).toHaveBeenCalledWith(expect.anything(), expect.any(String), "tx1");
     // YOU_OWE's payment was an EXPENSE — reversing it restores the balance.
-    expect(incrementBalanceWithTx).toHaveBeenCalledWith(expect.anything(), "acc1", "400.0000");
+    expect(incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "acc1",
+      "400.0000",
+    );
   });
 });

@@ -101,11 +101,11 @@ export interface TransactionWriterRepositoryPort {
   ): Promise<void>;
   /** Correct one movement's amount — used to keep a statement's payment movement
    * equal to what the period turned out to be worth. */
-  updateAmountWithTx(tx: unknown, id: string, amount: string): Promise<void>;
+  updateAmountWithTx(tx: unknown, userId: string, id: string, amount: string): Promise<void>;
   /** Remove a movement another domain created, inside that domain's own transaction.
    * Undoing an installment payment needs it: the expense and the balance are reversed
    * together or neither is. */
-  deleteWithTx(tx: unknown, id: string): Promise<void>;
+  deleteWithTx(tx: unknown, userId: string, id: string): Promise<void>;
   /** Every movement recorded for a plan — its instalment expenses and its finance
    * charge. Deleting a plan reverses its whole history (FR-050a), and the impact is
    * declared to the user before it does (FR-050b). */

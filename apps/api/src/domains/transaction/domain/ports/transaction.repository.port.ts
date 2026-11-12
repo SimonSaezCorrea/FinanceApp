@@ -137,10 +137,11 @@ export interface TransactionRepositoryPort {
    * editing a movement that funded a prepago also has to reconcile the
    * `CreditStatement` it abonó (and, if already settled, the pool) in the SAME
    * atomic step — see `reconcile-prepayment.ts`. Ownership is assumed already
-   * verified by the caller (`findOne` in `loadContext`), same convention every
-   * other `*WithTx` method in this codebase follows. */
+   * verified by the caller (`findOne` in `loadContext`); the write matches `userId` too, so a
+   * row of someone else's throws instead of being written. */
   saveUpdateWithTx(
     tx: unknown,
+    userId: string,
     id: string,
     patch: Partial<Omit<TransactionProps, "id" | "userId" | "createdAt" | "updatedAt">> & {
       bankAccountId?: string | null;
@@ -160,6 +161,7 @@ export interface TransactionRepositoryPort {
    * `saveUpdateWithTx`'s own doc comment). */
   removeWithTx(
     tx: unknown,
+    userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: LegDelta[],

@@ -84,11 +84,12 @@ export class ReopenSavingsGoalHandler extends BaseIdempotentCommandHandler<
       if (!goal) throw new SavingsGoalNotFoundError();
       const reversed = goal.reopen();
       if (reversed) {
-        await this.transactions.deleteWithTx(tx, reversed.transactionId);
+        await this.transactions.deleteWithTx(tx, command.userId, reversed.transactionId);
         // The withdrawal was an INCOME (money came in) — reversing it takes
         // that back out.
         await this.accounts.incrementBalanceWithTx(
           tx,
+          command.userId,
           reversed.accountId,
           subtractMoney("0", reversed.amount),
         );

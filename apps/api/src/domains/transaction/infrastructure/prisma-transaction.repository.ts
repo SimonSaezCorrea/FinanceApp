@@ -326,11 +326,12 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     if (creditUsedDelta) {
       await this.accounts.incrementCreditUsedWithTx(
         tx,
+        userId,
         creditUsedDelta.accountId,
         creditUsedDelta.delta,
       );
     }
-    await this.applyBalanceDeltas(tx, balanceDeltas);
+    await this.applyBalanceDeltas(tx, userId, balanceDeltas);
     return Transaction.fromPersistence(rowToProps(row));
   }
 
@@ -353,13 +354,14 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
 
     const data = patchToUpdateInput(patch);
     const row = await this.prisma.$transaction((tx) =>
-      this.saveUpdateWithTxInternal(tx, id, data, creditUsedDeltas, balanceDeltas),
+      this.saveUpdateWithTxInternal(tx, userId, id, data, creditUsedDeltas, balanceDeltas),
     );
     return Transaction.fromPersistence(rowToProps(row));
   }
 
   async saveUpdateWithTx(
     tx: unknown,
+    userId: string,
     id: string,
     patch: Partial<Omit<TransactionProps, "id" | "userId" | "createdAt" | "updatedAt">> & {
       bankAccountId?: string | null;
@@ -372,6 +374,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     const data = patchToUpdateInput(patch);
     const row = await this.saveUpdateWithTxInternal(
       tx as PrismaService,
+      userId,
       id,
       data,
       creditUsedDeltas,
@@ -384,18 +387,19 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
    * `$transaction` and calls this with it, the latter is handed the caller's. */
   private async saveUpdateWithTxInternal(
     tx: unknown,
+    userId: string,
     id: string,
     data: Prisma.TransactionUpdateInput,
     creditUsedDeltas: { accountId: string; delta: string }[],
     balanceDeltas: LegDelta[],
   ): Promise<Row> {
     const client = tx as PrismaService;
-    const updated = await client.transaction.update({ where: { id }, data });
+    const updated = await client.transaction.update({ where: { id, userId }, data });
     for (const d of creditUsedDeltas) {
       if (d.delta === "0") continue;
-      await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
+      await this.accounts.incrementCreditUsedWithTx(tx, userId, d.accountId, d.delta);
     }
-    await this.applyBalanceDeltas(tx, balanceDeltas);
+    await this.applyBalanceDeltas(tx, userId, balanceDeltas);
     return updated;
   }
 
@@ -408,37 +412,40 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { id, userId } });
       if (result.count === 0) return false;
-      await this.removeWithTxInternal(tx, creditUsedDelta, balanceDeltas);
+      await this.removeWithTxInternal(tx, userId, creditUsedDelta, balanceDeltas);
       return true;
     });
   }
 
   async removeWithTx(
     tx: unknown,
+    userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: LegDelta[],
   ): Promise<boolean> {
     const client = tx as PrismaService;
-    const result = await client.transaction.deleteMany({ where: { id } });
+    const result = await client.transaction.deleteMany({ where: { id, userId } });
     if (result.count === 0) return false;
-    await this.removeWithTxInternal(client, creditUsedDelta, balanceDeltas);
+    await this.removeWithTxInternal(client, userId, creditUsedDelta, balanceDeltas);
     return true;
   }
 
   private async removeWithTxInternal(
     tx: unknown,
+    userId: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: LegDelta[],
   ): Promise<void> {
     if (creditUsedDelta && creditUsedDelta.delta !== "0") {
       await this.accounts.incrementCreditUsedWithTx(
         tx,
+        userId,
         creditUsedDelta.accountId,
         creditUsedDelta.delta,
       );
     }
-    await this.applyBalanceDeltas(tx, balanceDeltas);
+    await this.applyBalanceDeltas(tx, userId, balanceDeltas);
   }
 
   async findSettlementPair(
@@ -510,7 +517,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         }),
       );
     }
-    await this.applyBalanceDeltas(tx, balanceDeltas);
+    await this.applyBalanceDeltas(tx, userId, balanceDeltas);
     return this.toPair(groupId, rows)!;
   }
 
@@ -535,9 +542,9 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         [outId, outgoing],
         [inId, incoming],
       ] as [string, TransferLegPatch][]) {
-        updated.push(await tx.transaction.update({ where: { id }, data: legData(patch) }));
+        updated.push(await tx.transaction.update({ where: { id, userId }, data: legData(patch) }));
       }
-      await this.applyBalanceDeltas(tx, balanceDeltas);
+      await this.applyBalanceDeltas(tx, userId, balanceDeltas);
       return updated;
     });
     return this.toPair(transferGroupId, rows);
@@ -562,7 +569,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     const client = tx as PrismaService;
     const result = await client.transaction.deleteMany({ where: { userId, transferGroupId } });
     if (result.count === 0) return false;
-    await this.applyBalanceDeltas(client, balanceDeltas);
+    await this.applyBalanceDeltas(client, userId, balanceDeltas);
     return true;
   }
 
@@ -580,11 +587,11 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
 
   /** Cash-balance moves go through the `bank-account` port, inside whichever
    *  `$transaction` the caller opened — one table, one adapter, still atomic. */
-  private async applyBalanceDeltas(tx: unknown, deltas: LegDelta[]): Promise<void> {
+  private async applyBalanceDeltas(tx: unknown, userId: string, deltas: LegDelta[]): Promise<void> {
     for (const d of deltas) {
       if (toMoney(d.delta).isZero()) continue;
-      if (d.pool) await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
-      else await this.accounts.incrementBalanceWithTx(tx, d.accountId, d.delta);
+      if (d.pool) await this.accounts.incrementCreditUsedWithTx(tx, userId, d.accountId, d.delta);
+      else await this.accounts.incrementBalanceWithTx(tx, userId, d.accountId, d.delta);
     }
   }
 }

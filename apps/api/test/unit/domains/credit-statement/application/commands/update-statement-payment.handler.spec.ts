@@ -136,17 +136,20 @@ describe("UpdateStatementPaymentHandler — statement in another currency (spec 
 
     expect(transactions.updateAmountWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "tx_expense",
       "39200",
     );
     expect(transactions.updateAmountWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "tx_income",
       "40.0000",
     );
     // 49.394 left before, 39.200 now: 10.194 pesos come back.
     expect(accountRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc_2",
       "10194.0000",
     );
@@ -189,11 +192,13 @@ describe("UpdateStatementPaymentHandler — statement in another currency (spec 
 
     expect(transactions.updateAmountWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "tx_expense",
       "40.0000",
     );
     expect(accountRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc_2",
       "10.4100",
     );

@@ -235,6 +235,7 @@ describe("CreateInstallmentPlanHandler", () => {
 
       expect(incrementCreditUsedWithTx).toHaveBeenCalledWith(
         expect.anything(),
+        expect.any(String),
         "accCredit",
         "1080000.0000",
       );
@@ -283,7 +284,7 @@ describe("CreateInstallmentPlanHandler", () => {
 
       // The pool takes both, separately — never the principal twice, never the
       // interest folded into it.
-      const charged = incrementCreditUsedWithTx.mock.calls.map((c) => c[2] as string);
+      const charged = incrementCreditUsedWithTx.mock.calls.map((c) => c[3] as string);
       expect(charged).toHaveLength(2);
       expect(charged).toContain("1200.0000");
     });

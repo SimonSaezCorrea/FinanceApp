@@ -224,6 +224,7 @@ describe("PrepayOpenPeriodHandler — period in another currency (spec 030)", ()
     expect(result.status).toBe("OPEN");
     expect(accountRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc_2",
       "-19600.0000",
     );
@@ -301,6 +302,7 @@ describe("PrepayOpenPeriodHandler — period in the account's own currency (unch
     });
     expect(accountRepo.incrementCreditUsedWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc_1",
       "-40000.0000",
     );

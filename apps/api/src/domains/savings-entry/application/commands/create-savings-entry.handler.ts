@@ -155,7 +155,12 @@ export class CreateSavingsEntryHandler extends BaseIdempotentCommandHandler<
         observation: input.note ?? null,
         savingsEntryId: entry.id,
       });
-      await this.accounts.incrementBalanceWithTx(tx, account.id, subtractMoney("0", input.amount));
+      await this.accounts.incrementBalanceWithTx(
+        tx,
+        command.userId,
+        account.id,
+        subtractMoney("0", input.amount),
+      );
 
       const contract = entry.toContract();
       await complete(tx, contract);

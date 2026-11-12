@@ -127,7 +127,9 @@ describe("ports enlisted in the template import's transaction (integration)", ()
   });
 
   it("adjustOpeningWithTx moves only the opening figures", async () => {
-    await prisma.$transaction((tx) => accounts.adjustOpeningWithTx(tx, accountId, "-300", "250"));
+    await prisma.$transaction((tx) =>
+      accounts.adjustOpeningWithTx(tx, userId, accountId, "-300", "250"),
+    );
     const row = await prisma.bankAccount.findUniqueOrThrow({ where: { id: accountId } });
     expect(row.initialBalance.toString()).toBe("700");
     expect(row.creditUsedInitial.toString()).toBe("250");

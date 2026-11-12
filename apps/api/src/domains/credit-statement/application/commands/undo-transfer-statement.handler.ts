@@ -109,6 +109,7 @@ export class UndoTransferStatementHandler extends BaseIdempotentCommandHandler<
       ]);
       await this.accountRepo.incrementCreditUsedWithTx(
         tx,
+        command.userId,
         context.account.id,
         subtractMoney("0", reversal.removedAmount),
       );

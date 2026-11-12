@@ -212,7 +212,12 @@ describe("RemoveInstallmentPlanHandler", () => {
     }).execute(new RemoveInstallmentPlanCommand("u1", "p1"));
 
     expect(calls.deleteManyWithTx).toHaveBeenCalledWith(expect.anything(), ["t1", "t2"]);
-    expect(calls.incrementBalanceWithTx).toHaveBeenCalledWith(expect.anything(), "a1", "800.0000");
+    expect(calls.incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "a1",
+      "800.0000",
+    );
     expect(calls.incrementCreditUsedWithTx).not.toHaveBeenCalled();
   });
 });

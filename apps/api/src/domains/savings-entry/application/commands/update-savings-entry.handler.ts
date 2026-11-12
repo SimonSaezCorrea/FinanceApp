@@ -156,8 +156,13 @@ export class UpdateSavingsEntryHandler extends BaseIdempotentCommandHandler<
 
         // Reverse the old movement first — old account, opposite delta.
         if (entry.transactionId && entry.bankAccountId) {
-          await this.transactions.deleteWithTx(tx, entry.transactionId);
-          await this.accounts.incrementBalanceWithTx(tx, entry.bankAccountId, entry.amount);
+          await this.transactions.deleteWithTx(tx, command.userId, entry.transactionId);
+          await this.accounts.incrementBalanceWithTx(
+            tx,
+            command.userId,
+            entry.bankAccountId,
+            entry.amount,
+          );
         }
 
         MovementPolicy.assertWithinPrepaidBalance(
@@ -189,7 +194,12 @@ export class UpdateSavingsEntryHandler extends BaseIdempotentCommandHandler<
           observation: (input.note !== undefined ? input.note : entry.snapshot().note) ?? null,
           savingsEntryId: entry.id,
         });
-        await this.accounts.incrementBalanceWithTx(tx, newAccountId, subtractMoney("0", newAmount));
+        await this.accounts.incrementBalanceWithTx(
+          tx,
+          command.userId,
+          newAccountId,
+          subtractMoney("0", newAmount),
+        );
       }
 
       entry.applyUpdate({

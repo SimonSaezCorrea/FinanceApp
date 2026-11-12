@@ -267,23 +267,32 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     });
   }
 
-  async incrementBalanceWithTx(tx: unknown, accountId: string, delta: string): Promise<void> {
+  // Every *WithTx write below matches the owner as well as the id: the caller already loaded the
+  // row scoped by user, so this is a second lock — a row of someone else's makes Prisma throw
+  // (P2025) and the whole transaction rolls back instead of moving their money.
+  async incrementBalanceWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    delta: string,
+  ): Promise<void> {
     const client = tx as PrismaService;
     await client.bankAccount.update({
-      where: { id: accountId },
+      where: { id: accountId, userId },
       data: { currentBalance: { increment: delta } },
     });
   }
 
   async adjustOpeningWithTx(
     tx: unknown,
+    userId: string,
     accountId: string,
     balanceDelta: string,
     creditDelta: string,
   ): Promise<void> {
     const client = tx as PrismaService;
     await client.bankAccount.update({
-      where: { id: accountId },
+      where: { id: accountId, userId },
       data: {
         initialBalance: { increment: balanceDelta },
         creditUsedInitial: { increment: creditDelta },
@@ -291,10 +300,15 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     });
   }
 
-  async incrementCreditUsedWithTx(tx: unknown, accountId: string, delta: string): Promise<void> {
+  async incrementCreditUsedWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    delta: string,
+  ): Promise<void> {
     const client = tx as PrismaService;
     await client.bankAccount.update({
-      where: { id: accountId },
+      where: { id: accountId, userId },
       data: { creditUsed: { increment: delta } },
     });
   }

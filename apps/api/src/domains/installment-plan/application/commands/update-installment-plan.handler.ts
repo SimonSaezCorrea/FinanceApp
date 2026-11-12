@@ -185,9 +185,19 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
         );
         const purchase = movements.find((m) => !m.financeCharge);
         if (purchase?.bankAccountId) {
-          await this.transactions.updateAmountWithTx(tx, purchase.id, newTotalPrincipal);
+          await this.transactions.updateAmountWithTx(
+            tx,
+            context.plan.userId,
+            purchase.id,
+            newTotalPrincipal,
+          );
           const delta = subtractMoney(newTotalPrincipal, context.oldTotalPrincipal);
-          await this.accounts.incrementCreditUsedWithTx(tx, purchase.bankAccountId, delta);
+          await this.accounts.incrementCreditUsedWithTx(
+            tx,
+            context.plan.userId,
+            purchase.bankAccountId,
+            delta,
+          );
         }
       }
     });

@@ -102,6 +102,7 @@ describe("SyncStatementHandler", () => {
     expect(result.status).toBe("PAID");
     expect(writer.updateAmountWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "tx_pay",
       "1200.0000",
     );
@@ -124,7 +125,12 @@ describe("SyncStatementHandler", () => {
 
     await handler.execute(new SyncStatementCommand("u1", "acc_1", "st_1"));
 
-    expect(writer.updateAmountWithTx).toHaveBeenCalledWith(expect.anything(), "tx_pay", "800.0000");
+    expect(writer.updateAmountWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "tx_pay",
+      "800.0000",
+    );
     expect(account.creditUsed).toBe("5200.0000");
   });
 
@@ -162,6 +168,7 @@ describe("SyncStatementHandler", () => {
       expect(writer.updateAmountWithTx).toHaveBeenCalledTimes(1);
       expect(writer.updateAmountWithTx).toHaveBeenCalledWith(
         expect.anything(),
+        expect.any(String),
         "tx_settle_usd",
         "32.0000",
       );

@@ -113,11 +113,12 @@ export class UnpayInstallmentHandler extends BaseCommandHandler<
   protected override async persist(context: Context): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       if (context.transactionId) {
-        await this.transactions.deleteWithTx(tx, context.transactionId);
+        await this.transactions.deleteWithTx(tx, context.plan.userId, context.transactionId);
       }
       if (context.refundAccountId) {
         await this.accounts.incrementBalanceWithTx(
           tx,
+          context.plan.userId,
           context.refundAccountId,
           addMoney("0", context.refundAmount),
         );

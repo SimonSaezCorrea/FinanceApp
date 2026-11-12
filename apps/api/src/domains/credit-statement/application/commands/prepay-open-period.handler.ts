@@ -184,6 +184,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         await this.transactions.createWithTx(tx, settlement.income);
         await this.accountRepo.incrementBalanceWithTx(
           tx,
+          command.userId,
           context.fromAccount.id,
           subtractMoney("0", settlement.charged),
         );
@@ -206,6 +207,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         });
         await this.accountRepo.incrementBalanceWithTx(
           tx,
+          command.userId,
           context.fromAccount.id,
           subtractMoney("0", command.amount),
         );
@@ -219,6 +221,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         // side counterpart, found by `T023b`'s own concurrency test.
         await this.accountRepo.incrementCreditUsedWithTx(
           tx,
+          command.userId,
           context.account.id,
           subtractMoney("0", command.amount),
         );

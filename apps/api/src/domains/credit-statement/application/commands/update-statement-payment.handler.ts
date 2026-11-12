@@ -191,6 +191,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       if (paymentId) {
         await this.transactions.updateAmountWithTx(
           tx,
+          context.account.userId,
           paymentId,
           foreign && context.newCharged !== null
             ? context.newCharged
@@ -201,7 +202,12 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       // currency (in another currency it is what lowers that limit's usage).
       const settlementId = context.statement.settlementTransactionId;
       if (settlementId) {
-        await this.transactions.updateAmountWithTx(tx, settlementId, context.statement.paidAmount);
+        await this.transactions.updateAmountWithTx(
+          tx,
+          context.account.userId,
+          settlementId,
+          context.statement.paidAmount,
+        );
       }
       // The payment is an EXPENSE on the source account: a bigger payment means a
       // lower balance there. Without this the movement and the balance disagree.
@@ -209,6 +215,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       if (fromAccountId) {
         await this.accountRepo.incrementBalanceWithTx(
           tx,
+          context.account.userId,
           fromAccountId,
           fmt(toMoney(balanceDelta).negated()),
         );

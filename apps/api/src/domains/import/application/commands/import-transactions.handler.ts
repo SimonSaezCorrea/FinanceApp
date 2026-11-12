@@ -187,10 +187,15 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
         plan.rows.flatMap((r, i) => r.customFields.map((v) => ({ ...v, transactionId: ids[i]! }))),
       );
       if (Number(plan.cashTotal) !== 0) {
-        await this.accounts.incrementBalanceWithTx(tx, input.bankAccountId, plan.cashTotal);
+        await this.accounts.incrementBalanceWithTx(tx, userId, input.bankAccountId, plan.cashTotal);
       }
       if (Number(plan.creditTotal) !== 0) {
-        await this.accounts.incrementCreditUsedWithTx(tx, input.bankAccountId, plan.creditTotal);
+        await this.accounts.incrementCreditUsedWithTx(
+          tx,
+          userId,
+          input.bankAccountId,
+          plan.creditTotal,
+        );
       }
       const body = { imported };
       await complete(tx, body);

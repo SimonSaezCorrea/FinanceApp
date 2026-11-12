@@ -226,6 +226,6 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
       ...(input.installmentPlanId ? { installmentPlanId: input.installmentPlanId } : {}),
       ...(input.financeCharge ? { financeCharge: true } : {}),
     });
-    await this.accounts.incrementCreditUsedWithTx(tx, input.accountId, input.amount);
+    await this.accounts.incrementCreditUsedWithTx(tx, input.userId, input.accountId, input.amount);
   }
 }

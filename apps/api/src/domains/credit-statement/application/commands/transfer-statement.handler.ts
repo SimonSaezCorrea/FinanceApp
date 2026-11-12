@@ -198,6 +198,7 @@ export class TransferStatementHandler extends BaseIdempotentCommandHandler<
       // Atomic relative update: the pool now owes the converted debt.
       await this.accountRepo.incrementCreditUsedWithTx(
         tx,
+        command.userId,
         context.account.id,
         moneyToString(command.amount),
       );

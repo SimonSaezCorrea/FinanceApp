@@ -46,14 +46,16 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     });
   }
 
-  async updateAmountWithTx(tx: unknown, id: string, amount: string): Promise<void> {
+  // Both match the owner as well as the id: someone else's movement makes Prisma throw (P2025)
+  // and the caller's transaction rolls back.
+  async updateAmountWithTx(tx: unknown, userId: string, id: string, amount: string): Promise<void> {
     const client = tx as PrismaService;
-    await client.transaction.update({ where: { id }, data: { amount } });
+    await client.transaction.update({ where: { id, userId }, data: { amount } });
   }
 
-  async deleteWithTx(tx: unknown, id: string): Promise<void> {
+  async deleteWithTx(tx: unknown, userId: string, id: string): Promise<void> {
     const client = tx as PrismaService;
-    await client.transaction.delete({ where: { id } });
+    await client.transaction.delete({ where: { id, userId } });
   }
 
   async listForInstallmentPlan(userId: string, planId: string): Promise<InstallmentPlanMovement[]> {

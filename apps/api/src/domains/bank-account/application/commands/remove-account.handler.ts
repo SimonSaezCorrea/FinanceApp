@@ -138,10 +138,10 @@ export class RemoveAccountHandler extends BaseCommandHandler<RemoveAccountComman
       await this.fields.removeAccountFromScopesWithTx(tx, userId, accountId);
       await this.transactions.deleteManyWithTx(tx, [...movementIds]);
       for (const { accountId: other, delta } of netByAccount(balances, accountId)) {
-        await this.accountRepo.incrementBalanceWithTx(tx, other, delta);
+        await this.accountRepo.incrementBalanceWithTx(tx, userId, other, delta);
       }
       for (const { accountId: other, delta } of netByAccount(credits, accountId)) {
-        await this.accountRepo.incrementCreditUsedWithTx(tx, other, delta);
+        await this.accountRepo.incrementCreditUsedWithTx(tx, userId, other, delta);
       }
       if (options.installmentPlans) {
         for (const planId of scope.installmentPlans.planIds) {

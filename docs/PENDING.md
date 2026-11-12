@@ -1100,14 +1100,17 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    (el landing tiene `security.csp` de Astro, que también hashea estilos y entonces bloquearía los
    atributos `style=` de las ilustraciones) y probarse en un navegador: primero en
    `Content-Security-Policy-Report-Only`.
-3. **`increment*WithTx` por id**: `BankAccountRepositoryPort.incrementBalanceWithTx`/
-   `incrementCreditUsedWithTx` (36 llamadores) y `TransactionWriterRepositoryPort.deleteWithTx` escriben
-   solo por id. Cada llamador ya cargó la fila filtrando por usuario en la misma operación, así que es
-   defensa adicional; agregarles `userId` es un refactor que cruza todos los handlers de dinero.
-4. **Documento SSM `fik-deploy`**: el código ya lo soporta (`AWS_DEPLOY_DOCUMENT`); falta crearlo en
-   AWS y ajustar el rol (`docs/DEPLOY.md` §9 paso 4).
-5. **`deploy/` en el servidor**: `deploy.sh` (valida el tag) y `docker-compose.yml` (Caddy 2.11.9 y
-   Vector fijados por digest) se copian a mano a `/opt/fik`.
+3. ~~**`increment*WithTx` por id**~~ — **hecho (2026-11-12)**: `incrementBalanceWithTx`,
+   `incrementCreditUsedWithTx`, `adjustOpeningWithTx`, `updateAmountWithTx`, `deleteWithTx`,
+   `saveUpdateWithTx` y `removeWithTx` reciben `userId` y escriben con `where: { id, userId }`; una
+   fila ajena lanza (P2025) y revierte la transacción (`owner-scoped-writes.integration.spec.ts`).
+4. **Documento SSM `fik-deploy`** — creado en AWS (2026-11-12), el rol `fik-github-deploy` puede
+   usarlo y la variable `AWS_DEPLOY_DOCUMENT=fik-deploy` está puesta. **Falta**: después del primer
+   despliegue del API que funcione con él, quitar `AWS-RunShellScript` de la política inline
+   `fik-deploy` del rol (`docs/DEPLOY.md` §9 paso 4.4).
+5. ~~**`deploy/` en el servidor**~~ — **sincronizado (2026-11-12)**: `deploy.sh`, `docker-compose.yml`
+   y `Caddyfile` de `/opt/fik` iguales al repo; Caddy pasó de 2.8 a 2.11.9 y Vector quedó fijado por
+   digest. Sigue siendo a mano: cada cambio en `deploy/` hay que copiarlo (sección 8 de DEPLOY.md).
 6. **wrangler** se baja con `npx wrangler@<versión exacta>`, fuera del lockfile. Meterlo al lockfile
    instalaría `workerd` (~100 MB) en cada job de CI; se dejó así a propósito.
 7. **Límite por IP en memoria**: se pierde al reiniciar y, en el minuto de deploy con dos contenedores,

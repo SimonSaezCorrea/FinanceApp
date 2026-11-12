@@ -257,7 +257,7 @@ describe("editing an installment plan's schedule (integration)", () => {
         installmentPlanId: plan.id,
       },
     });
-    await accounts.incrementCreditUsedWithTx(prisma, creditAccount.id, "600000");
+    await accounts.incrementCreditUsedWithTx(prisma, userId, creditAccount.id, "600000");
 
     await updateHandler().execute(
       new UpdateInstallmentPlanCommand(userId, plan.id, { totalPrincipal: "900000" }),

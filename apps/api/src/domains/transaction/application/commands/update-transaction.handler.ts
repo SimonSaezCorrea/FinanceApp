@@ -377,6 +377,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       return this.prisma.$transaction(async (tx) => {
         const row = await this.repo.saveUpdateWithTx(
           tx,
+          command.userId,
           command.id,
           context.patch,
           context.creditUsedDeltas,

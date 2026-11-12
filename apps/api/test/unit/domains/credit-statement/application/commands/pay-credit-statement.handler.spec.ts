@@ -628,6 +628,7 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
     expect(result.status).toBe("PAID");
     expect(accountRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
       expect.anything(),
+      expect.any(String),
       "acc_2",
       "-49394.0000",
     );

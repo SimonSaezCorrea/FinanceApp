@@ -419,6 +419,7 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
             if (cash || credit) {
               await this.accounts.adjustOpeningWithTx(
                 tx,
+                userId,
                 effect.accountId,
                 subtractMoney("0", effect.netCash),
                 subtractMoney("0", effect.netCredit),
@@ -427,9 +428,19 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
             continue;
           }
           if (cash)
-            await this.accounts.incrementBalanceWithTx(tx, effect.accountId, effect.netCash);
+            await this.accounts.incrementBalanceWithTx(
+              tx,
+              userId,
+              effect.accountId,
+              effect.netCash,
+            );
           if (credit) {
-            await this.accounts.incrementCreditUsedWithTx(tx, effect.accountId, effect.netCredit);
+            await this.accounts.incrementCreditUsedWithTx(
+              tx,
+              userId,
+              effect.accountId,
+              effect.netCredit,
+            );
           }
         }
 

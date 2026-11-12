@@ -84,11 +84,11 @@ export class RemoveInstallmentPlanHandler extends BaseCommandHandler<
       await this.transactions.deleteManyWithTx(tx, reversal.movementIds);
       for (const { accountId, amount } of reversal.balanceRestorations) {
         if (toMoney(amount).isZero()) continue;
-        await this.accounts.incrementBalanceWithTx(tx, accountId, amount);
+        await this.accounts.incrementBalanceWithTx(tx, context.userId, accountId, amount);
       }
       for (const { accountId, delta } of reversal.creditReversals) {
         if (toMoney(delta).isZero()) continue;
-        await this.accounts.incrementCreditUsedWithTx(tx, accountId, delta);
+        await this.accounts.incrementCreditUsedWithTx(tx, context.userId, accountId, delta);
       }
       await this.repo.removeWithTx(tx, context.userId, context.planId);
     });

@@ -140,7 +140,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
         installmentPlanId: planId,
       },
     });
-    await accountRepo.incrementCreditUsedWithTx(prisma, creditAccountId, "1080000");
+    await accountRepo.incrementCreditUsedWithTx(prisma, userId, creditAccountId, "1080000");
 
     // An ordinary purchase (40.000) in the same period, plus close+stamp the first
     // instalment (90.000) — a period totalling 130.000.
@@ -162,7 +162,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
         creditStatementId: statementId,
       },
     });
-    await accountRepo.incrementCreditUsedWithTx(prisma, creditAccountId, "40000");
+    await accountRepo.incrementCreditUsedWithTx(prisma, userId, creditAccountId, "40000");
 
     const generateHandler = new GenerateStatementsHandler(
       { publish: () => undefined } as never,

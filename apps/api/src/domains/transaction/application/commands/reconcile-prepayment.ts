@@ -76,18 +76,25 @@ export async function reconcilePrepaymentWithTx(
     if (!toMoney(paidDelta).isZero()) {
       const paymentId = statement.paidTransactionId;
       if (paymentId) {
-        await deps.transactions.updateAmountWithTx(tx, paymentId, statement.paidAmount);
+        await deps.transactions.updateAmountWithTx(
+          tx,
+          params.userId,
+          paymentId,
+          statement.paidAmount,
+        );
       }
       const fromAccountId = statement.paidFromAccountId;
       if (fromAccountId) {
         await deps.accounts.incrementBalanceWithTx(
           tx,
+          params.userId,
           fromAccountId,
           subtractMoney("0", paidDelta),
         );
       }
       await deps.accounts.incrementCreditUsedWithTx(
         tx,
+        params.userId,
         params.accountId,
         subtractMoney("0", paidDelta),
       );
@@ -104,6 +111,7 @@ export async function reconcilePrepaymentWithTx(
     if (!toMoney(delta).isZero()) {
       await deps.accounts.incrementCreditUsedWithTx(
         tx,
+        params.userId,
         params.accountId,
         subtractMoney("0", delta),
       );
