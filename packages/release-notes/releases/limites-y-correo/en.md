@@ -14,3 +14,5 @@ summary: We tell you when someone asks to change your email, and changing your p
   a few minutes.
 - **Locks that end**: when a lock for wrong two-step verification codes ends, the account starts
   from zero.
+- **Always an encrypted connection**: your browser remembers that mifik only opens over a secure
+  connection, even if you type the address without "https".

@@ -5,6 +5,7 @@ commits:
   - 5110a015
   - 95e2d338
   - c3342841
+  - d00a6678
 ---
 
 ## Seguridad
@@ -17,3 +18,5 @@ commits:
   subir comprobantes tienen un máximo de intentos seguidos. Si lo alcanzas, esperas unos minutos.
 - **Bloqueos que terminan**: cuando termina un bloqueo por códigos equivocados de la verificación
   en dos pasos, la cuenta parte de cero.
+- **Conexión siempre cifrada**: tu navegador recuerda que mifik solo se abre por una conexión
+  segura, incluso si escribes la dirección sin "https".
