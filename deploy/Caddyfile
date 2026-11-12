@@ -25,10 +25,14 @@ api.mifik.cl {
 	# new one starts receiving traffic as soon as it listens. A request whose connection is refused
 	# (a container still booting, or one shutting down) is retried on another for up to 10 s: it
 	# never reached the API, so retrying is safe even for a POST.
+	# "to api:3001" is only the fallback: Caddy uses it when the dynamic lookup fails (Docker's DNS
+	# answered "operation was canceled" on 2026-11-11/12 with the server idle, and with no static
+	# upstream every request in that window got "no upstreams available" after 10 s).
 	reverse_proxy {
 		dynamic a api 3001 {
 			refresh 1s
 		}
+		to api:3001
 		lb_policy round_robin
 		lb_try_duration 10s
 		lb_try_interval 250ms
