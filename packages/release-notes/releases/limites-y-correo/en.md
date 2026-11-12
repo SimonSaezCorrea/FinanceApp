@@ -22,3 +22,8 @@ summary: We tell you when someone asks to change your email, and changing your p
   twice.
 - **Sessions that end**: a session closes after 30 days even if you keep using it, and if someone
   tries to use an old copy of it, it closes at once.
+
+## Stability
+
+- **Fewer passing connection errors**: if the server briefly can't find the API, it now still
+  answers instead of giving you an error after a wait.

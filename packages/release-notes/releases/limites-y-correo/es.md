@@ -10,6 +10,7 @@ commits:
   - 4363f2b9
   - 38e123ea
   - 8fab17b6
+  - 3975a371
 ---
 
 ## Seguridad
@@ -30,3 +31,8 @@ commits:
   usar dos veces.
 - **Sesiones con fecha de término**: una sesión se cierra a los 30 días aunque la uses, y si alguien
   intenta usar una copia vieja de ella, se cierra al momento.
+
+## Estabilidad
+
+- **Menos errores de conexión pasajeros**: si el servidor no logra ubicar la API por un instante,
+  ahora igual responde en vez de devolverte un error después de esperar.
