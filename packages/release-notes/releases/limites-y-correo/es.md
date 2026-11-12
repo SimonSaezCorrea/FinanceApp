@@ -4,6 +4,7 @@ summary: Te avisamos cuando se pide cambiar tu correo, y cambiar tu contraseña 
 commits:
   - 5110a015
   - 95e2d338
+  - c3342841
 ---
 
 ## Seguridad
