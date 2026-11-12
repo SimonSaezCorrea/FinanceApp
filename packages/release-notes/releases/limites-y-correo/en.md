@@ -16,3 +16,9 @@ summary: We tell you when someone asks to change your email, and changing your p
   from zero.
 - **Always an encrypted connection**: your browser remembers that mifik only opens over a secure
   connection, even if you type the address without "https".
+- **Replace everything asks you to confirm it is you**: before deleting your data to import the
+  template, as when changing your email.
+- **Each verification code works once**: a code from your authenticator app can no longer be used
+  twice.
+- **Sessions that end**: a session closes after 30 days even if you keep using it, and if someone
+  tries to use an old copy of it, it closes at once.

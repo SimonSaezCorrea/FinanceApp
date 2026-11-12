@@ -6,6 +6,10 @@ commits:
   - 95e2d338
   - c3342841
   - d00a6678
+  - 6ca4569a
+  - 4363f2b9
+  - 38e123ea
+  - 8fab17b6
 ---
 
 ## Seguridad
@@ -20,3 +24,9 @@ commits:
   en dos pasos, la cuenta parte de cero.
 - **Conexión siempre cifrada**: tu navegador recuerda que mifik solo se abre por una conexión
   segura, incluso si escribes la dirección sin "https".
+- **Reemplazar todo pide confirmar que eres tú**: antes de borrar tus datos para importar la
+  plantilla, como al cambiar tu correo.
+- **Cada código de verificación sirve una vez**: el código de tu app de autenticación ya no se puede
+  usar dos veces.
+- **Sesiones con fecha de término**: una sesión se cierra a los 30 días aunque la uses, y si alguien
+  intenta usar una copia vieja de ella, se cierra al momento.
