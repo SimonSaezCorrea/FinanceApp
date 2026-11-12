@@ -4,8 +4,9 @@
   # without it the first visit by http:// could be intercepted before the redirect.
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
-  # A baseline policy (security run-3): no plugins, no <base> rewriting the page's links, no framing,
-  # forms post only to this site. Scripts and styles are not restricted yet (see docs/PENDING.md).
+  # The baseline policy (no plugins, no <base>, no framing, forms only to this site). The build
+  # REPLACES this line in dist/_headers with the full policy, inline scripts' hashes included
+  # (scripts/csp.mjs); a build that finds no such line fails.
   Content-Security-Policy: object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

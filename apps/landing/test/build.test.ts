@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { inlineScriptHashes } from "@finance/ui/csp.mjs";
+
 /**
  * What a crawler or a first visit gets (specs/031 US1, SC-001/SC-002): runs over `dist/` after
  * `astro build`, with the site built for `http://localhost:4321` unless PUBLIC_SITE_URL says
@@ -99,6 +101,19 @@ describe("public site build", () => {
     expect(all).toContain("Strict-Transport-Security: max-age=31536000; includeSubDomains");
     expect(all).toContain("object-src 'none'");
     expect(all).toContain("frame-ancestors 'none'");
+  });
+
+  it("runs no script it didn't ship: every inline script is hashed into the CSP, nothing else", () => {
+    const headers = readFileSync(join(DIST, "_headers"), "utf8");
+    const policy = /Content-Security-Policy: (.+)/.exec(headers)?.[1] ?? "";
+    const scriptSrc = policy.split("; ").find((d) => d.startsWith("script-src "))!;
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+    expect(scriptSrc).not.toContain("'unsafe-eval'");
+    expect(policy).toContain("default-src 'self'");
+    // The theme script every page runs before painting.
+    const home = readFileSync(join(DIST, "index.html"), "utf8");
+    for (const hash of inlineScriptHashes(home)) expect(scriptSrc).toContain(hash);
+    expect(inlineScriptHashes(home).size).toBeGreaterThan(0);
   });
 
   it("never caches or refers on the email-link pages", () => {

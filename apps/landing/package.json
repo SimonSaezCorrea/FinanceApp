@@ -6,7 +6,7 @@
   "description": "fik's public site (mifik.cl): static pages per language, the access panel loaded on demand.",
   "scripts": {
     "dev": "astro dev --port 4321",
-    "build": "astro build",
+    "build": "astro build && node scripts/csp.mjs",
     "preview": "astro preview --port 4321",
     "test": "vitest run",
     "test:build": "vitest run --config vitest.build.config.ts",

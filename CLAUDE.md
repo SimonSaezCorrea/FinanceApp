@@ -2544,7 +2544,11 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       that isn't 12 hex chars; `deploy.yml` runs the SSM document named by the optional repo variable
       **`AWS_DEPLOY_DOCUMENT`** (`deploy/aws/fik-deploy-document.json`, only `deploy.sh <tag>`), else
       `AWS-RunShellScript`; both sites' `_headers` send a baseline CSP (`object-src 'none'; base-uri
-'self'; frame-ancestors 'none'; form-action 'self'`). The bank-account and installment-plan
+'self'; frame-ancestors 'none'; form-action 'self'`). Since 2026-11-12 that line is REPLACED at build by the full policy:
+      `apps/{web,landing}/scripts/csp.mjs` (run by each `build` script, helper `packages/ui/csp.mjs`) hashes
+      every inline script of `dist/` into `script-src` (no `'unsafe-inline'`/`'unsafe-eval'`) and adds the
+      origins from the build's `VITE_*`/`PUBLIC_*` vars; the app calls `@finance/contracts/browser`'s
+      `disableSchemaJit()` so Zod never probes `new Function`. A new third-party origin goes in those scripts. The bank-account and installment-plan
       aggregate saves match `userId` as well as `id`. So do the money writes other domains enlist by id (2026-11-12):
       `BankAccountRepositoryPort.incrementBalanceWithTx`/`incrementCreditUsedWithTx`/`adjustOpeningWithTx`
       and the transaction ports' `updateAmountWithTx`/`deleteWithTx`/`saveUpdateWithTx`/`removeWithTx`

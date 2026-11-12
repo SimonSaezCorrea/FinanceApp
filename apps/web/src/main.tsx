@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 
 import { configureClient } from "@finance/client";
+import { disableSchemaJit } from "@finance/contracts/browser";
 
 import "@fontsource-variable/geist";
 import "@fontsource-variable/inter";
@@ -16,6 +17,8 @@ import { reportError, startErrorReporting } from "./shared/lib/errorReporting";
 import { trackScrollbarGap } from "./shared/lib/scrollbarGap";
 import "./styles/index.css";
 
+// Before any schema runs: the CSP has no 'unsafe-eval' (scripts/csp.mjs).
+disableSchemaJit();
 startErrorReporting();
 configureClient({ baseUrl: import.meta.env.VITE_API_URL });
 primeSession();

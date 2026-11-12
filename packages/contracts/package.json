@@ -29,6 +29,11 @@
       "types": "./dist/http.d.ts",
       "import": "./src/http.ts",
       "default": "./dist/http.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./src/browser.ts",
+      "default": "./dist/browser.js"
     }
   },
   "scripts": {

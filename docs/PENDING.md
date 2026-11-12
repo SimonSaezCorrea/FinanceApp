@@ -1095,11 +1095,16 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    en la CA _compartida_ de Cloudflare (`deploy/aws/bootstrap-ec2.sh`): cualquier cuenta de Cloudflare
    llega al origen saltándose las reglas de la zona. Se cierra con un certificado de cliente propio,
    subido como AOP de la zona `mifik.cl`, y Caddy confiando solo en esa CA.
-2. **CSP de scripts y estilos** en la app y el landing. Hoy solo va la base (`object-src`,
-   `base-uri`, `frame-ancestors`, `form-action`). La completa necesita los hashes de los scripts inline
-   (el landing tiene `security.csp` de Astro, que también hashea estilos y entonces bloquearía los
-   atributos `style=` de las ilustraciones) y probarse en un navegador: primero en
-   `Content-Security-Policy-Report-Only`.
+2. ~~**CSP de scripts y estilos**~~ — **hecho (2026-11-12)**: después del build, `scripts/csp.mjs` de
+   cada app (helper compartido `packages/ui/csp.mjs`) hashea cada script inline de `dist/**/*.html` y
+   escribe la política completa en `dist/_headers` (`default-src 'self'`, `script-src 'self'` + hashes,
+   sin `'unsafe-inline'`/`'unsafe-eval'` en scripts; estilos con `'unsafe-inline'` por los `style=` de
+   las ilustraciones). La app apaga el JIT de Zod (`@finance/contracts/browser`'s `disableSchemaJit`),
+   que si no probaba `new Function` en cada página. Probado en Chrome headless con la política
+   aplicada: 17 páginas del landing (con y sin el beacon de analytics, panel de acceso abierto) y 16
+   pantallas de la app con sesión (incluida la plantilla Excel), sin violaciones. Se aplica directo,
+   sin pasar por `Report-Only`. Si una página nueva carga algo de otro origen, hay que agregarlo en
+   `apps/{web,landing}/scripts/csp.mjs`.
 3. ~~**`increment*WithTx` por id**~~ — **hecho (2026-11-12)**: `incrementBalanceWithTx`,
    `incrementCreditUsedWithTx`, `adjustOpeningWithTx`, `updateAmountWithTx`, `deleteWithTx`,
    `saveUpdateWithTx` y `removeWithTx` reciben `userId` y escriben con `where: { id, userId }`; una
