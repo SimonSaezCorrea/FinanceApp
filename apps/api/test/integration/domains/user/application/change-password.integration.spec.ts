@@ -14,6 +14,8 @@ import { TokenIssuer } from "../../../../../src/domains/user/application/token-i
 import { buildUserRepo, noopIpGeolocationCacheRepo } from "../../../support/repositories";
 import { PrismaSessionRepository } from "../../../../../src/domains/session/infrastructure/prisma-session.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+import { PrismaUserEmailRepository } from "../../../../../src/domains/user-email/infrastructure/prisma-user-email.repository";
+import { PrismaEmailTokenRepository } from "../../../../../src/domains/email-token/infrastructure/prisma-email-token.repository";
 import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
 
 describe("ChangePasswordHandler (integration)", () => {
@@ -59,6 +61,8 @@ describe("ChangePasswordHandler (integration)", () => {
       sessionRepo,
       prisma,
       new PrismaTrustedDeviceRepository(prisma),
+      new PrismaUserEmailRepository(prisma),
+      new PrismaEmailTokenRepository(prisma),
     );
     await handler.execute(
       new ChangePasswordCommand(
@@ -90,6 +94,8 @@ describe("ChangePasswordHandler (integration)", () => {
       sessionRepo,
       prisma,
       new PrismaTrustedDeviceRepository(prisma),
+      new PrismaUserEmailRepository(prisma),
+      new PrismaEmailTokenRepository(prisma),
     );
     await expect(
       handler.execute(

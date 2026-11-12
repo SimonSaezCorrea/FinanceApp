@@ -22,6 +22,7 @@ import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.dec
 import { requiresSecureCookies } from "../../../infra/config/origins.config";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
+import { RateLimit, RateLimitGuard } from "../../../infra/http/rate-limit";
 import { ChangePasswordCommand } from "../application/commands/change-password.command";
 import { CloseSessionCommand } from "../application/commands/close-session.command";
 import { ConfirmMfaEnrollmentCommand } from "../application/commands/confirm-mfa-enrollment.command";
@@ -116,6 +117,8 @@ export class AuthController {
   ) {}
 
   @Post("register")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authEmail")
   async register(
     @Req() req: Request,
     @Body(new ZodValidationPipe(auth.registerRequestSchema)) body: auth.RegisterRequest,
@@ -129,6 +132,8 @@ export class AuthController {
   }
 
   @Post("login")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authAttempt")
   @HttpCode(200)
   async login(
     @Req() req: Request,
@@ -158,6 +163,8 @@ export class AuthController {
 
   /** "Reenviar código" while signing in with the email method (specs/040). */
   @Post("login/mfa-resend")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authEmail")
   @HttpCode(200)
   resendMfaLoginCode(@Req() req: Request): Promise<auth.MfaCodeSentResponse> {
     const pendingToken = (req.cookies as Record<string, string> | undefined)?.[MFA_PENDING_COOKIE];
@@ -166,6 +173,8 @@ export class AuthController {
   }
 
   @Post("login/mfa-verify")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authAttempt")
   @HttpCode(200)
   async verifyMfaLogin(
     @Req() req: Request,
@@ -194,6 +203,8 @@ export class AuthController {
   }
 
   @Post("login/passkey-options")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authAttempt")
   @HttpCode(200)
   async startPasskeyLogin(
     @Body(new ZodValidationPipe(auth.startPasskeyLoginRequestSchema))
@@ -214,6 +225,8 @@ export class AuthController {
   }
 
   @Post("login/passkey-verify")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authAttempt")
   @HttpCode(200)
   async verifyPasskeyLogin(
     @Req() req: Request,
@@ -582,6 +595,8 @@ export class AuthController {
 
   /** Public: the link in "Confirma tu correo" lands on the site, which posts its token here. */
   @Post("email/verify")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authAttempt")
   @HttpCode(200)
   async verifyEmail(
     @Body(new ZodValidationPipe(auth.verifyEmailRequestSchema)) body: auth.VerifyEmailRequest,
@@ -628,6 +643,8 @@ export class AuthController {
 
   /** Public, and always the same answer whether or not the RUT exists (research.md R9). */
   @Post("password/forgot")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authEmail")
   @HttpCode(202)
   async forgotPassword(
     @Body(new ZodValidationPipe(auth.forgotPasswordRequestSchema))
@@ -638,6 +655,8 @@ export class AuthController {
   }
 
   @Post("password/reset")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("authAttempt")
   @HttpCode(200)
   async resetPassword(
     @Body(new ZodValidationPipe(auth.resetPasswordRequestSchema)) body: auth.ResetPasswordRequest,

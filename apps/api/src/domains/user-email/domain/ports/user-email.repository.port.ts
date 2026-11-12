@@ -30,6 +30,9 @@ export interface UserEmailRepositoryPort {
     address: string,
     now: Date,
   ): Promise<UserEmailProps>;
+  /** Cancels a requested change: the PENDING row (if any) moves to history, so its link can no
+   * longer promote it. Returns whether there was one. */
+  cancelPendingWithTx(tx: unknown, userId: string, now: Date): Promise<boolean>;
   /** Confirms the primary in place, only if it is still the unconfirmed primary. Returns
    * whether it did (false = it changed meanwhile: the caller rolls back). */
   markVerifiedWithTx(tx: unknown, id: string, at: Date): Promise<boolean>;

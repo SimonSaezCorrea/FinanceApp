@@ -33,6 +33,7 @@ const NOTICES: SecurityNoticeKind[] = [
   "PASSKEY_ADDED",
   "PASSKEY_REMOVED",
   "EMAIL_CHANGED",
+  "EMAIL_CHANGE_REQUESTED",
   "ACCOUNT_DELETED",
   "RECOVERY_CODES_REGENERATED",
   "TRUSTED_DEVICE_ADDED",
@@ -44,6 +45,7 @@ const DETAIL: Partial<Record<SecurityNoticeKind, string>> = {
   PASSKEY_ADDED: "iPhone de Ana",
   PASSKEY_REMOVED: "iPhone de Ana",
   EMAIL_CHANGED: "ana.nueva@ejemplo.cl",
+  EMAIL_CHANGE_REQUESTED: "ana.nueva@ejemplo.cl",
   TRUSTED_DEVICE_ADDED: "Chrome · Windows",
   PASSKEY_COMPROMISED: "YubiKey del trabajo",
 };
@@ -51,6 +53,7 @@ const DETAIL_MEANING: Partial<Record<SecurityNoticeKind, string>> = {
   PASSKEY_ADDED: "Nombre de la llave de acceso",
   PASSKEY_REMOVED: "Nombre de la llave de acceso",
   EMAIL_CHANGED: "Dirección nueva de la cuenta",
+  EMAIL_CHANGE_REQUESTED: "Dirección pedida",
   TRUSTED_DEVICE_ADDED: "Navegador y sistema del dispositivo",
   PASSKEY_COMPROMISED: "Nombre de la llave de acceso",
 };
@@ -141,6 +144,7 @@ const NOTICE_NAMES: Record<SecurityNoticeKind, string> = {
   PASSKEY_ADDED: "Llave de acceso agregada",
   PASSKEY_REMOVED: "Llave de acceso eliminada",
   EMAIL_CHANGED: "Correo cambiado (a la dirección anterior)",
+  EMAIL_CHANGE_REQUESTED: "Cambio de correo pedido (a la dirección actual)",
   IDENTIFIER_CHANGED: "RUT cambiado",
   ACCOUNT_DELETED: "Cuenta eliminada",
   RECOVERY_CODES_REGENERATED: "Códigos de recuperación nuevos",

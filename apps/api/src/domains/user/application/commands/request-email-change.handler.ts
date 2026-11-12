@@ -31,6 +31,7 @@ import { AccountEmailService } from "../account-emails";
 import { assertLinkSent } from "../link-outcome";
 import { assertRecentStepUp } from "../step-up";
 import { userEmailToContract } from "../user-email.mapper";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 import { RequestEmailChangeCommand } from "./request-email-change.command";
 
 interface Context {
@@ -89,20 +90,28 @@ export class RequestEmailChangeHandler extends BaseCommandHandler<
   ): Promise<HandleResult<auth.UserEmail>> {
     const now = new Date();
     const existing = await this.emails.findPending(user.id);
-    const pending =
-      existing && existing.address === address && isWithinResendWindow(existing.createdAt, now)
-        ? existing
-        : // Retiring the previous pending address and adding this one happen together.
-          await this.prisma.$transaction(async (tx) => {
-            // Any link still pointing at a pending address being replaced stops working.
-            await this.tokens.revokeActiveWithTx(tx, user.id, "VERIFY_EMAIL", now);
-            return this.emails.addPendingWithTx(tx, user.id, address, now);
-          });
+    const reused =
+      existing && existing.address === address && isWithinResendWindow(existing.createdAt, now);
+    const pending = reused
+      ? existing
+      : // Retiring the previous pending address and adding this one happen together.
+        await this.prisma.$transaction(async (tx) => {
+          // Any link still pointing at a pending address being replaced stops working.
+          await this.tokens.revokeActiveWithTx(tx, user.id, "VERIFY_EMAIL", now);
+          return this.emails.addPendingWithTx(tx, user.id, address, now);
+        });
     const outcome = await this.accountEmails.sendVerification(
       { userId: user.id, locale: user.locale },
       pending,
     );
     assertLinkSent(outcome);
-    return { result: userEmailToContract(pending), events: [] };
+    // Security run-3: the current address learns of the request right away, while it can still
+    // be stopped (changing the password cancels it), not only once it has happened.
+    return {
+      result: userEmailToContract(pending),
+      events: reused
+        ? []
+        : [new AccountSecurityEvent(user.id, "EMAIL_CHANGE_REQUESTED", now, address)],
+    };
   }
 }

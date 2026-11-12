@@ -77,6 +77,14 @@ export class PrismaUserEmailRepository implements UserEmailRepositoryPort {
     return rowToProps(row);
   }
 
+  async cancelPendingWithTx(tx: unknown, userId: string, now: Date): Promise<boolean> {
+    const result = await (tx as PrismaService).userEmail.updateMany({
+      where: { userId, status: "PENDING" },
+      data: { status: "PAST", replacedAt: now },
+    });
+    return result.count > 0;
+  }
+
   async findByIdWithTx(tx: unknown, id: string): Promise<UserEmailProps | null> {
     const row = await (tx as PrismaService).userEmail.findUnique({ where: { id } });
     return row ? rowToProps(row) : null;

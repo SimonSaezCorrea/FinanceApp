@@ -96,8 +96,16 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
           deviceLabel: parseDeviceLabel(command.device?.userAgent) ?? "",
         }
       : null;
+    const code = command.input.code.trim();
+    // A recovery code is checked BEFORE the row lock (security run-3): bcrypt against up to 10
+    // hashes (~0.7 s) with the row locked held a pooled connection per attempt, as login's
+    // password check did before run-2. Inside the lock only the matched code is claimed.
+    const recoveryMatch = looksLikeRecoveryCode(code)
+      ? await this.matchRecoveryCode(context.userId, code)
+      : undefined;
+    if (recoveryMatch === "locked") throw new MfaLockedError();
     const outcome = await this.prisma.$transaction((tx) =>
-      this.runLocked(tx, context.userId, command.input.code.trim(), remember),
+      this.runLocked(tx, context.userId, code, remember, recoveryMatch),
     );
 
     switch (outcome.kind) {
@@ -140,6 +148,8 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     userId: string,
     code: string,
     remember: RememberPlan | null,
+    /** Set when `code` looks like a recovery code: the id it matched outside the lock, or null. */
+    recoveryMatch: string | null | undefined,
   ): Promise<Outcome> {
     const user = await this.repo.findByIdForUpdateWithTx(tx, userId);
     if (!user) return { kind: "unauthorized" };
@@ -149,11 +159,16 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
 
     // A recovery code works with either method; otherwise the account's own method decides:
     // the app's TOTP, or the emailed LOGIN code (consumed atomically, one use).
-    const valid = looksLikeRecoveryCode(code)
-      ? await this.tryRecoveryCode(tx, user, code)
-      : user.mfaMethodOrDefault() === "EMAIL"
-        ? await this.mfaCodes.verifyWithTx(tx, user.id, "LOGIN", code, now)
-        : isValidTotp(user.mfaSecret, code);
+    // A claim that loses a race (used, or the codes regenerated meanwhile) counts as invalid.
+    let valid: boolean;
+    if (recoveryMatch !== undefined) {
+      valid =
+        recoveryMatch !== null && (await this.recoveryCodes.markUsedWithTx(tx, recoveryMatch));
+    } else if (user.mfaMethodOrDefault() === "EMAIL") {
+      valid = await this.mfaCodes.verifyWithTx(tx, user.id, "LOGIN", code, now);
+    } else {
+      valid = isValidTotp(user.mfaSecret, code);
+    }
 
     if (!valid) {
       user.recordMfaFailure(MFA_LOCKOUT_THRESHOLD, MFA_LOCKOUT_MINUTES, now);
@@ -177,18 +192,15 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     return { kind: "success", user, remaining, remembered: remember };
   }
 
-  /** Atomically claims a recovery code inside the SAME outer transaction — a lost race (someone
-   * else used it first) is treated exactly like an invalid code, never a partial success. */
-  private async tryRecoveryCode(tx: unknown, user: User, code: string): Promise<boolean> {
-    const candidates = await this.recoveryCodes.findUnusedByUser(user.id);
-    let matchedId: string | null = null;
+  /** Which unused recovery code `code` is, compared without any lock; "locked" when the account
+   * is already locked, so no bcrypt is spent on it. The claim happens later, inside the lock. */
+  private async matchRecoveryCode(userId: string, code: string): Promise<string | null | "locked"> {
+    const user = await this.repo.findById(userId);
+    if (user?.isMfaLocked(new Date())) return "locked";
+    const candidates = await this.recoveryCodes.findUnusedByUser(userId);
     for (const candidate of candidates) {
-      if (await compare(code, candidate.codeHash)) {
-        matchedId = candidate.id;
-        break;
-      }
+      if (await compare(code, candidate.codeHash)) return candidate.id;
     }
-    if (!matchedId) return false;
-    return this.recoveryCodes.markUsedWithTx(tx, matchedId);
+    return null;
   }
 }

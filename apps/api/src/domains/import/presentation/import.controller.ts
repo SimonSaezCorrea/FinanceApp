@@ -1,4 +1,5 @@
 import { Body, Controller, Headers, HttpCode, Post, UseGuards } from "@nestjs/common";
+import { RateLimit, RateLimitGuard } from "../../../infra/http/rate-limit";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
 import * as contracts from "@finance/contracts";
@@ -25,6 +26,8 @@ export class ImportController {
   ) {}
 
   @Post("transactions")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("heavyWrite")
   create(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(contracts.imports.importTransactionsRequestSchema))
@@ -40,6 +43,8 @@ export class ImportController {
    * on each account, and every problem located on its sheet and row. A POST only
    * because the body is large — it changes nothing, so it needs no idempotency key. */
   @Post("template/preview")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("heavyWrite")
   @HttpCode(200)
   previewTemplate(
     @CurrentUser() user: AuthUser,
@@ -51,6 +56,8 @@ export class ImportController {
 
   /** Applies a fik template all-or-nothing. */
   @Post("template")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("heavyWrite")
   importTemplate(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(contracts.imports.templateImportRequestSchema))

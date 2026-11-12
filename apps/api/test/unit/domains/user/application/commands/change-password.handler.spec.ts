@@ -105,6 +105,8 @@ describe("ChangePasswordHandler", () => {
       sessions,
       fakePrisma(),
       fakeTrustedDevices(),
+      { cancelPendingWithTx: vi.fn() } as never,
+      { revokeActiveWithTx: vi.fn() } as never,
     );
 
     await expect(
@@ -136,6 +138,8 @@ describe("ChangePasswordHandler", () => {
       sessions,
       fakePrisma(),
       fakeTrustedDevices(),
+      { cancelPendingWithTx: vi.fn() } as never,
+      { revokeActiveWithTx: vi.fn() } as never,
     );
 
     await handler.execute(
@@ -164,6 +168,8 @@ describe("ChangePasswordHandler", () => {
       sessions,
       fakePrisma(),
       fakeTrustedDevices(),
+      { cancelPendingWithTx: vi.fn() } as never,
+      { revokeActiveWithTx: vi.fn() } as never,
     );
 
     await handler.execute(
@@ -199,6 +205,8 @@ describe("ChangePasswordHandler", () => {
       sessions,
       prisma,
       fakeTrustedDevices(),
+      { cancelPendingWithTx: vi.fn() } as never,
+      { revokeActiveWithTx: vi.fn() } as never,
     );
 
     await expect(

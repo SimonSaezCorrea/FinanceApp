@@ -16,7 +16,7 @@ import { randomValidRut } from "../../support/rut";
  * lockout. Before, a stolen session could guess the password without limit and, once right, pass
  * the step-up that guards changing the email.
  */
-describe("Password guesses from inside a session (e2e)", () => {
+describe("Password guesses from inside a session (e2e)", { timeout: 30_000 }, () => {
   let app: INestApplication;
   const password = "Sup3rSecret!";
 

@@ -93,6 +93,11 @@ export const es = {
         title: "Tu correo cambió",
         body: "El correo de tu cuenta de mifik ahora es {detail}. Esta dirección dejó de recibir nuestros correos y ya no sirve para recuperar la cuenta.",
       },
+      EMAIL_CHANGE_REQUESTED: {
+        subject: "Se pidió cambiar el correo de tu cuenta de mifik",
+        title: "Se pidió cambiar tu correo",
+        body: "Se pidió cambiar el correo de tu cuenta de mifik a {detail}. El cambio se hace solo si alguien abre el enlace que enviamos a esa dirección. Si no fuiste tú, cambia tu contraseña: eso cancela el cambio pendiente.",
+      },
       IDENTIFIER_CHANGED: {
         subject: "Cambió el RUT de tu cuenta de mifik",
         title: "Tu RUT cambió",

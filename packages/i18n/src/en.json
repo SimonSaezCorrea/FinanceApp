@@ -2833,6 +2833,7 @@
     "CARD_LIMIT_HAS_DEBT": "You can't remove the limit in that currency while it has debt or an unsettled statement.",
     "WALLET_FULL": "Your wallet already holds the maximum of 4.",
     "LOGIN_LOCKED": "Too many attempts. Wait 15 minutes before trying again.",
+    "RATE_LIMITED": "Too many requests in a row. Wait a few minutes before trying again.",
     "STATEMENT_GENERATION_NOT_ALLOWED": "This account can't generate statements (it must be an active credit card).",
     "STATEMENT_PERIOD_OVERLAPS": "The dates overlap the previous statement.",
     "STATEMENT_DATES_INVALID": "Check the dates: the close comes after the start and the payment not before the close.",

@@ -2833,6 +2833,7 @@
     "CARD_LIMIT_HAS_DEBT": "No puedes quitar el tope en esa moneda mientras tenga deuda o una facturación sin liquidar.",
     "WALLET_FULL": "Tu cartera ya tiene el máximo de 4.",
     "LOGIN_LOCKED": "Demasiados intentos. Espera 15 minutos antes de volver a intentarlo.",
+    "RATE_LIMITED": "Demasiadas solicitudes seguidas. Espera unos minutos antes de volver a intentarlo.",
     "STATEMENT_GENERATION_NOT_ALLOWED": "Esta cuenta no puede generar facturaciones (debe ser una tarjeta de crédito activa).",
     "STATEMENT_PERIOD_OVERLAPS": "Las fechas se cruzan con la facturación anterior.",
     "STATEMENT_DATES_INVALID": "Revisa las fechas: el cierre va después del inicio y el pago no antes del cierre.",

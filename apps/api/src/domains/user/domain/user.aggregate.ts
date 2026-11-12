@@ -365,8 +365,20 @@ export class User {
 
   /** Increments the failed-attempt counter and, once it reaches the threshold, locks the
    * account for `lockMinutes`. Threshold/duration are passed in (pure function of state, no
-   * config dependency in the domain layer). */
+   * config dependency in the domain layer).
+   *
+   * A lock that already ran out starts the count again (security run-3, same fix login got in
+   * run-2): otherwise ONE wrong code after each expiry re-locks it, and since a session's step-up
+   * shares this counter, whoever held a stolen session could keep the owner from completing
+   * their own login indefinitely. */
   recordMfaFailure(threshold: number, lockMinutes: number, now: Date): void {
+    if (
+      this.props.mfaLockedUntil !== null &&
+      this.props.mfaLockedUntil.getTime() <= now.getTime()
+    ) {
+      this.props.mfaFailedAttempts = 0;
+      this.props.mfaLockedUntil = null;
+    }
     this.props.mfaFailedAttempts += 1;
     if (this.props.mfaFailedAttempts >= threshold) {
       this.props.mfaLockedUntil = new Date(now.getTime() + lockMinutes * 60_000);

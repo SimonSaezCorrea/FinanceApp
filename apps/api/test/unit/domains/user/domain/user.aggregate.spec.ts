@@ -253,3 +253,22 @@ describe("User — second-factor method (specs/040)", () => {
     expect(user.toContract().mfaMethod).toBeNull();
   });
 });
+
+describe("second-factor lockout", () => {
+  const t0 = new Date("2026-11-11T12:00:00Z");
+  const after = (minutes: number) => new Date(t0.getTime() + minutes * 60_000);
+
+  it("locks after the threshold of wrong codes", () => {
+    const user = User.fromPersistence(baseProps());
+    for (let i = 0; i < 5; i++) user.recordMfaFailure(5, 15, t0);
+    expect(user.isMfaLocked(after(1))).toBe(true);
+  });
+
+  it("starts the count again once a lock ran out, so ONE wrong code doesn't re-lock it (run-3)", () => {
+    const user = User.fromPersistence(baseProps());
+    for (let i = 0; i < 5; i++) user.recordMfaFailure(5, 15, t0);
+    user.recordMfaFailure(5, 15, after(16));
+    expect(user.isMfaLocked(after(16))).toBe(false);
+    expect(user.snapshot().mfaFailedAttempts).toBe(1);
+  });
+});

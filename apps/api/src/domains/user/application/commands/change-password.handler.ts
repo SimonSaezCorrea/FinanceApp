@@ -12,6 +12,15 @@ import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
+import {
+  EMAIL_TOKEN_REPOSITORY,
+  type EmailTokenRepositoryPort,
+} from "../../../email-token/domain/ports/email-token.repository.port";
+import {
+  USER_EMAIL_REPOSITORY,
+  type UserEmailRepositoryPort,
+} from "../../../user-email/domain/ports/user-email.repository.port";
+import { cancelPendingEmailChangeWithTx } from "../pending-email-change";
 import { InvalidCurrentPasswordError } from "../../domain/errors";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { ChangePasswordCommand } from "./change-password.command";
@@ -42,6 +51,8 @@ export class ChangePasswordHandler extends BaseCommandHandler<
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
     private readonly prisma: PrismaService,
     @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
+    @Inject(USER_EMAIL_REPOSITORY) private readonly emails: UserEmailRepositoryPort,
+    @Inject(EMAIL_TOKEN_REPOSITORY) private readonly tokens: EmailTokenRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -86,6 +97,14 @@ export class ChangePasswordHandler extends BaseCommandHandler<
       await this.sessions.closeAllExceptForUserWithTx(tx, user.id, context.currentSessionId);
       // specs/040: a new password forgets every remembered device.
       await this.devices.deleteAllForUserWithTx(tx, user.id);
+      // Security run-3: a pending change of email (perhaps requested from a stolen session) is
+      // cancelled with its links, or it could still take the account after this.
+      await cancelPendingEmailChangeWithTx(
+        { emails: this.emails, tokens: this.tokens },
+        tx,
+        user.id,
+        new Date(),
+      );
     });
   }
 }

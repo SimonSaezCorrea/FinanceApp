@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { RateLimit, RateLimitGuard } from "../../../infra/http/rate-limit";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { z } from "zod";
@@ -51,6 +52,8 @@ export class AttachmentsController {
   }
 
   @Post()
+  @UseGuards(RateLimitGuard)
+  @RateLimit("heavyWrite")
   @UseInterceptors(
     FileInterceptor("file", {
       // In memory, never on disk: a rejected file must not touch the filesystem.

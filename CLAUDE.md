@@ -2499,9 +2499,25 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     re-read the user row LOCKED inside their write transaction and apply the change there (no
     user write saves an unlocked copy any more); change-password refuses if the hash changed
     since it was checked, confirm-mfa if the pending setup changed (`MFA_NOT_PENDING`). e2e
-    `password-guess-limit.http.spec.ts`. Still open: no per-IP throttle on public auth routes,
-    and run-2 deferred areas 1, 4, 5 (recovery-code/passkey login volume, email change as an
-    identity change, authenticated volume).
+    `password-guess-limit.http.spec.ts`. **Run-2 deferred areas 1, 4, 5 + per-IP limits
+    (2026-11-11):** (a) **request limits** — `infra/http/rate-limit.ts`: `@UseGuards(RateLimitGuard)`
+    - `@RateLimit(policy)`, fixed windows in process memory (one shared store), `429 RATE_LIMITED`
+      with `details.retryAfterSeconds` + `Retry-After`; policies `authAttempt` (per IP, 30/10 min:
+      login, mfa-verify, passkey-options/verify, password/reset, email/verify), `authEmail` (per IP,
+      10/h: register, password/forgot, login/mfa-resend), `heavyWrite` (per USER, 20/10 min — after
+      `JwtAuthGuard`: import/transactions, import/template[/preview], attachment upload); an IPv6
+      client counts by its /64; ON only with `NODE_ENV=production`, **`RATE_LIMITS_ENABLED=true|false`**
+      overrides (tests and local runs share one loopback IP), anything else fails at boot; i18n
+      `errors.RATE_LIMITED`. (b) A recovery code is compared OUTSIDE the row lock (up to 10 bcrypt),
+      only its claim runs inside. (c) The MFA counter restarts once its lock ran out
+      (`recordMfaFailure`, as login's did in run-2) — a stolen session's step-up shares it and could
+      otherwise keep the owner's second factor locked. (d) A **pending email change is cancelled** by
+      changing or recovering the password (`pending-email-change.ts`'s `cancelPendingEmailChangeWithTx`:
+      `UserEmailRepositoryPort.cancelPendingWithTx` moves it to history + VERIFY_EMAIL links revoked,
+      same transaction) — its public link could otherwise still take the account after the owner
+      reacted — and the current confirmed address gets a new **`EMAIL_CHANGE_REQUESTED`** notice when
+      a change is requested (not on a reused resend). e2e `email-change-cancel.http.spec.ts`,
+      `infra/rate-limit.http.spec.ts`.
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

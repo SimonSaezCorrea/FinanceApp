@@ -17,6 +17,11 @@ import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
+import {
+  USER_EMAIL_REPOSITORY,
+  type UserEmailRepositoryPort,
+} from "../../../user-email/domain/ports/user-email.repository.port";
+import { cancelPendingEmailChangeWithTx } from "../pending-email-change";
 import { EmailTokenInvalidError } from "../../domain/errors";
 import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
@@ -39,6 +44,7 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
     private readonly prisma: PrismaService,
     @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
+    @Inject(USER_EMAIL_REPOSITORY) private readonly emails: UserEmailRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -76,6 +82,13 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
       await this.sessions.closeAllForUserWithTx(tx, user.id);
       // specs/040: a recovered password forgets every remembered device.
       await this.devices.deleteAllForUserWithTx(tx, user.id);
+      // A change of email requested before (perhaps by whoever forced this reset) is cancelled.
+      await cancelPendingEmailChangeWithTx(
+        { emails: this.emails, tokens: this.tokens },
+        tx,
+        user.id,
+        now,
+      );
       return user.id;
     });
     return { result: undefined, events: [new AccountSecurityEvent(userId, "PASSWORD_RESET", now)] };

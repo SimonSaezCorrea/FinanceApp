@@ -315,7 +315,9 @@ describe("ResetPasswordHandler", () => {
     const tokens = {
       isUsable: vi.fn().mockResolvedValue(usable),
       consumeWithTx: vi.fn().mockResolvedValue(consumed ? { userId: "u1" } : null),
+      revokeActiveWithTx: vi.fn(),
     };
+    const emails = { cancelPendingWithTx: vi.fn() };
     const sessions = { closeAllForUserWithTx: vi.fn() };
     const users = { findByIdForUpdateWithTx: vi.fn().mockResolvedValue(u), saveWithTx: vi.fn() };
     const publish = vi.fn();
@@ -326,8 +328,9 @@ describe("ResetPasswordHandler", () => {
       sessions as never,
       prisma,
       fakeTrustedDevices(),
+      emails as never,
     );
-    return { handler, u, sessions, users, publish, tokens };
+    return { handler, u, sessions, users, publish, tokens, emails };
   }
 
   it("sets the new password, closes every session and publishes PASSWORD_RESET", async () => {
