@@ -65,6 +65,8 @@ export class ImportController {
     @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<contracts.imports.TemplateImportResult> {
     const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
-    return this.commandBus.execute(new ImportTemplateCommand(user.id, body, idempotencyKey));
+    return this.commandBus.execute(
+      new ImportTemplateCommand(user.id, body, idempotencyKey, user.sessionId),
+    );
   }
 }

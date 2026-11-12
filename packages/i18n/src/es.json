@@ -2099,6 +2099,7 @@
         "replaceWarning": "No se puede deshacer. Los comprobantes adjuntos se pierden. Si el archivo no trae una cuenta de efectivo, se crea una vacía.",
         "replaceConfirmLabel": "Escribe REEMPLAZAR para confirmar",
         "replaceConfirmWord": "REEMPLAZAR",
+        "replaceStepUp": "Reemplazar todo borra todos tus datos. Confirma que eres tú para continuar.",
         "submitReplace": "Reemplazar todo",
         "newAccount": "nueva",
         "scopedNoReplace": "Esta plantilla es de una sola cuenta: solo agrega filas nuevas, nunca reemplaza todo."

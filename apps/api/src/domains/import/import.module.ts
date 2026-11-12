@@ -22,6 +22,7 @@ import { SavingsGoalDataModule } from "../savings-goal/savings-goal.data.module"
 import { ImportTemplateHandler } from "./application/commands/import-template.handler";
 import { ImportTransactionsHandler } from "./application/commands/import-transactions.handler";
 import { PreviewTemplateQueryHandler } from "./application/queries/preview-template.handler";
+import { SessionDataModule } from "../session/session.data.module";
 import { ImportController } from "./presentation/import.controller";
 
 const commandHandlers = [ImportTransactionsHandler, ImportTemplateHandler];
@@ -46,6 +47,8 @@ const queryHandlers = [PreviewTemplateQueryHandler];
     // Custom field values of imported movements (specs/036).
     CustomFieldDataModule,
     TransactionFieldValueDataModule,
+    // "Reemplazar todo" needs a recent step-up of the caller's session (security run-3).
+    SessionDataModule,
   ],
   controllers: [ImportController],
   providers: [

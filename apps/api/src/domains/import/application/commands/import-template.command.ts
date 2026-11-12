@@ -9,5 +9,7 @@ export class ImportTemplateCommand implements IdempotentCommand {
     public readonly userId: string,
     public readonly input: imports.TemplateImportRequest,
     public readonly idempotencyKey: string,
+    /** The caller's session: REPLACE needs a recent step-up of it (security run-3). */
+    public readonly sessionId: string,
   ) {}
 }

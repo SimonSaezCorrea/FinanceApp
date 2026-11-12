@@ -2099,6 +2099,7 @@
         "replaceWarning": "This can't be undone. Attached receipts are lost. If the file has no cash account, an empty one is created.",
         "replaceConfirmLabel": "Type REPLACE to confirm",
         "replaceConfirmWord": "REPLACE",
+        "replaceStepUp": "Replace everything deletes all your data. Confirm it is you to continue.",
         "submitReplace": "Replace everything",
         "newAccount": "new",
         "scopedNoReplace": "This template is for one account: it only adds new rows, never replaces everything."

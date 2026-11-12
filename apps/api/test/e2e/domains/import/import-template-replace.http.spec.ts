@@ -165,7 +165,24 @@ describe("Import template REPLACE (e2e)", () => {
     expect(await prisma.bankAccount.count({ where: { user: { email } } })).toBe(2);
   });
 
+  it("refuses to replace without a recent step-up, and deletes nothing (security run-3)", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/import/template")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send(body);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("STEP_UP_REQUIRED");
+    expect(await prisma.bankAccount.count({ where: { user: { email } } })).toBe(2);
+  });
+
   it("deletes everything and rebuilds it from the file", async () => {
+    // This account has no second factor, so its password is the step-up.
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "password", password: "Sup3rSecret!" })
+      .expect(200);
     const res = await request(app.getHttpServer())
       .post("/api/v1/import/template")
       .set("Cookie", cookies)

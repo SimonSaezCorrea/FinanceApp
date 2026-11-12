@@ -21,6 +21,10 @@ const workbook = vi.hoisted(() => ({ sheets: [] as { sheet: string; data: unknow
 vi.mock("read-excel-file/browser", () => ({ default: async () => workbook.sheets }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
+// The step-up panel needs the signed-in user; this file tests the import itself.
+vi.mock("../../profile/hooks/useStepUp", () => ({
+  useStepUp: () => ({ needsStepUp: () => false, stepUpPanel: null }),
+}));
 
 const BCI = "01890a5d-ac96-774b-bcce-b302099a8001";
 const MACH = "01890a5d-ac96-774b-bcce-b302099a8002";

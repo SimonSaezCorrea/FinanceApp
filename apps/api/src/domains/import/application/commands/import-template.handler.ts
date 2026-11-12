@@ -74,6 +74,11 @@ import {
   type TransactionFieldValueRepositoryPort,
 } from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
 import { purgeUserDataWithTx, type ReplacementPorts } from "../template-replacement";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
+import { assertRecentStepUp } from "../../../user/application/step-up";
 import { ImportTemplateCommand } from "./import-template.command";
 
 /** 5.000 rows don't fit in Prisma's default 5 s interactive-transaction timeout. */
@@ -139,8 +144,19 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
     @Inject(CUSTOM_FIELD_REPOSITORY) private readonly fields: CustomFieldRepositoryPort,
     @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
     private readonly fieldValues: TransactionFieldValueRepositoryPort,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
   ) {
     super(eventBus, records);
+  }
+
+  /** "Reemplazar todo" deletes every record of the account first, so it asks for a recent step-up
+   * of the caller's session (security run-3): a stolen session alone can't wipe the data. Checked
+   * before the idempotency key is reserved, so a refusal leaves nothing behind to retry against. */
+  override async execute(command: ImportTemplateCommand): Promise<imports.TemplateImportResult> {
+    if (command.input.mode === "REPLACE") {
+      await assertRecentStepUp(this.stepUp, command.userId, command.sessionId);
+    }
+    return super.execute(command);
   }
 
   protected requestBody(command: ImportTemplateCommand): unknown {

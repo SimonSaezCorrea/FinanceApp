@@ -14,6 +14,7 @@ import { Input } from "@finance/ui/src/shared/ui/input";
 import { ResponsiveSurface } from "@finance/ui/src/shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useTemplateImport } from "../hooks/useTemplateImport";
+import { useStepUp } from "../../profile/hooks/useStepUp";
 import type { TemplateRefs } from "../lib/buildTemplate";
 import {
   readTemplateFile,
@@ -54,6 +55,8 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
   const { t, i18n } = useTranslation();
   const { preview, commit } = useTemplateImport();
   const idempotencyKey = useIdempotencyKey();
+  // "Reemplazar todo" asks the server for a recent step-up (security run-3): confirm, then retry.
+  const { needsStepUp, stepUpPanel } = useStepUp(t("import.template.ui.replaceStepUp"));
   const inputRef = useRef<HTMLInputElement>(null);
   const labelers = useMemo(() => [i18n.getFixedT("es"), i18n.getFixedT("en")], [i18n]);
 
@@ -189,6 +192,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
           close(false);
         },
         onError: (error: unknown) => {
+          if (needsStepUp(error, submit)) return;
           if (!(error instanceof ApiRequestError)) {
             toast.error(t("errors.INTERNAL_ERROR"));
             return;
@@ -517,6 +521,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
           ) : null}
         </div>
       )}
+      {stepUpPanel}
     </ResponsiveSurface>
   );
 }
