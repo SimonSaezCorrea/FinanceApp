@@ -21,6 +21,8 @@ export interface EstablishSessionOptions extends DeviceContext {
   /** Reuse an existing session's id (a refresh rotating its tokens, research.md R6) —
    * omitted, a brand new `Session` row is created (a fresh login/registration). */
   reuseSessionId?: string;
+  /** On a refresh: the jti of the refresh token presented (null for one issued before jtis). */
+  presentedJti?: string | null;
   /** The passkey a new session is opened with (specs/041). */
   passkeyId?: string;
 }
@@ -51,15 +53,19 @@ export class SessionIssuer {
     const tokens = this.tokenIssuer.issue(user, opts.reuseSessionId);
 
     if (opts.reuseSessionId) {
-      const touched = await this.sessions.touch(
+      const rotation = await this.sessions.rotateRefresh(
         tokens.sessionId,
+        opts.presentedJti ?? null,
+        tokens.refreshJti,
         new Date(),
         tokens.sessionExpiresAt,
       );
-      // The session behind this refresh token no longer exists (closed by the user
-      // from another tab, or purged as expired) — treat exactly like any other
+      // An old refresh token came back while its session is open (security run-3): someone else
+      // holds a copy. The session closes, so neither copy works any more.
+      if (rotation === "REUSED") await this.sessions.closeById(tokens.sessionId);
+      // Closed elsewhere, purged, expired or past its maximum age — treat exactly like any other
       // invalid refresh token, no new error code (contracts/session-endpoints.md).
-      if (!touched) throw new InvalidRefreshTokenError();
+      if (rotation !== "ROTATED") throw new InvalidRefreshTokenError();
       return tokens;
     }
 
@@ -72,6 +78,7 @@ export class SessionIssuer {
       city: location.city,
       expiresAt: tokens.sessionExpiresAt.toISOString(),
       passkeyId: opts.passkeyId ?? null,
+      refreshJti: tokens.refreshJti,
     });
     return tokens;
   }

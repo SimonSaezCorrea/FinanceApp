@@ -11,6 +11,7 @@ const TOKENS = {
   refreshToken: "rt",
   sessionId: "s1",
   sessionExpiresAt: new Date("2024-01-08T00:00:00Z"),
+  refreshJti: "new-jti",
 };
 
 function fakeTokenIssuer(): TokenIssuer {
@@ -21,7 +22,7 @@ function fakeSessionRepo(overrides: Partial<SessionRepositoryPort> = {}): Sessio
   return {
     create: vi.fn().mockResolvedValue({ ...TOKENS, id: TOKENS.sessionId }),
     listByUser: vi.fn(),
-    touch: vi.fn().mockResolvedValue({ ...TOKENS, id: TOKENS.sessionId }),
+    rotateRefresh: vi.fn().mockResolvedValue("ROTATED"),
     closeOwned: vi.fn(),
     existsForUser: vi.fn(),
     closeAllExceptForUser: vi.fn(),
@@ -61,21 +62,40 @@ describe("SessionIssuer", () => {
         expiresAt: TOKENS.sessionExpiresAt.toISOString(),
       }),
     );
-    expect(sessions.touch).not.toHaveBeenCalled();
+    expect(sessions.rotateRefresh).not.toHaveBeenCalled();
   });
 
-  it("with reuseSessionId, only touches the existing row — never creates a new one", async () => {
+  it("with reuseSessionId, rotates the existing row's refresh jti — never creates a new one", async () => {
     const sessions = fakeSessionRepo();
     const issuer = new SessionIssuer(fakeTokenIssuer(), sessions, fakeGeoIp());
 
-    await issuer.establish({ id: "u1", email: "a@b.com" }, { reuseSessionId: "existing" });
+    await issuer.establish(
+      { id: "u1", email: "a@b.com" },
+      { reuseSessionId: "existing", presentedJti: "old-jti" },
+    );
 
-    expect(sessions.touch).toHaveBeenCalledWith("s1", expect.any(Date), TOKENS.sessionExpiresAt);
+    expect(sessions.rotateRefresh).toHaveBeenCalledWith(
+      "s1",
+      "old-jti",
+      TOKENS.refreshJti,
+      expect.any(Date),
+      TOKENS.sessionExpiresAt,
+    );
     expect(sessions.create).not.toHaveBeenCalled();
   });
 
+  it("closes the session when an already-rotated refresh token comes back (run-3)", async () => {
+    const sessions = fakeSessionRepo({ rotateRefresh: vi.fn().mockResolvedValue("REUSED") });
+    const issuer = new SessionIssuer(fakeTokenIssuer(), sessions, fakeGeoIp());
+
+    await expect(
+      issuer.establish({ id: "u1", email: "a@b.com" }, { reuseSessionId: "s1", presentedJti: "x" }),
+    ).rejects.toThrow(InvalidRefreshTokenError);
+    expect(sessions.closeById).toHaveBeenCalledWith("s1");
+  });
+
   it("throws InvalidRefreshTokenError when the session to reuse no longer exists", async () => {
-    const sessions = fakeSessionRepo({ touch: vi.fn().mockResolvedValue(null) });
+    const sessions = fakeSessionRepo({ rotateRefresh: vi.fn().mockResolvedValue("GONE") });
     const issuer = new SessionIssuer(fakeTokenIssuer(), sessions, fakeGeoIp());
 
     await expect(

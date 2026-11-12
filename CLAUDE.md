@@ -2526,7 +2526,19 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       slashes becomes `//host`); the JSON islands/JSON-LD in `<script>` escape `<` everywhere
       (`GuideAiTools` used a one-backslash escape that was a no-op). Open, not code: the API trusts
       Cloudflare's SHARED Authenticated Origin Pulls CA (`bootstrap-ec2.sh`) — any Cloudflare account can
-      reach the origin; a zone-level custom AOP certificate closes it. No CSP on the two sites yet.
+      reach the origin; a zone-level custom AOP certificate closes it. No CSP on the two sites yet. (f) Tokens and
+      factors (2026-11-12, migration `20261111120000_token_rotation_totp_replay`, expand only): the two session
+      JWTs carry `typ` (`access`/`refresh`; a wrong type is refused, a missing one still accepted for tokens
+      issued before) and `TokenIssuer` refuses to boot with equal `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET`; a
+      refresh token carries a `jti` its `Session` honours (`refreshJti`, with `previousRefreshJti` accepted for
+      `REFRESH_REUSE_GRACE_SECONDS` = 30 — two tabs at once): `SessionRepositoryPort.rotateRefresh` is ONE
+      conditional SQL update returning `ROTATED`/`REUSED`/`GONE`, and an old token coming back (`REUSED`)
+      closes the session; a session never slides past `SESSION_MAX_AGE_DAYS` = 30 after it opened. A TOTP code
+      is single-use: `totp.ts`'s `totpStepFor` + `User.useTotpStep` keep `User.mfaLastTotpStep` and refuse a
+      step not newer than it (login, step-up, enrolment). e2e helper `totpCodeFor` is `async` and hands out a
+      fresh step each call (forgetting the account's last step in the test DB once a window runs out). "Reemplazar
+      todo" (`POST /import/template` with `mode: REPLACE`) needs a recent step-up (`ImportTemplateHandler.execute`,
+      before the idempotency key is reserved); the web reopens `StepUpPanel`.
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

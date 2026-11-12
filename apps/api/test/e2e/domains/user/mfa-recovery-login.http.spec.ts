@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -11,11 +10,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
-import { stepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp, totpCodeFor } from "../../support/mfa";
 
 /** E2E test (US4, specs/021): logging in with a recovery code instead of the app's TOTP. */
 describe("MFA recovery-code login HTTP (e2e)", () => {
@@ -51,7 +46,7 @@ describe("MFA recovery-code login HTTP (e2e)", () => {
     const confirm = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", cookies)
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: await totpCodeFor(enroll.body.secret) });
     recoveryCode = confirm.body.recoveryCodes[0];
   });
 

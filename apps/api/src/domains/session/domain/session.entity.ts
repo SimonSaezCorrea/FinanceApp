@@ -13,6 +13,17 @@
  */
 export const SESSION_CLOSED_RETENTION_DAYS = 3;
 
+/** A session slides with every refresh, but never past this many days after it was opened
+ * (security run-3): a stolen refresh token kept in use can't keep a session alive forever. */
+export const SESSION_MAX_AGE_DAYS = 30;
+
+/** How long the refresh token rotated away stays acceptable: two tabs of one browser refreshing
+ * at the same moment both present it (security run-3). */
+export const REFRESH_REUSE_GRACE_SECONDS = 30;
+
+/** What presenting a refresh token did to its session (see `rotateRefresh`). */
+export type RefreshRotation = "ROTATED" | "REUSED" | "GONE";
+
 export interface SessionProps {
   id: string;
   userId: string;
@@ -33,4 +44,6 @@ export interface SessionProps {
 export type SessionPlan = Omit<SessionProps, "createdAt" | "lastUsedAt" | "closedAt"> & {
   /** The passkey this login used (specs/041), so its sessions close if it turns compromised. */
   passkeyId?: string | null;
+  /** The jti of the refresh token issued with the session (security run-3). */
+  refreshJti?: string | null;
 };

@@ -3,18 +3,13 @@ import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
-import { stepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp, totpCodeFor } from "../../support/mfa";
 
 /** E2E test (US1, specs/021): activation end to end through the real HTTP Facade. */
 describe("MFA enrollment HTTP (e2e)", () => {
@@ -92,7 +87,7 @@ describe("MFA enrollment HTTP (e2e)", () => {
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
       .set("Cookie", cookies);
-    const code = totpCodeFor(enroll.body.secret);
+    const code = await totpCodeFor(enroll.body.secret);
 
     const confirm = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")

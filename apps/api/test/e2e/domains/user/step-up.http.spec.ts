@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -22,11 +21,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
-import { stepUp as passwordStepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp as passwordStepUp, totpCodeFor } from "../../support/mfa";
 
 /** `mfaSecret` completes the pending login's second factor when the account has TOTP enabled. */
 async function loginAndListSessionId(
@@ -43,7 +38,7 @@ async function loginAndListSessionId(
     const verify = await request(app.getHttpServer())
       .post("/api/v1/auth/login/mfa-verify")
       .set("Cookie", cookies)
-      .send({ code: totpCodeFor(mfaSecret ?? "") });
+      .send({ code: await totpCodeFor(mfaSecret ?? "") });
     cookies = verify.get("Set-Cookie") ?? [];
   }
   const list = await request(app.getHttpServer())
@@ -182,7 +177,7 @@ describe("Step-up before closing sessions HTTP (e2e)", () => {
     await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", regCookies)
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: await totpCodeFor(enroll.body.secret) });
 
     const a = await loginAndListSessionId(app, rut, password, enroll.body.secret);
     const b = await loginAndListSessionId(app, rut, password, enroll.body.secret);
@@ -204,7 +199,7 @@ describe("Step-up before closing sessions HTTP (e2e)", () => {
     const stepUp = await request(app.getHttpServer())
       .post("/api/v1/auth/sessions/step-up")
       .set("Cookie", a.cookies)
-      .send({ method: "totp", code: totpCodeFor(enroll.body.secret) });
+      .send({ method: "totp", code: await totpCodeFor(enroll.body.secret) });
     expect(stepUp.status).toBe(200);
 
     const closeRes = await request(app.getHttpServer())

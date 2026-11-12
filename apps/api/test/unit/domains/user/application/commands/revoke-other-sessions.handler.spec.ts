@@ -10,7 +10,7 @@ function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRe
   return {
     create: vi.fn(),
     listByUser: vi.fn(),
-    touch: vi.fn(),
+    rotateRefresh: vi.fn(),
     closeOwned: vi.fn(),
     existsForUser: vi.fn(),
     closeAllExceptForUser: vi.fn().mockResolvedValue(2),

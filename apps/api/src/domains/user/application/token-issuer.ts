@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -19,7 +21,12 @@ export interface TokenPair {
   /** When the `Session` row for `sessionId` should expire — mirrors the refresh token's
    * own lifetime, computed here once so callers never re-derive it from the env var. */
   sessionExpiresAt: Date;
+  /** The refresh token's own id (security run-3): its session honours only this one. */
+  refreshJti: string;
 }
+
+/** What the two session tokens say they are (security run-3): one is never accepted as the other. */
+export type TokenType = "access" | "refresh";
 
 /** Parses a `JWT_*_EXPIRES`-shaped duration ("15m", "7d", …) into milliseconds — the
  * same suffix set `parseDurationMs` in `auth.controller.ts` already supports, kept local
@@ -48,7 +55,14 @@ export class TokenIssuer {
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    // Two secrets are what keeps a refresh token from working as an access token (and the other
+    // way round); the same value for both would erase that, so the API refuses to start.
+    const access = config.get<string>("JWT_ACCESS_SECRET");
+    if (access && access === config.get<string>("JWT_REFRESH_SECRET")) {
+      throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different");
+    }
+  }
 
   /** Reads a JWT lifetime env var (e.g. "15m", "7d" — see .env.example) as jsonwebtoken's expiresIn type. */
   private expiresIn(key: string, fallback: StringValue): StringValue {
@@ -65,14 +79,15 @@ export class TokenIssuer {
     const sid = sessionId ?? generateRowId();
     const refreshExpiresIn = this.expiresIn("JWT_REFRESH_EXPIRES", "7d");
     const accessToken = this.jwt.sign(
-      { sub: user.id, email: user.email, sid },
+      { sub: user.id, email: user.email, sid, typ: "access" satisfies TokenType },
       {
         secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
         expiresIn: this.expiresIn("JWT_ACCESS_EXPIRES", "15m"),
       },
     );
+    const refreshJti = randomUUID();
     const refreshToken = this.jwt.sign(
-      { sub: user.id, sid },
+      { sub: user.id, sid, typ: "refresh" satisfies TokenType, jti: refreshJti },
       {
         secret: this.config.getOrThrow<string>("JWT_REFRESH_SECRET"),
         expiresIn: refreshExpiresIn,
@@ -83,6 +98,7 @@ export class TokenIssuer {
       refreshToken,
       sessionId: sid,
       sessionExpiresAt: new Date(Date.now() + durationMs(refreshExpiresIn)),
+      refreshJti,
     };
   }
 
@@ -90,17 +106,22 @@ export class TokenIssuer {
    * `JwtAuthGuard` verifies it itself; this is for `GET /auth/session`, which answers instead of
    * throwing (spec 031). */
   verifyAccess(token: string): { sub: string; sid: string } {
-    return this.jwt.verify<{ sub: string; sid: string }>(token, {
+    const payload = this.jwt.verify<{ sub: string; sid: string; typ?: string }>(token, {
       secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
     });
+    assertType(payload.typ, "access");
+    return payload;
   }
 
   /** Throws (jsonwebtoken's own error) on an invalid/expired token — callers
    * translate that into `InvalidRefreshTokenError`. */
-  verifyRefresh(token: string): { sub: string; sid: string } {
-    return this.jwt.verify<{ sub: string; sid: string }>(token, {
-      secret: this.config.getOrThrow<string>("JWT_REFRESH_SECRET"),
-    });
+  verifyRefresh(token: string): { sub: string; sid: string; jti: string | null } {
+    const payload = this.jwt.verify<{ sub: string; sid: string; typ?: string; jti?: string }>(
+      token,
+      { secret: this.config.getOrThrow<string>("JWT_REFRESH_SECRET") },
+    );
+    assertType(payload.typ, "refresh");
+    return { sub: payload.sub, sid: payload.sid, jti: payload.jti ?? null };
   }
 
   /**
@@ -131,4 +152,10 @@ export class TokenIssuer {
     }
     return { sub: payload.sub };
   }
+}
+
+/** A token naming the other type is refused. One without a type is still accepted: tokens issued
+ * before types existed live on until they expire (access 15 min, refresh one rotation). */
+function assertType(actual: string | undefined, expected: TokenType): void {
+  if (actual !== undefined && actual !== expected) throw new Error(`not an ${expected} token`);
 }

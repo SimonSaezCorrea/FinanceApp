@@ -22,7 +22,7 @@ import {
 import type { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { stepUpExpiry } from "../step-up";
-import { isValidTotp, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
+import { totpStepFor, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
 import { VerifyStepUpCommand } from "./verify-step-up.command";
 import { verifyPasswordCounted } from "../password-check";
 import { MfaCodeService } from "../mfa-code-service";
@@ -85,7 +85,7 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
       const outcome = await this.verifyCode(user.id, (tx, locked, now) =>
         input.method === "email"
           ? this.mfaCodes.verifyWithTx(tx, locked.id, "STEP_UP", input.code, now)
-          : Promise.resolve(isValidTotp(locked.mfaSecret, input.code)),
+          : Promise.resolve(useTotp(locked, input.code, now)),
       );
       // Thrown only AFTER the transaction committed — throwing inside would roll back the very
       // failure count the lockout depends on (same reasoning as VerifyMfaLoginHandler).
@@ -121,4 +121,10 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
       return "ok";
     });
   }
+}
+
+/** A TOTP code valid now and not used before (security run-3), recorded on the locked row. */
+function useTotp(user: User, code: string, now: Date): boolean {
+  const step = totpStepFor(user.mfaSecret, code, now.getTime());
+  return step !== null && user.useTotpStep(step);
 }

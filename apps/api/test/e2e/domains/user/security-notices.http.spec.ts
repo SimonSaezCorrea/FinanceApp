@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -9,11 +8,7 @@ import type { InMemoryEmailSender } from "../../../../src/infra/email/senders/in
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { appWithOutbox, lastToken, waitForEmail } from "../../support/email-outbox";
 import { randomValidRut } from "../../support/rut";
-import { stepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp, totpCodeFor } from "../../support/mfa";
 
 /** E2E (specs/032 US3): every sensitive change sends a notice to the confirmed address, a
  * failing email never changes the action's answer, and an unconfirmed address gets nothing. */
@@ -77,12 +72,12 @@ describe("Security notices HTTP (e2e)", () => {
     await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", cookies)
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: await totpCodeFor(enroll.body.secret) });
     await waitForEmail(outbox, email, "security-notice", "Activaste la verificación");
     await request(app.getHttpServer())
       .post("/api/v1/auth/sessions/step-up")
       .set("Cookie", cookies)
-      .send({ method: "totp", code: totpCodeFor(enroll.body.secret) });
+      .send({ method: "totp", code: await totpCodeFor(enroll.body.secret) });
 
     const disabled = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/disable")

@@ -194,7 +194,7 @@ describe("Email second factor HTTP (e2e)", () => {
     const confirm = await http()
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", b.cookies)
-      .send({ code: totpCodeFor(secret) });
+      .send({ code: await totpCodeFor(secret) });
     expect(confirm.body.recoveryCodes).toBeNull();
 
     const me = await http().get("/api/v1/auth/me").set("Cookie", b.cookies);
@@ -203,7 +203,7 @@ describe("Email second factor HTTP (e2e)", () => {
 
     const pending = await login(app, b.rut);
     expect(pending.body).toMatchObject({ mfaRequired: true, mfaMethod: "totp" });
-    expect((await verifyMfa(app, pending.cookies, totpCodeFor(secret))).status).toBe(200);
+    expect((await verifyMfa(app, pending.cookies, await totpCodeFor(secret))).status).toBe(200);
   });
 
   it("locks after 5 wrong emailed codes", async () => {

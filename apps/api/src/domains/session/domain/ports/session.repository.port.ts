@@ -1,4 +1,4 @@
-import type { SessionPlan, SessionProps } from "../session.entity";
+import type { RefreshRotation, SessionPlan, SessionProps } from "../session.entity";
 
 export const SESSION_REPOSITORY = Symbol("SESSION_REPOSITORY");
 
@@ -17,11 +17,20 @@ export interface SessionRepositoryPort {
    * retention window) — most recently active first. The UI shows closed ones too,
    * marked as such (`closedAt`). */
   listByUser(userId: string): Promise<SessionProps[]>;
-  /** Bumps `lastUsedAt`/`expiresAt` on a refresh (FR-009) — only touches a row that's
-   * still OPEN and unexpired; `null` otherwise (closed, purged, or its `expiresAt`
-   * already passed), which the caller treats as an invalid refresh token, never a
-   * silent no-op or a way to resurrect a closed session. */
-  touch(id: string, lastUsedAt: Date, expiresAt: Date): Promise<SessionProps | null>;
+  /** A refresh (FR-009, security run-3), in ONE conditional update: on an OPEN, unexpired session
+   * younger than `SESSION_MAX_AGE_DAYS` whose current refresh jti is `presentedJti` (or the one
+   * rotated away less than `REFRESH_REUSE_GRACE_SECONDS` ago, or none yet — a session from
+   * before jtis), it moves to `newJti`, bumps `lastUsedAt` and slides `expiresAt` (capped at
+   * the maximum age). Otherwise nothing is rotated: "REUSED" when the session is still open (an
+   * old refresh token came back: the caller closes the session), "GONE" when it is closed, purged,
+   * expired or too old. */
+  rotateRefresh(
+    id: string,
+    presentedJti: string | null,
+    newJti: string,
+    now: Date,
+    expiresAt: Date,
+  ): Promise<RefreshRotation>;
   /** Idempotently stamps `closedAt` on a session owned by this user, if it isn't
    * already closed — a repeat close is a harmless no-op, never re-stamps (which would
    * incorrectly push out its purge date). Ownership-scoped, but does NOT report

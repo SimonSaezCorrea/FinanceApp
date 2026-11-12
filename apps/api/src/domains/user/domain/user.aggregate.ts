@@ -48,6 +48,8 @@ export interface UserProps {
   mfaSecret: string | null;
   mfaFailedAttempts: number;
   mfaLockedUntil: Date | null;
+  /** Last TOTP step accepted (security run-3); optional so older fixtures/rows read as none. */
+  mfaLastTotpStep?: number | null;
   /** Which second factor (specs/040). Optional so fixtures from before keep compiling; null/absent
    * with `mfaEnabled` reads as TOTP (rows from before the column). */
   mfaMethod?: MfaMethod | null;
@@ -348,7 +350,17 @@ export class User {
 
   /** Invalidates the secret and resets the rate-limit counters — recovery codes are discarded
    * by the caller (a separate aggregate/table) in the same transaction. */
+  /** Accepts a TOTP step once (security run-3): a step not newer than the last one used is
+   * refused, so a code can't be replayed within its window, nor an older one after a newer one. */
+  useTotpStep(step: number): boolean {
+    const last = this.props.mfaLastTotpStep ?? null;
+    if (last !== null && step <= last) return false;
+    this.props.mfaLastTotpStep = step;
+    return true;
+  }
+
   disableMfa(): void {
+    this.props.mfaLastTotpStep = null;
     this.props.mfaEnabled = false;
     this.props.mfaMethod = null;
     this.props.mfaPendingMethod = null;

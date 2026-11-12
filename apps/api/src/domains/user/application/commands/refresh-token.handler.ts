@@ -12,6 +12,7 @@ import { RefreshTokenCommand } from "./refresh-token.command";
 interface Context {
   user: User;
   sessionId: string;
+  presentedJti: string | null;
 }
 
 @Injectable()
@@ -34,17 +35,19 @@ export class RefreshTokenHandler extends BaseCommandHandler<
     if (!command.refreshToken) throw new NoRefreshTokenError();
     let sub: string;
     let sid: string;
+    let jti: string | null;
     try {
       const payload = this.tokenIssuer.verifyRefresh(command.refreshToken);
       sub = payload.sub;
       sid = payload.sid;
+      jti = payload.jti;
     } catch {
       throw new InvalidRefreshTokenError();
     }
     const user = await this.repo.findById(sub);
     if (!user) throw new InvalidRefreshTokenError();
     user.assertActive();
-    return { user, sessionId: sid };
+    return { user, sessionId: sid, presentedJti: jti };
   }
 
   protected async handle(
@@ -55,7 +58,7 @@ export class RefreshTokenHandler extends BaseCommandHandler<
     // `sessionId` no longer exists (closed by the user elsewhere, or purged).
     const tokens = await this.sessionIssuer.establish(
       { id: context.user.id, email: context.user.email },
-      { reuseSessionId: context.sessionId },
+      { reuseSessionId: context.sessionId, presentedJti: context.presentedJti },
     );
     return { result: tokens, events: [] };
   }

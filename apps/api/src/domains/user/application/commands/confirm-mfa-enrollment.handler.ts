@@ -19,7 +19,7 @@ import {
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { generateRecoveryCodes } from "../recovery-code-generator";
-import { isValidTotp } from "../totp";
+import { totpStepFor } from "../totp";
 import { MfaCodeService } from "../mfa-code-service";
 import {
   TRUSTED_DEVICE_REPOSITORY,
@@ -38,6 +38,8 @@ interface Context {
   /** The pending setup the code was checked against (set by `handle()`). */
   pendingMethod?: User["mfaPendingMethod"];
   pendingSecret?: User["mfaSecret"];
+  /** The TOTP step the code matched; recorded on the locked row so it can't be used again. */
+  totpStep?: number | null;
 }
 
 const RECOVERY_CODE_BCRYPT_ROUNDS = 10;
@@ -85,7 +87,7 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
         ? await this.prisma.$transaction((tx) =>
             this.mfaCodes.verifyWithTx(tx, user.id, "ENROLL", code),
           )
-        : isValidTotp(user.mfaSecret, code);
+        : (context.totpStep = totpStepFor(user.mfaSecret, code)) !== null;
     if (!valid) throw new InvalidMfaCodeError();
 
     // What `persist()` checks the locked row still holds before confirming it.
@@ -124,6 +126,10 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
         user.mfaSecret !== context.pendingSecret
       ) {
         throw new MfaNotPendingError();
+      }
+      // The enrolment code is spent like any other TOTP code (security run-3).
+      if (context.totpStep != null && !user.useTotpStep(context.totpStep)) {
+        throw new InvalidMfaCodeError();
       }
       user.confirmMfaEnrollment();
       await this.repo.saveWithTx(tx, user);

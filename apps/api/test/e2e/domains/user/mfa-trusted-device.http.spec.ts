@@ -46,7 +46,7 @@ describe("Remembered device HTTP (e2e)", () => {
       .post("/api/v1/auth/login/mfa-verify")
       .set("Cookie", pending.get("Set-Cookie") ?? [])
       .set("User-Agent", UA)
-      .send({ code: totpCodeFor(secret), rememberDevice: true });
+      .send({ code: await totpCodeFor(secret), rememberDevice: true });
     expect(res.status).toBe(200);
     const setCookie = res.get("Set-Cookie") ?? [];
     return { session: cookiePairs(setCookie), trusted: trustedCookie(setCookie) };
@@ -168,7 +168,11 @@ describe("Remembered device HTTP (e2e)", () => {
 
   it("a login with the code only (no remember) sets no trusted cookie", async () => {
     const fresh = await loginWith(a.rut, passwordA);
-    const verified = await verifyMfa(app, fresh.get("Set-Cookie") ?? [], totpCodeFor(secretA));
+    const verified = await verifyMfa(
+      app,
+      fresh.get("Set-Cookie") ?? [],
+      await totpCodeFor(secretA),
+    );
     expect(trustedCookie(verified.cookies)).toHaveLength(0);
   });
 });

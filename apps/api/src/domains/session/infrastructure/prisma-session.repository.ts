@@ -2,7 +2,13 @@ import { Injectable } from "@nestjs/common";
 import type { Session as SessionRow } from "@prisma/client";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import type { SessionPlan, SessionProps } from "../domain/session.entity";
+import {
+  REFRESH_REUSE_GRACE_SECONDS,
+  SESSION_MAX_AGE_DAYS,
+  type RefreshRotation,
+  type SessionPlan,
+  type SessionProps,
+} from "../domain/session.entity";
 import type { SessionRepositoryPort } from "../domain/ports/session.repository.port";
 import type { SessionStatusPort } from "../domain/ports/session-status.port";
 import type { SessionStepUpPort } from "../domain/ports/session-step-up.port";
@@ -62,6 +68,7 @@ export class PrismaSessionRepository
         city: plan.city,
         expiresAt: new Date(plan.expiresAt),
         passkeyId: plan.passkeyId ?? null,
+        refreshJti: plan.refreshJti ?? null,
       },
     });
     return rowToProps(row);
@@ -75,14 +82,43 @@ export class PrismaSessionRepository
     return rows.map(rowToProps);
   }
 
-  async touch(id: string, lastUsedAt: Date, expiresAt: Date): Promise<SessionProps | null> {
-    const { count } = await this.prisma.session.updateMany({
-      where: { id, closedAt: null, expiresAt: { gt: new Date() } },
-      data: { lastUsedAt, expiresAt },
+  async rotateRefresh(
+    id: string,
+    presentedJti: string | null,
+    newJti: string,
+    now: Date,
+    expiresAt: Date,
+  ): Promise<RefreshRotation> {
+    const oldest = new Date(now.getTime() - SESSION_MAX_AGE_DAYS * 86_400_000);
+    const graceSince = new Date(now.getTime() - REFRESH_REUSE_GRACE_SECONDS * 1000);
+    // Raw SQL because the update reads a column into another ("previousRefreshJti" =
+    // "refreshJti") and caps "expiresAt" by "createdAt", which Prisma's updateMany can't express.
+    // Instants are passed as ISO strings cast to the column type (UTC wall time, like Prisma).
+    const rotated = await this.prisma.$executeRaw`
+      UPDATE "session" SET
+        "previousRefreshJti" = "refreshJti",
+        "refreshJti" = ${newJti},
+        "refreshRotatedAt" = ${now.toISOString()}::timestamp(3),
+        "lastUsedAt" = ${now.toISOString()}::timestamp(3),
+        "expiresAt" = LEAST(
+          ${expiresAt.toISOString()}::timestamp(3),
+          "createdAt" + make_interval(days => ${SESSION_MAX_AGE_DAYS})
+        )
+      WHERE "id" = ${id}
+        AND "closedAt" IS NULL
+        AND "expiresAt" > ${now.toISOString()}::timestamp(3)
+        AND "createdAt" > ${oldest.toISOString()}::timestamp(3)
+        AND (
+          "refreshJti" IS NULL
+          OR "refreshJti" = ${presentedJti}
+          OR ("previousRefreshJti" = ${presentedJti}
+              AND "refreshRotatedAt" > ${graceSince.toISOString()}::timestamp(3))
+        )`;
+    if (rotated > 0) return "ROTATED";
+    const open = await this.prisma.session.count({
+      where: { id, closedAt: null, expiresAt: { gt: now }, createdAt: { gt: oldest } },
     });
-    if (count === 0) return null;
-    const row = await this.prisma.session.findUnique({ where: { id } });
-    return row ? rowToProps(row) : null;
+    return open > 0 ? "REUSED" : "GONE";
   }
 
   async closeOwned(userId: string, id: string): Promise<void> {

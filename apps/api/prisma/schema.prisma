@@ -76,6 +76,10 @@ model User {
   /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
   /// the future is rejected without even evaluating the code (defense against timing attacks).
   mfaLockedUntil      DateTime?
+  /// The last 30-second TOTP step a code was accepted for (security run-3): the same code, or an
+  /// older one, is refused afterwards, so a code seen over someone's shoulder can't be replayed
+  /// within its window. Null until a TOTP code is used.
+  mfaLastTotpStep     Int?
   /// Which second factor the account uses (specs/040). Null with mfaEnabled=true only on rows from
   /// before the column existed: read as TOTP (`User.mfaMethodOrDefault`). EMAIL clears the secret.
   mfaMethod           MfaMethod?
@@ -140,27 +144,36 @@ model Session {
   /// 2026-10-10) have one; IPinfo Lite gives the country only, so it is now always null.
   city        String?
 
-  createdAt  DateTime  @default(now())
+  createdAt          DateTime  @default(now())
   /// Bumped on every successful refresh that uses this session (FR-009) — never on a
   /// plain authenticated request, only on the token-renewal path.
-  lastUsedAt DateTime  @default(now())
+  lastUsedAt         DateTime  @default(now())
   /// `now() + JWT_REFRESH_EXPIRES` at creation; recomputed the same way on every refresh
   /// (the session "slides", same as the refresh token itself already does).
-  expiresAt  DateTime
+  expiresAt          DateTime
+  /// The `jti` of the one refresh token this session currently honours (security run-3). A
+  /// refresh presenting another one (an older, already-rotated token) closes the session: a
+  /// stolen refresh token used after its owner's tab rotated it gives itself away. Null on
+  /// sessions opened before this column (their first refresh sets it).
+  refreshJti         String?
+  /// The jti rotated away by the last refresh, still accepted for a few seconds after
+  /// `refreshRotatedAt` — two tabs of one browser refreshing at once.
+  previousRefreshJti String?
+  refreshRotatedAt   DateTime?
   /// Null = open (still a live, usable session). Set the moment the session stops being
   /// usable — explicit close/logout/revoke-others stamp it immediately; a naturally
   /// time-expired session gets it stamped by the daily cron's sweep. The row is kept
   /// (visible, marked closed) for `SESSION_CLOSED_RETENTION_DAYS` after this before the
   /// same cron deletes it for real.
-  closedAt   DateTime?
+  closedAt           DateTime?
   /// Last step-up verification done FROM this session (TOTP, passkey, or password when the
   /// user has neither) — closing another session or revoking the others requires it to be
   /// within `STEP_UP_WINDOW_MINUTES` (2026-09-25). Bound to the session, not the user, so a
   /// verification on one device never unlocks another.
-  stepUpAt   DateTime?
+  stepUpAt           DateTime?
   /// The passkey this session was opened with (specs/041), null for any other login. When the
   /// passkey's authenticator model is declared compromised, its sessions are closed.
-  passkeyId  String?
+  passkeyId          String?
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   passkey Passkey? @relation(fields: [passkeyId], references: [id], onDelete: SetNull)

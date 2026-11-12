@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -11,11 +10,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
-import { stepUp, forgetStepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp, forgetStepUp, totpCodeFor } from "../../support/mfa";
 
 /** E2E test (US3, specs/021): re-entering the password disables MFA and invalidates everything. */
 describe("MFA disable HTTP (e2e)", () => {
@@ -52,7 +47,7 @@ describe("MFA disable HTTP (e2e)", () => {
     await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", cookies)
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: await totpCodeFor(enroll.body.secret) });
     secret = enroll.body.secret;
     await forgetStepUp(prisma, email);
   });
@@ -98,12 +93,12 @@ describe("MFA disable HTTP (e2e)", () => {
     const secondLogin = await request(app.getHttpServer())
       .post("/api/v1/auth/login/mfa-verify")
       .set("Cookie", secondLoginStart.get("Set-Cookie") ?? [])
-      .send({ code: totpCodeFor(secret) });
+      .send({ code: await totpCodeFor(secret) });
     const cookiesOther = secondLogin.get("Set-Cookie") ?? [];
     const stepUp = await request(app.getHttpServer())
       .post("/api/v1/auth/sessions/step-up")
       .set("Cookie", cookies)
-      .send({ method: "totp", code: totpCodeFor(secret) });
+      .send({ method: "totp", code: await totpCodeFor(secret) });
     expect(stepUp.status).toBe(200);
 
     const res = await request(app.getHttpServer())
@@ -136,7 +131,7 @@ describe("MFA disable HTTP (e2e)", () => {
     const confirm = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", cookies)
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: await totpCodeFor(enroll.body.secret) });
     expect(confirm.status).toBe(201);
     expect(confirm.body.recoveryCodes).toHaveLength(10);
 

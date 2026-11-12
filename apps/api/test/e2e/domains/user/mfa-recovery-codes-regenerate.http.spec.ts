@@ -68,7 +68,7 @@ describe("Regenerate recovery codes HTTP (e2e)", () => {
     const withNew = await login(app, account.rut);
     expect((await verifyMfa(app, withNew.cookies, newCodes[0]!)).status).toBe(200);
     const withApp = await login(app, account.rut);
-    expect((await verifyMfa(app, withApp.cookies, totpCodeFor(secret))).status).toBe(200);
+    expect((await verifyMfa(app, withApp.cookies, await totpCodeFor(secret))).status).toBe(200);
 
     await waitForEmail(outbox, account.email, "security-notice", "códigos de recuperación nuevos");
   });

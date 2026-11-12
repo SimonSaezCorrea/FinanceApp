@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -22,11 +21,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
-import { stepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp, totpCodeFor } from "../../support/mfa";
 
 describe("Passkey login HTTP (e2e)", () => {
   let app: INestApplication;
@@ -175,7 +170,7 @@ describe("Passkey login HTTP (e2e)", () => {
     await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", sessionCookies)
-      .send({ code: totpCodeFor(enroll.body.secret) });
+      .send({ code: await totpCodeFor(enroll.body.secret) });
 
     // Password login now requires the TOTP step.
     const passwordLogin = await request(app.getHttpServer())

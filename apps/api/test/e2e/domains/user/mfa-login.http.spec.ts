@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
-import * as OTPAuth from "otpauth";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -11,11 +10,7 @@ import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
-import { stepUp } from "../../support/mfa";
-
-function totpCodeFor(secret: string): string {
-  return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
-}
+import { stepUp, totpCodeFor } from "../../support/mfa";
 
 /** E2E test (US2, specs/021): login's second factor, end to end through the real HTTP Facade. */
 describe("MFA login HTTP (e2e)", () => {
@@ -53,7 +48,7 @@ describe("MFA login HTTP (e2e)", () => {
     await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/confirm")
       .set("Cookie", regCookies)
-      .send({ code: totpCodeFor(secret) });
+      .send({ code: await totpCodeFor(secret) });
   });
 
   afterAll(async () => {
@@ -101,7 +96,7 @@ describe("MFA login HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/login/mfa-verify")
       .set("Cookie", pendingCookies)
-      .send({ code: totpCodeFor(secret) });
+      .send({ code: await totpCodeFor(secret) });
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe(email.toLowerCase());
     const cookies = res.get("Set-Cookie") ?? [];
@@ -127,7 +122,7 @@ describe("MFA login HTTP (e2e)", () => {
     const withCorrectCode = await request(app.getHttpServer())
       .post("/api/v1/auth/login/mfa-verify")
       .set("Cookie", pendingCookies)
-      .send({ code: totpCodeFor(secret) });
+      .send({ code: await totpCodeFor(secret) });
     expect(withCorrectCode.status).toBe(429);
   });
 });

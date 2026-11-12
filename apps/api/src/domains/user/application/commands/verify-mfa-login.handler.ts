@@ -12,7 +12,7 @@ import { InvalidMfaCodeError, MfaLockedError, UnauthorizedError } from "../../do
 import type { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { SessionIssuer } from "../session-issuer";
-import { isValidTotp, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
+import { totpStepFor, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
 import { looksLikeRecoveryCode } from "../recovery-code-generator";
 import type { AuthResult } from "./register.handler";
 import { VerifyMfaLoginCommand } from "./verify-mfa-login.command";
@@ -167,7 +167,8 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     } else if (user.mfaMethodOrDefault() === "EMAIL") {
       valid = await this.mfaCodes.verifyWithTx(tx, user.id, "LOGIN", code, now);
     } else {
-      valid = isValidTotp(user.mfaSecret, code);
+      const step = totpStepFor(user.mfaSecret, code, now.getTime());
+      valid = step !== null && user.useTotpStep(step);
     }
 
     if (!valid) {

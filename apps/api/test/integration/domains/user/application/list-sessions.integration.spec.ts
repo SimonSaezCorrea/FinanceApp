@@ -52,7 +52,13 @@ describe("ListSessionsQueryHandler (integration)", () => {
       expiresAt: oneWeek.toISOString(),
     });
     // Bump `newer`'s lastUsedAt so ordering is unambiguous regardless of clock resolution.
-    await sessionRepo.touch(newer.id, new Date(Date.now() + 1000), oneWeek);
+    await sessionRepo.rotateRefresh(
+      newer.id,
+      null,
+      randomUUID(),
+      new Date(Date.now() + 1000),
+      oneWeek,
+    );
 
     const handler = new ListSessionsQueryHandler(sessionRepo);
     const result = await handler.execute(new ListSessionsQuery(userId, newer.id));

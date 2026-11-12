@@ -104,11 +104,11 @@ describe("Step-up cannot be bootstrapped from the session it protects (e2e)", ()
       await request(app.getHttpServer())
         .post("/api/v1/auth/me/mfa/confirm")
         .set("Cookie", victim.cookies)
-        .send({ code: totpCodeFor(secret) });
+        .send({ code: await totpCodeFor(secret) });
       await request(app.getHttpServer())
         .post("/api/v1/auth/sessions/step-up")
         .set("Cookie", victim.cookies)
-        .send({ method: "totp", code: totpCodeFor(secret) });
+        .send({ method: "totp", code: await totpCodeFor(secret) });
 
       const change = await request(app.getHttpServer())
         .post("/api/v1/auth/me/emails")

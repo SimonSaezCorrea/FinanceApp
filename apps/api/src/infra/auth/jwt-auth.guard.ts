@@ -21,6 +21,8 @@ interface AccessPayload {
    * session revokes its still-technically-unexpired access token immediately, not just
    * on the next refresh (research.md R2). */
   sid: string;
+  /** "access" on tokens issued since security run-3; a refresh token is never accepted here. */
+  typ?: string;
 }
 
 /** Protects routes: validates the access-token httpOnly cookie (Principle II), that the
@@ -47,6 +49,7 @@ export class JwtAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException();
     }
+    if (payload.typ !== undefined && payload.typ !== "access") throw new UnauthorizedException();
 
     // One query, not two: the session's own aliveness is what's actually being checked
     // (closed, purged, or past its own `expiresAt` all mean an instantly-revoked
