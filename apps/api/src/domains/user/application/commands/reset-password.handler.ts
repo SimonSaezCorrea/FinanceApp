@@ -14,6 +14,10 @@ import {
   type EmailTokenRepositoryPort,
 } from "../../../email-token/domain/ports/email-token.repository.port";
 import {
+  PASSKEY_REPOSITORY,
+  type PasskeyRepositoryPort,
+} from "../../../passkey/domain/ports/passkey.repository.port";
+import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
@@ -45,6 +49,7 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
     private readonly prisma: PrismaService,
     @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
     @Inject(USER_EMAIL_REPOSITORY) private readonly emails: UserEmailRepositoryPort,
+    @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -82,6 +87,10 @@ export class ResetPasswordHandler extends BaseCommandHandler<ResetPasswordComman
       await this.sessions.closeAllForUserWithTx(tx, user.id);
       // specs/040: a recovered password forgets every remembered device.
       await this.devices.deleteAllForUserWithTx(tx, user.id);
+      // And every passkey (2026-11-12): one added by whoever had a stolen session signs in with
+      // no password and no second factor, so recovering the account must not leave it behind.
+      // The owner registers theirs again from Perfil, Seguridad.
+      await this.passkeys.deleteAllForUserWithTx(tx, user.id);
       // A change of email requested before (perhaps by whoever forced this reset) is cancelled.
       await cancelPendingEmailChangeWithTx(
         { emails: this.emails, tokens: this.tokens },

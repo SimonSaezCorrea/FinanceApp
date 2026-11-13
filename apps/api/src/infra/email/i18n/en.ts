@@ -64,7 +64,7 @@ export const en: EmailCatalog = {
       PASSWORD_RESET: {
         subject: "You recovered access to your mifik account",
         title: "You chose a new password",
-        body: "A new password was chosen for your mifik account using a recovery link. All open sessions were closed and any pending change of email was cancelled. Your passkeys are still active: check them in Profile, Security, and remove any you don't recognise.",
+        body: "A new password was chosen for your mifik account using a recovery link. All open sessions were closed, your passkeys were deleted and any pending change of email was cancelled. If you used passkeys, register them again in Profile, Security.",
       },
       MFA_ENABLED: {
         subject: "You turned on two-step verification in mifik",

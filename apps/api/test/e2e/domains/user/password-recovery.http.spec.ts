@@ -100,7 +100,17 @@ describe("Password recovery HTTP (e2e)", () => {
     expect(res.status).toBe(400);
   });
 
-  it("the link changes the password once, closes every session and keeps the second factor", async () => {
+  it("the link changes the password once, closes every session, deletes the passkeys and keeps the second factor", async () => {
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true } });
+    // A passkey someone registered (perhaps from a stolen session): recovering removes it.
+    await prisma.passkey.create({
+      data: {
+        userId: owner.id,
+        name: "Llave ajena",
+        credentialId: `cred-${owner.id}`,
+        publicKey: "pk",
+      },
+    });
     const token = lastToken(outbox, email, "reset-password");
     const reset = await request(app.getHttpServer())
       .post("/api/v1/auth/password/reset")
@@ -133,6 +143,7 @@ describe("Password recovery HTTP (e2e)", () => {
     expect(newLogin.status).toBe(200);
     expect(newLogin.body).toEqual({ mfaRequired: true, mfaMethod: "totp" });
 
+    expect(await prisma.passkey.count({ where: { userId: owner.id } })).toBe(0);
     await waitForEmail(outbox, email, "security-notice", "Recuperaste el acceso");
   });
 

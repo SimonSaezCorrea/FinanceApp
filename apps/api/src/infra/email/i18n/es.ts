@@ -66,7 +66,7 @@ export const es = {
       PASSWORD_RESET: {
         subject: "Recuperaste el acceso a tu cuenta de mifik",
         title: "Elegiste una contraseña nueva",
-        body: "Se eligió una contraseña nueva para tu cuenta de mifik usando un enlace de recuperación. Todas las sesiones abiertas se cerraron y cualquier cambio de correo pendiente se canceló. Tus llaves de acceso siguen activas: revísalas en Perfil, Seguridad, y quita las que no reconozcas.",
+        body: "Se eligió una contraseña nueva para tu cuenta de mifik usando un enlace de recuperación. Todas las sesiones abiertas se cerraron, tus llaves de acceso se borraron y cualquier cambio de correo pendiente se canceló. Si usabas llaves de acceso, vuelve a registrarlas en Perfil, Seguridad.",
       },
       MFA_ENABLED: {
         subject: "Activaste la verificación en dos pasos en mifik",

@@ -2594,7 +2594,9 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
 /auth/password/forgot` (public, **always 202 `{}`**, the lookup by RUT happens after answering;
     only a confirmed address of an ACTIVE account gets a link), `POST /auth/password/reset` (public;
     one transaction: consume, new hash, `User.resetPassword` clears the login lockout, closes EVERY
-    session — `closeAllForUserWithTx` —, never signs in, MFA still required). **`PATCH /auth/me` no
+    session — `closeAllForUserWithTx` —, and since 2026-11-12 deletes every passkey (one added from a
+    stolen session would otherwise survive the recovery; the notice and the page say so), never signs
+    in, MFA still required). **`PATCH /auth/me` no
     longer takes `email`** (`.strict()`, 400). Registration creates the PRIMARY row and sends the
     verification. **Security notices** (`AccountSecurityEvent` → `SendSecurityNoticeListener`,
     background, logged on failure, only to a CONFIRMED address, in the account's language):

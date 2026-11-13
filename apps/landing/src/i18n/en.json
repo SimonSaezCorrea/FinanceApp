@@ -399,7 +399,7 @@
     },
     "resetPassword": {
       "title": "Choose a new password",
-      "description": "Saving it signs you out everywhere. If you use two-step verification, we’ll keep asking for it.",
+      "description": "Saving it signs you out everywhere and deletes your passkeys. If you use two-step verification, we’ll keep asking for it.",
       "password": "New password",
       "hint": "At least 8 characters.",
       "confirmation": "Repeat the password",
@@ -407,7 +407,7 @@
       "tooShort": "The password needs at least 8 characters.",
       "mismatch": "The two passwords don’t match.",
       "error": "We couldn’t connect. Please try again.",
-      "success": "Your password changed and we signed you out everywhere. Sign in with the new one.",
+      "success": "Your password changed, we signed you out everywhere and deleted your passkeys. Sign in with the new one.",
       "signIn": "Sign in",
       "invalid": "This link doesn’t work: it expired (it lasts 30 minutes), was already used, or you asked for a newer one.",
       "again": "Ask for another link"

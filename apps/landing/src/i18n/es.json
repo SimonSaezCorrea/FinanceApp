@@ -399,7 +399,7 @@
     },
     "resetPassword": {
       "title": "Elige una contraseña nueva",
-      "description": "Al guardarla se cierran todas tus sesiones abiertas. Si tienes verificación en dos pasos, te la seguiremos pidiendo.",
+      "description": "Al guardarla se cierran todas tus sesiones abiertas y se borran tus llaves de acceso. Si tienes verificación en dos pasos, te la seguiremos pidiendo.",
       "password": "Contraseña nueva",
       "hint": "Al menos 8 caracteres.",
       "confirmation": "Repite la contraseña",
@@ -407,7 +407,7 @@
       "tooShort": "La contraseña necesita al menos 8 caracteres.",
       "mismatch": "Las dos contraseñas no coinciden.",
       "error": "No pudimos conectarnos. Inténtalo de nuevo.",
-      "success": "Tu contraseña cambió y cerramos todas tus sesiones. Inicia sesión con la nueva.",
+      "success": "Tu contraseña cambió, cerramos todas tus sesiones y borramos tus llaves de acceso. Inicia sesión con la nueva.",
       "signIn": "Iniciar sesión",
       "invalid": "Este enlace no sirve: venció (dura 30 minutos), ya se usó o pediste uno más nuevo.",
       "again": "Pedir otro enlace"

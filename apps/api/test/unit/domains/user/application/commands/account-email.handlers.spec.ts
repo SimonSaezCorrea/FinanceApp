@@ -319,6 +319,7 @@ describe("ResetPasswordHandler", () => {
     };
     const emails = { cancelPendingWithTx: vi.fn() };
     const sessions = { closeAllForUserWithTx: vi.fn() };
+    const passkeys = { deleteAllForUserWithTx: vi.fn() };
     const users = { findByIdForUpdateWithTx: vi.fn().mockResolvedValue(u), saveWithTx: vi.fn() };
     const publish = vi.fn();
     const handler = new ResetPasswordHandler(
@@ -329,16 +330,18 @@ describe("ResetPasswordHandler", () => {
       prisma,
       fakeTrustedDevices(),
       emails as never,
+      passkeys as never,
     );
-    return { handler, u, sessions, users, publish, tokens, emails };
+    return { handler, u, sessions, users, publish, tokens, emails, passkeys };
   }
 
-  it("sets the new password, closes every session and publishes PASSWORD_RESET", async () => {
-    const { handler, u, sessions, users, publish } = setup(true);
+  it("sets the new password, closes every session, deletes the passkeys and publishes PASSWORD_RESET", async () => {
+    const { handler, u, sessions, users, publish, passkeys } = setup(true);
     await handler.execute(new ResetPasswordCommand(TOKEN, "Nuev4Clave!x"));
     expect(u.resetPassword).toHaveBeenCalledWith(expect.stringMatching(/^\$2[aby]\$/));
     expect(users.saveWithTx).toHaveBeenCalled();
     expect(sessions.closeAllForUserWithTx).toHaveBeenCalledWith({}, "u1");
+    expect(passkeys.deleteAllForUserWithTx).toHaveBeenCalledWith({}, "u1");
     expect((publish.mock.calls[0]![0] as AccountSecurityEvent).kind).toBe("PASSWORD_RESET");
   });
 
