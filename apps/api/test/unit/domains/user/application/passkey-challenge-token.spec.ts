@@ -24,6 +24,13 @@ describe("PasskeyChallengeToken", () => {
     expect(token.verify(issued)).toEqual({ challenge: "xyz", userId: null, discoverable: true });
   });
 
+  it("is single-use: the same challenge cookie is refused the second time", () => {
+    const token = build();
+    const issued = token.issue({ challenge: "once", userId: "u1", discoverable: false });
+    expect(token.verify(issued).challenge).toBe("once");
+    expect(() => token.verify(issued)).toThrow(PasskeyChallengeInvalidError);
+  });
+
   it("throws PasskeyChallengeInvalidError on a malformed token", () => {
     const token = build();
     expect(() => token.verify("not-a-real-jwt")).toThrow(PasskeyChallengeInvalidError);

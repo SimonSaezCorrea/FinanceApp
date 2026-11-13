@@ -57,11 +57,14 @@ export class JwtAuthGuard implements CanActivate {
     // same cost as the old user-only query, not an added round-trip.
     const session = await this.prisma.session.findUnique({
       where: { id: payload.sid },
-      select: { closedAt: true, expiresAt: true, user: { select: { status: true } } },
+      select: { userId: true, closedAt: true, expiresAt: true, user: { select: { status: true } } },
     });
     if (!session || session.closedAt !== null || session.expiresAt <= new Date()) {
       throw new UnauthorizedException();
     }
+    // Both claims are signed together, so they can't disagree today; checking it anyway means
+    // a session id is never honoured for anyone but the account that opened it.
+    if (session.userId !== payload.sub) throw new UnauthorizedException();
     if (session.user.status === "DISABLED") {
       throw new UnauthorizedException({ code: "ACCOUNT_DISABLED" });
     }

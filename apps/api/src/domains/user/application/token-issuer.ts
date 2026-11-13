@@ -132,26 +132,41 @@ export class TokenIssuer {
    */
   issueMfaPending(userId: string): string {
     return this.jwt.sign(
-      { sub: userId, purpose: MFA_PENDING_PURPOSE },
+      { sub: userId, purpose: MFA_PENDING_PURPOSE, jti: randomUUID() },
       { secret: getMfaPendingTokenSecret(this.config), expiresIn: MFA_PENDING_EXPIRES },
     );
   }
 
   /** Throws `MfaPendingTokenInvalidError` on a missing/expired/malformed/wrong-purpose token. */
-  verifyMfaPending(token: string): { sub: string } {
-    let payload: { sub: string; purpose?: string };
+  verifyMfaPending(token: string): MfaPendingClaims {
+    let payload: { sub: string; purpose?: string; jti?: string; exp?: number };
     try {
-      payload = this.jwt.verify<{ sub: string; purpose?: string }>(token, {
-        secret: getMfaPendingTokenSecret(this.config),
-      });
+      payload = this.jwt.verify<{ sub: string; purpose?: string; jti?: string; exp?: number }>(
+        token,
+        {
+          secret: getMfaPendingTokenSecret(this.config),
+        },
+      );
     } catch {
       throw new MfaPendingTokenInvalidError();
     }
     if (payload.purpose !== MFA_PENDING_PURPOSE) {
       throw new MfaPendingTokenInvalidError();
     }
-    return { sub: payload.sub };
+    return {
+      sub: payload.sub,
+      jti: payload.jti ?? null,
+      expiresAtMs: (payload.exp ?? 0) * 1000,
+    };
   }
+}
+
+/** What a valid pending token says: whose sign-in it is, and its one-time id (null on a token
+ * signed before pending tokens carried one) with its expiry, to make it single-use. */
+export interface MfaPendingClaims {
+  sub: string;
+  jti: string | null;
+  expiresAtMs: number;
 }
 
 /** A token naming the other type is refused. One without a type is still accepted: tokens issued

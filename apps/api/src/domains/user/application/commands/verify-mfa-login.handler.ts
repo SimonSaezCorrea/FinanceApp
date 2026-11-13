@@ -153,6 +153,10 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
   ): Promise<Outcome> {
     const user = await this.repo.findByIdForUpdateWithTx(tx, userId);
     if (!user) return { kind: "unauthorized" };
+    // The pending token was issued while MFA was on; if it was turned off since (or the account
+    // disabled), that token no longer leads anywhere: sign in again with the password.
+    if (!user.mfaEnabled) return { kind: "unauthorized" };
+    user.assertActive();
 
     const now = new Date();
     if (user.isMfaLocked(now)) return { kind: "locked" };

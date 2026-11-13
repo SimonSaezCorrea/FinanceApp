@@ -28,13 +28,18 @@ function contextWithCookie(token: string | undefined): ExecutionContext {
  * `expiresAt`), with its owner's `status` riding along via the relation include,
  * instead of a separate `prisma.user` query. */
 function fakeSessionFindUnique(
-  result: { closedAt: Date | null; expiresAt: Date; user: { status: string } } | null,
+  result: {
+    userId?: string;
+    closedAt: Date | null;
+    expiresAt: Date;
+    user: { status: string };
+  } | null,
 ) {
   return { session: { findUnique: vi.fn().mockResolvedValue(result) } as never };
 }
 
-function openSession(status = "ACTIVE") {
-  return { closedAt: null, expiresAt: FUTURE, user: { status } };
+function openSession(status = "ACTIVE", userId = "u1") {
+  return { userId, closedAt: null, expiresAt: FUTURE, user: { status } };
 }
 
 describe("JwtAuthGuard", () => {
@@ -61,6 +66,13 @@ describe("JwtAuthGuard", () => {
     await expect(guard.canActivate(contextWithCookie(sign("u1")))).rejects.toMatchObject({
       response: { code: "ACCOUNT_DISABLED" },
     });
+  });
+
+  it("rejects a session id that belongs to another account", async () => {
+    const guard = makeGuard(fakeSessionFindUnique(openSession("ACTIVE", "someone-else")));
+    await expect(guard.canActivate(contextWithCookie(sign("u1")))).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 
   it("rejects when the session no longer exists (purged)", async () => {

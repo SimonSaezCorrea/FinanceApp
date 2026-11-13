@@ -281,6 +281,41 @@ describe("VerifyMfaLoginHandler", () => {
       handler.execute(new VerifyMfaLoginCommand("gone", { code: "000000" })),
     ).rejects.toThrow(UnauthorizedError);
   });
+  it("throws UNAUTHORIZED when MFA was turned off after the pending token was issued", async () => {
+    const user = User.fromPersistence(baseProps({ mfaEnabled: false }));
+    const issuer = fakeSessionIssuer();
+    const handler = new VerifyMfaLoginHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo({ findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user) }),
+      fakeRecoveryCodeRepo(),
+      issuer,
+      fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
+    );
+
+    await expect(
+      handler.execute(new VerifyMfaLoginCommand("u1", { code: "000000" })),
+    ).rejects.toThrow(UnauthorizedError);
+    expect(issuer.establish).not.toHaveBeenCalled();
+  });
+
+  it("refuses a disabled account before any code is checked", async () => {
+    const user = User.fromPersistence(baseProps({ status: "DISABLED" }));
+    const handler = new VerifyMfaLoginHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo({ findByIdForUpdateWithTx: vi.fn().mockResolvedValue(user) }),
+      fakeRecoveryCodeRepo(),
+      fakeSessionIssuer(),
+      fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
+    );
+
+    await expect(
+      handler.execute(new VerifyMfaLoginCommand("u1", { code: "000000" })),
+    ).rejects.toMatchObject({ code: "ACCOUNT_DISABLED" });
+  });
 });
 
 describe("VerifyMfaLoginHandler — remember this device (specs/040 US2)", () => {

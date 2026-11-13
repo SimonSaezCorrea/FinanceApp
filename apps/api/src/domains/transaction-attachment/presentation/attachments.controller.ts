@@ -14,7 +14,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { z } from "zod";
 
-import { transactions } from "@finance/contracts";
+import { rowId, transactions } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
@@ -27,11 +27,10 @@ import {
 } from "../application/queries/list-attachments.query";
 import { AttachmentTypeNotAllowedError } from "../domain/errors";
 
-const transactionParamsSchema = z.object({ id: z.string().min(1) });
-const attachmentParamsSchema = z.object({
-  id: z.string().min(1),
-  attachmentId: z.string().min(1),
-});
+// Row ids are UUID v7 (Principle VIII): a malformed one is refused (400 INVALID_ID_FORMAT)
+// before any query runs.
+const transactionParamsSchema = z.object({ id: rowId });
+const attachmentParamsSchema = z.object({ id: rowId, attachmentId: rowId });
 
 /** Facade for `/transactions/:id/attachments`. Multipart in, JSON out — the
  *  bytes are never proxied back, the browser fetches them by signed URL. */

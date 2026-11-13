@@ -53,6 +53,7 @@ describe("ListSessionsQueryHandler (integration)", () => {
     });
     // Bump `newer`'s lastUsedAt so ordering is unambiguous regardless of clock resolution.
     await sessionRepo.rotateRefresh(
+      userId,
       newer.id,
       null,
       randomUUID(),

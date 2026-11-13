@@ -2553,7 +2553,13 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
       aggregate saves match `userId` as well as `id`. So do the money writes other domains enlist by id (2026-11-12):
       `BankAccountRepositoryPort.incrementBalanceWithTx`/`incrementCreditUsedWithTx`/`adjustOpeningWithTx`
       and the transaction ports' `updateAmountWithTx`/`deleteWithTx`/`saveUpdateWithTx`/`removeWithTx`
-      take `userId` right after `tx`; someone else's row throws (P2025) and rolls the caller back. What is still open: `docs/PENDING.md` (Seguridad —
+      take `userId` right after `tx`; someone else's row throws (P2025) and rolls the caller back. (h) Run-1 hardening
+      leftovers (2026-11-12): `JwtAuthGuard` also requires `session.userId === sub`, and refresh rotation
+      (`SessionRepositoryPort.rotateRefresh(userId, id, …)`) matches the owner; `verify-mfa-login` refuses a
+      disabled account or one whose MFA was turned off since the pending token, and passkey login refuses a
+      disabled account; the passkey challenge cookie and the MFA pending token carry a `jti` and are
+      single-use (`infra/auth/one-time-claims.ts`, in process memory like the rate limits; the MFA one is
+      given back when the code is wrong); attachment route params are `rowId`. What is still open: `docs/PENDING.md` (Seguridad —
       pendiente tras la revisión de run-3).
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's

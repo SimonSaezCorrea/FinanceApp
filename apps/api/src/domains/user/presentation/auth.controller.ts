@@ -19,6 +19,7 @@ import { auth } from "@finance/contracts";
 
 import { ACCESS_COOKIE, JwtAuthGuard, REFRESH_COOKIE } from "../../../infra/auth/jwt-auth.guard";
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
+import { claimOnce, releaseClaim } from "../../../infra/auth/one-time-claims";
 import { requiresSecureCookies } from "../../../infra/config/origins.config";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
@@ -62,7 +63,7 @@ import { ResetPasswordCommand } from "../application/commands/reset-password.com
 import { VerifyEmailCommand } from "../application/commands/verify-email.command";
 import { ListUserEmailsQuery } from "../application/queries/list-user-emails.query";
 import { userEmailIdParamsSchema } from "./dto/user-email-id.params";
-import { PasskeyChallengeInvalidError } from "../domain/errors";
+import { MfaPendingTokenInvalidError, PasskeyChallengeInvalidError } from "../domain/errors";
 import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
 import { TokenIssuer, type TokenPair } from "../application/token-issuer";
 import { GetMeQuery } from "../application/queries/get-me.query";
@@ -182,11 +183,22 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ user: auth.CurrentUser }> {
     const pendingToken = (req.cookies as Record<string, string> | undefined)?.[MFA_PENDING_COOKIE];
-    const { sub: userId } = this.tokenIssuer.verifyMfaPending(pendingToken ?? "");
-    const { tokens, user, trustedDeviceToken } = await this.commandBus.execute<
-      VerifyMfaLoginCommand,
-      VerifyMfaLoginResult
-    >(new VerifyMfaLoginCommand(userId, body, this.deviceFrom(req)));
+    const pending = this.tokenIssuer.verifyMfaPending(pendingToken ?? "");
+    const userId = pending.sub;
+    // Single-use once it signs someone in (security run-3): claimed for the attempt, given back
+    // when the attempt fails (a mistyped code can be tried again within the token's 5 minutes).
+    const claim = pending.jti ? `mfa-pending:${pending.jti}` : null;
+    if (claim && !claimOnce(claim, pending.expiresAtMs)) throw new MfaPendingTokenInvalidError();
+    let result: VerifyMfaLoginResult;
+    try {
+      result = await this.commandBus.execute<VerifyMfaLoginCommand, VerifyMfaLoginResult>(
+        new VerifyMfaLoginCommand(userId, body, this.deviceFrom(req)),
+      );
+    } catch (error) {
+      if (claim) releaseClaim(claim);
+      throw error;
+    }
+    const { tokens, user, trustedDeviceToken } = result;
     res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
     if (trustedDeviceToken) {

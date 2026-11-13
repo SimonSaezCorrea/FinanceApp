@@ -1,8 +1,11 @@
+import { randomUUID } from "node:crypto";
+
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import type { StringValue } from "ms";
 
+import { claimOnce } from "../../../infra/auth/one-time-claims";
 import { getPasskeyChallengeSecret } from "../../../infra/config/passkey.config";
 import { PasskeyChallengeInvalidError } from "../domain/errors";
 
@@ -37,21 +40,32 @@ export class PasskeyChallengeToken {
 
   issue(payload: PasskeyChallengePayload): string {
     return this.jwt.sign(
-      { ...payload, purpose: PURPOSE },
+      { ...payload, purpose: PURPOSE, jti: randomUUID() },
       { secret: getPasskeyChallengeSecret(this.config), expiresIn: EXPIRES },
     );
   }
 
+  /**
+   * Single-use (security run-3): the first `verify` of a challenge claims it, and any later one
+   * — a replayed cookie together with a captured response — is refused. A failed ceremony asks
+   * for new options anyway, so nothing legitimate presents the same challenge twice. A token
+   * signed before challenges carried a `jti` (at most 5 minutes after a deploy) is still taken.
+   */
   verify(token: string): PasskeyChallengePayload {
-    let decoded: PasskeyChallengePayload & { purpose?: string };
+    let decoded: PasskeyChallengePayload & { purpose?: string; jti?: string; exp?: number };
     try {
-      decoded = this.jwt.verify<PasskeyChallengePayload & { purpose?: string }>(token, {
+      decoded = this.jwt.verify<
+        PasskeyChallengePayload & { purpose?: string; jti?: string; exp?: number }
+      >(token, {
         secret: getPasskeyChallengeSecret(this.config),
       });
     } catch {
       throw new PasskeyChallengeInvalidError();
     }
     if (decoded.purpose !== PURPOSE) throw new PasskeyChallengeInvalidError();
+    if (decoded.jti && !claimOnce(`passkey:${decoded.jti}`, (decoded.exp ?? 0) * 1000)) {
+      throw new PasskeyChallengeInvalidError();
+    }
     return {
       challenge: decoded.challenge,
       userId: decoded.userId,

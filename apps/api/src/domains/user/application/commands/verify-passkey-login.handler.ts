@@ -83,6 +83,9 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
 
     const user = await this.userRepo.findById(resolvedUserId);
     if (!user) throw new InvalidCredentialsError();
+    // A disabled account never gets a session, whatever proved who it is (the guard would refuse
+    // it on the next request; better not to open it at all).
+    user.assertActive();
 
     await this.passkeys.updateCounterAndLastUsedWithTx(
       this.prisma,

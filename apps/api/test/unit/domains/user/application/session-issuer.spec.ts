@@ -75,6 +75,7 @@ describe("SessionIssuer", () => {
     );
 
     expect(sessions.rotateRefresh).toHaveBeenCalledWith(
+      "u1",
       "s1",
       "old-jti",
       TOKENS.refreshJti,

@@ -83,6 +83,7 @@ export class PrismaSessionRepository
   }
 
   async rotateRefresh(
+    userId: string,
     id: string,
     presentedJti: string | null,
     newJti: string,
@@ -105,6 +106,7 @@ export class PrismaSessionRepository
           "createdAt" + make_interval(days => ${SESSION_MAX_AGE_DAYS})
         )
       WHERE "id" = ${id}
+        AND "userId" = ${userId}
         AND "closedAt" IS NULL
         AND "expiresAt" > ${now.toISOString()}::timestamp(3)
         AND "createdAt" > ${oldest.toISOString()}::timestamp(3)
@@ -116,7 +118,7 @@ export class PrismaSessionRepository
         )`;
     if (rotated > 0) return "ROTATED";
     const open = await this.prisma.session.count({
-      where: { id, closedAt: null, expiresAt: { gt: now }, createdAt: { gt: oldest } },
+      where: { id, userId, closedAt: null, expiresAt: { gt: now }, createdAt: { gt: oldest } },
     });
     return open > 0 ? "REUSED" : "GONE";
   }

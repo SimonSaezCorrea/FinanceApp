@@ -23,8 +23,9 @@ export interface SessionRepositoryPort {
    * before jtis), it moves to `newJti`, bumps `lastUsedAt` and slides `expiresAt` (capped at
    * the maximum age). Otherwise nothing is rotated: "REUSED" when the session is still open (an
    * old refresh token came back: the caller closes the session), "GONE" when it is closed, purged,
-   * expired or too old. */
+   * expired or too old. Matches `userId` too: a session id is only ever honoured for its owner. */
   rotateRefresh(
+    userId: string,
     id: string,
     presentedJti: string | null,
     newJti: string,

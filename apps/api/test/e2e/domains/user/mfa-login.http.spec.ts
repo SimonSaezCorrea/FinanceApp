@@ -103,6 +103,25 @@ describe("MFA login HTTP (e2e)", () => {
     expect(cookies.some((c) => c.startsWith("access_token="))).toBe(true);
   });
 
+  it("the pending token survives a mistyped code but is single-use once it signs in", async () => {
+    const login = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ identifierValue: rut, password });
+    const pendingCookies = login.get("Set-Cookie") ?? [];
+    const verify = (code: string) =>
+      request(app.getHttpServer())
+        .post("/api/v1/auth/login/mfa-verify")
+        .set("Cookie", pendingCookies)
+        .send({ code });
+
+    expect((await verify("000000")).status).toBe(401);
+    expect((await verify(await totpCodeFor(secret))).status).toBe(200);
+    // The same cookie again, even with a fresh valid code: refused.
+    const replay = await verify(await totpCodeFor(secret));
+    expect(replay.status).toBe(401);
+    expect(replay.body.error.code).toBe("MFA_PENDING_TOKEN_INVALID");
+  });
+
   it("5 consecutive invalid codes lock the account, even the correct code afterward", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")

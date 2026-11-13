@@ -10,6 +10,7 @@ import { AppModule } from "../../../../src/app.module";
 import { OBJECT_STORAGE } from "../../../../src/domains/transaction-attachment/domain/ports/object-storage.port";
 import type { ObjectStoragePort } from "../../../../src/domains/transaction-attachment/domain/ports/object-storage.port";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
+import { generateRowId } from "../../../../src/infra/id/generate-row-id";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
 import { UUID_V7 } from "../../support/uuid";
@@ -224,7 +225,8 @@ describe("Attachments HTTP (e2e)", () => {
     const movement = await request(inert.getHttpServer())
       .get("/api/v1/transactions")
       .set("Cookie", inertCookies);
-    const anyId = movement.body.items[0]?.id ?? "none";
+    // Any well-formed id: storage is checked before the movement is looked up.
+    const anyId = movement.body.items[0]?.id ?? generateRowId();
 
     const res = await request(inert.getHttpServer())
       .post(`/api/v1/transactions/${anyId}/attachments`)
@@ -234,5 +236,16 @@ describe("Attachments HTTP (e2e)", () => {
     expect(res.status).toBe(503);
     expect(res.body.error.code).toBe("ATTACHMENTS_UNAVAILABLE");
     await inert.close();
+  });
+
+  it("refuses a malformed movement or attachment id before any query (400 INVALID_ID_FORMAT)", async () => {
+    for (const path of [
+      "/api/v1/transactions/not-a-uuid/attachments",
+      `/api/v1/transactions/${generateRowId()}/attachments/not-a-uuid/url`,
+    ]) {
+      const res = await request(app.getHttpServer()).get(path).set("Cookie", cookies);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INVALID_ID_FORMAT");
+    }
   });
 });

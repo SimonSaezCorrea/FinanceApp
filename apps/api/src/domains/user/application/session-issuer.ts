@@ -54,6 +54,7 @@ export class SessionIssuer {
 
     if (opts.reuseSessionId) {
       const rotation = await this.sessions.rotateRefresh(
+        user.id,
         tokens.sessionId,
         opts.presentedJti ?? null,
         tokens.refreshJti,
