@@ -14,6 +14,7 @@ commits:
   - 100a2857
   - 73dc957c
   - 7ddae207
+  - ca26361e
 ---
 
 ## Seguridad
