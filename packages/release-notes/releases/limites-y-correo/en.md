@@ -22,6 +22,8 @@ summary: We tell you when someone asks to change your email, and changing your p
   twice.
 - **Sessions that end**: a session closes after 30 days even if you keep using it, and if someone
   tries to use an old copy of it, it closes at once.
+- **Recovering your password deletes your passkeys**: if someone had added one to your account, it
+  stops working for them. Then register yours again in Profile, Security.
 - **Only mifik's code runs**: your browser runs only the code we publish, so a script slipped into
   a page doesn't run.
 

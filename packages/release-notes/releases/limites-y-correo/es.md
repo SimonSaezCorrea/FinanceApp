@@ -15,6 +15,7 @@ commits:
   - 73dc957c
   - 7ddae207
   - ca26361e
+  - 357ae1e3
 ---
 
 ## Seguridad
@@ -35,6 +36,8 @@ commits:
   usar dos veces.
 - **Sesiones con fecha de término**: una sesión se cierra a los 30 días aunque la uses, y si alguien
   intenta usar una copia vieja de ella, se cierra al momento.
+- **Recuperar la contraseña borra tus llaves de acceso**: si alguien hubiera agregado una llave a tu
+  cuenta, deja de servirle. Después vuelve a registrar las tuyas en Perfil, Seguridad.
 - **Solo corre el código de mifik**: tu navegador ejecuta únicamente el código que publicamos, así
   que un script metido en una página no se ejecuta.
 
