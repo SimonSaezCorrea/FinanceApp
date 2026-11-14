@@ -66,3 +66,11 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 2
+
+  # The pinned Cloudflare Pages uploader of the deploy workflows (security run-3).
+  - package-ecosystem: "npm"
+    directory: "/.github/wrangler"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 1

@@ -4,6 +4,7 @@ import type { CardAccountRepositoryPort } from "../../../card-account/domain/por
 import type { CustomFieldRepositoryPort } from "../../../custom-field/domain/ports/custom-field.repository.port";
 import {
   CustomFieldFilterInvalidError,
+  CustomFieldFilterTooBroadError,
   CustomFieldNotFoundError,
 } from "../../../custom-field/domain/errors";
 import type { TransactionFieldValueRepositoryPort } from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
@@ -148,6 +149,9 @@ async function customFieldClauses(
   };
 }
 
+/** The most movements a custom-field filter may name in one query. */
+export const CUSTOM_FIELD_FILTER_MAX_IDS = 30_000;
+
 /**
  * `toListFilter` plus the custom field filter (specs/036), resolved through the
  * owners' ports into ids and a scope — the list, its summary and every bulk action
@@ -160,9 +164,15 @@ export async function resolveListFilter(
 ): Promise<TransactionListFilter> {
   const base = toListFilter(filters);
   const [clauses, inScope] = await Promise.all([
-    filters.cf ? customFieldClauses(deps, userId, filters) : {},
+    filters.cf
+      ? customFieldClauses(deps, userId, filters)
+      : ({} as Awaited<ReturnType<typeof customFieldClauses>>),
     filters.inScopeOf ? scopeOfField(deps, userId, filters.inScopeOf) : undefined,
   ]);
+  // Each id is one query parameter, and Postgres takes at most 65,535 (security run-3: past that
+  // the request failed with 500). A clear refusal instead (docs/PENDING.md, Movimientos §11).
+  const named = Math.max(clauses.ids?.length ?? 0, clauses.excludeIds?.length ?? 0);
+  if (named > CUSTOM_FIELD_FILTER_MAX_IDS) throw new CustomFieldFilterTooBroadError();
   return { ...base, ...clauses, ...(inScope ? { inScope } : {}) };
 }
 

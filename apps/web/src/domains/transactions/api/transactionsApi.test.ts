@@ -25,3 +25,21 @@ describe("transactionsApi query string", () => {
     );
   });
 });
+
+describe("transactionsApi.list without a limit", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("follows the cursor until the last page and joins the pages (security run-3)", async () => {
+    vi.mocked(apiFetch)
+      .mockResolvedValueOnce({ items: [{ id: "a" }, { id: "b" }], nextCursor: "c1" })
+      .mockResolvedValueOnce({ items: [{ id: "c" }], nextCursor: null });
+
+    const page = await transactionsApi.list({ type: "EXPENSE" });
+
+    expect(page).toEqual({ items: [{ id: "a" }, { id: "b" }, { id: "c" }], nextCursor: null });
+    expect(vi.mocked(apiFetch).mock.calls.map(([url]) => url)).toEqual([
+      "/transactions?type=EXPENSE",
+      "/transactions?type=EXPENSE&cursor=c1",
+    ]);
+  });
+});

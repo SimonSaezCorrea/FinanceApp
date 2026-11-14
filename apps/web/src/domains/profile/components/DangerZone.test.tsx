@@ -69,4 +69,18 @@ describe("DangerZone — delete account (Ley 21.719 Art. 11 supresión)", () => 
       expect(deleteAccount).toHaveBeenCalledWith({ password: "correct-pw", keepHistory: false }),
     );
   });
+
+  it("opens the step-up when the account has a second factor (security run-3)", async () => {
+    deleteAccount.mockRejectedValue(new ApiRequestError("STEP_UP_REQUIRED", 403));
+    renderDangerZone();
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.deactivate") }));
+    fireEvent.change(await screen.findByLabelText(i18n.t("profile.danger.passwordLabel")), {
+      target: { value: "correct-pw" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.confirmButton") }));
+
+    expect(await screen.findByText(i18n.t("profile.danger.stepUpHint"))).toBeDefined();
+    expect(screen.queryByText(i18n.t("errors.STEP_UP_REQUIRED"))).toBeNull();
+  });
 });

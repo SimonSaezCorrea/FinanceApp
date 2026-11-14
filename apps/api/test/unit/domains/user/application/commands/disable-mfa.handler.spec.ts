@@ -1,5 +1,5 @@
 import { hash } from "bcryptjs";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { DisableMfaHandler } from "../../../../../../src/domains/user/application/commands/disable-mfa.handler";
 import { DisableMfaCommand } from "../../../../../../src/domains/user/application/commands/disable-mfa.command";
@@ -13,6 +13,7 @@ import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domain
 import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import { fakeSessionStepUp, fakeTrustedDevices } from "../../../../support/fake-ports";
+import { resetFailureCounters } from "../../../../../../src/domains/user/application/failure-counter";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -110,6 +111,8 @@ function fakePrisma(): PrismaService {
 }
 
 describe("DisableMfaHandler", () => {
+  beforeEach(() => resetFailureCounters());
+
   it("disables MFA and discards recovery codes when the password is correct", async () => {
     const passwordHash = await hash("correct-pw", 1);
     const repo = fakeRepo({
@@ -182,11 +185,8 @@ describe("DisableMfaHandler", () => {
     await expect(
       handler.execute(new DisableMfaCommand("u1", { password: "wrong" }, "session-a")),
     ).rejects.toThrow(InvalidCurrentPasswordError);
-    // Only the failure count is written (security run-3), nothing the request asked for.
-    expect(repo.saveWithTx).toHaveBeenCalledTimes(1);
-    expect(
-      (vi.mocked(repo.saveWithTx).mock.calls[0][1] as User).snapshot().loginFailedAttempts,
-    ).toBe(1);
+    // Counted in memory (security run-3), never on the account row: nothing is written.
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
     expect(recoveryCodes.deleteAllForUserWithTx).not.toHaveBeenCalled();
     expect(sessions.closeAllExceptForUserWithTx).not.toHaveBeenCalled();
   });
@@ -219,8 +219,8 @@ describe("DisableMfaHandler", () => {
     ).rejects.toThrow("db down");
     // All three writes happen inside the SAME $transaction callback — a real Postgres
     // transaction would roll back `saveWithTx`/`deleteAllForUserWithTx` too (FR-007).
-    // The counted password check runs its own transaction before this one (security run-3).
-    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    // The password check runs no transaction of its own (counted in memory, security run-3).
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it("asks for a step-up when the session has none (the password alone is not enough)", async () => {

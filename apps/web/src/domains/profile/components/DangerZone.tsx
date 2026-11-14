@@ -7,6 +7,7 @@ import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "@finance/ui/src/shared/ui/input";
 import { useProfileMutations } from "../hooks/useProfile";
+import { useStepUp } from "../hooks/useStepUp";
 import { landingHomeUrl } from "../../../shared/lib/landingUrl";
 import { assignLocation } from "../../../shared/lib/leaveApp";
 
@@ -18,6 +19,8 @@ export function DangerZone() {
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Security run-3: with a second factor or a passkey, the server asks for a step-up first.
+  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.danger.stepUpHint"));
 
   async function handleDelete() {
     setError(null);
@@ -28,6 +31,7 @@ export function DangerZone() {
       // The account is gone: the person ends on the public site, not on a gate to sign in again.
       assignLocation(landingHomeUrl());
     } catch (err) {
+      if (needsStepUp(err, () => void handleDelete())) return;
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
     }
@@ -79,6 +83,7 @@ export function DangerZone() {
           />
         </Field>
       </ConfirmModal>
+      {stepUpPanel}
     </section>
   );
 }

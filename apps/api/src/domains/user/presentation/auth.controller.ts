@@ -82,6 +82,12 @@ import {
   TRUSTED_DEVICE_COOKIE_MAX_AGE_MS,
   TRUSTED_DEVICE_COOKIE_PATH,
 } from "../application/trusted-device-cookie";
+import {
+  LOGIN_DEVICE_COOKIE,
+  LOGIN_DEVICE_COOKIE_MAX_AGE_MS,
+  LOGIN_DEVICE_COOKIE_PATH,
+  LoginDeviceToken,
+} from "../application/login-device";
 
 const MFA_PENDING_COOKIE = "mfa_pending_token";
 const MFA_PENDING_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
@@ -115,6 +121,7 @@ export class AuthController {
     private readonly config: ConfigService,
     private readonly tokenIssuer: TokenIssuer,
     private readonly passkeyChallenge: PasskeyChallengeToken,
+    private readonly loginDevices: LoginDeviceToken,
   ) {}
 
   @Post("register")
@@ -129,6 +136,7 @@ export class AuthController {
       new RegisterCommand(body, this.deviceFrom(req)),
     );
     this.setAuthCookies(res, tokens);
+    this.setLoginDeviceCookie(res, user.id);
     return user;
   }
 
@@ -142,7 +150,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.LoginResponse> {
     const result = await this.commandBus.execute<LoginCommand, LoginResult>(
-      new LoginCommand(body, this.deviceFrom(req), this.trustedDeviceToken(req)),
+      new LoginCommand(
+        body,
+        this.deviceFrom(req),
+        this.trustedDeviceToken(req),
+        this.loginDeviceToken(req),
+      ),
     );
     if (result.mfaRequired) {
       res.cookie(MFA_PENDING_COOKIE, result.mfaPendingToken, {
@@ -159,6 +172,7 @@ export class AuthController {
       };
     }
     this.setAuthCookies(res, result.tokens);
+    this.setLoginDeviceCookie(res, result.user.id);
     return { mfaRequired: false, user: result.user };
   }
 
@@ -201,6 +215,7 @@ export class AuthController {
     const { tokens, user, trustedDeviceToken } = result;
     res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
+    this.setLoginDeviceCookie(res, user.id);
     if (trustedDeviceToken) {
       // Flags written out, not spread from cookieBase(): CodeQL doesn't follow the spread.
       res.cookie(TRUSTED_DEVICE_COOKIE, trustedDeviceToken, {
@@ -261,6 +276,7 @@ export class AuthController {
     );
     res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
+    this.setLoginDeviceCookie(res, user.id);
     return { user };
   }
 
@@ -310,7 +326,8 @@ export class AuthController {
 
   @Post("me/password")
   @HttpCode(204)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimit("sessionPassword")
   changePassword(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.changePasswordRequestSchema)) body: auth.ChangePasswordRequest,
@@ -384,7 +401,8 @@ export class AuthController {
 
   @Post("me/mfa/disable")
   @HttpCode(204)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimit("sessionPassword")
   disableMfa(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.disableMfaRequestSchema)) body: auth.DisableMfaRequest,
@@ -512,7 +530,8 @@ export class AuthController {
    * user has neither TOTP nor a passkey). Stamps the caller's own session. */
   @Post("sessions/step-up")
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimit("sessionPassword")
   verifyStepUp(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.stepUpRequestSchema)) body: auth.StepUpRequest,
@@ -572,13 +591,14 @@ export class AuthController {
 
   @Post("me/delete-account")
   @HttpCode(204)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimit("sessionPassword")
   async deleteAccount(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.deleteAccountRequestSchema)) body: auth.DeleteAccountRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    await this.commandBus.execute(new DeleteAccountCommand(user.id, body));
+    await this.commandBus.execute(new DeleteAccountCommand(user.id, body, user.sessionId));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
   }
@@ -687,6 +707,25 @@ export class AuthController {
   private trustedDeviceToken(req: Request): string | undefined {
     const value = (req.cookies as Record<string, string> | undefined)?.[TRUSTED_DEVICE_COOKIE];
     return typeof value === "string" && value.length > 0 ? value : undefined;
+  }
+
+  /** This browser's "signed in here before" token, if it has one (security run-3). */
+  private loginDeviceToken(req: Request): string | undefined {
+    const value = (req.cookies as Record<string, string> | undefined)?.[LOGIN_DEVICE_COOKIE];
+    return typeof value === "string" && value.length > 0 ? value : undefined;
+  }
+
+  /** After a completed sign-in: this browser is now one the account's lockout never holds back
+   * for someone else's failures (security run-3). Renewed on each sign-in. */
+  private setLoginDeviceCookie(res: Response, userId: string): void {
+    // Flags written out, not spread from cookieBase(): CodeQL doesn't follow the spread.
+    res.cookie(LOGIN_DEVICE_COOKIE, this.loginDevices.issue(userId), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: requiresSecureCookies(this.config),
+      path: LOGIN_DEVICE_COOKIE_PATH,
+      maxAge: LOGIN_DEVICE_COOKIE_MAX_AGE_MS,
+    });
   }
 
   /** Every auth cookie: never readable from JavaScript, and `Secure` everywhere except a purely

@@ -114,6 +114,8 @@ describe("Remembered device HTTP (e2e)", () => {
 
   it("forgets every device when the password changes", async () => {
     const { trusted, session } = await rememberDevice(a, secretA, passwordA);
+    // With a second factor, changing the password needs a step-up with it (security run-3).
+    expect((await stepUpTotp(app, session, secretA)).status).toBe(200);
     const changed = await request(app.getHttpServer())
       .post("/api/v1/auth/me/password")
       .set("Cookie", session)

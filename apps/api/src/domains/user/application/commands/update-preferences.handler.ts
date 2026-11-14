@@ -87,9 +87,14 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<
   ): Promise<HandleResult<auth.CurrentUser>> {
     const nextExtraCurrencies = command.input.extraCurrencies;
     if (nextExtraCurrencies !== undefined) {
-      const removed = user
-        .snapshot()
-        .extraCurrencies.filter((currency) => !nextExtraCurrencies.includes(currency));
+      // Each distinct code once: a list stored before the contract capped it may repeat codes.
+      const removed = [
+        ...new Set(
+          user
+            .snapshot()
+            .extraCurrencies.filter((currency) => !nextExtraCurrencies.includes(currency)),
+        ),
+      ];
       await this.assertNoneInUse(command.userId, removed);
     }
     user.applyPreferencesUpdate(command.input);

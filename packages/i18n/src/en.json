@@ -2310,6 +2310,7 @@
     "security": {
       "title": "Security",
       "password": {
+        "stepUpHint": "To change your password, confirm it is you with your second factor or your passkey.",
         "label": "Password",
         "hint": "You can change it anytime.",
         "hint8": "Use at least 8 characters.",
@@ -2491,6 +2492,7 @@
       }
     },
     "danger": {
+      "stepUpHint": "To delete your account, confirm it is you with your second factor or your passkey.",
       "deactivate": "Delete account",
       "confirmTitle": "Delete your account?",
       "confirmDescription": "Your account and all your data will be deleted: accounts, movements, debts, savings and personal data. You won't be able to sign in again. This action cannot be undone.",
@@ -2779,6 +2781,7 @@
     "TRANSFER_EDIT_AS_PAIR": "A transfer is edited as a whole, from both of its sides.",
     "ATTACHMENT_TYPE_NOT_ALLOWED": "Only JPG, PNG, WebP images or PDF files are allowed.",
     "ATTACHMENT_TOO_LARGE": "The file is larger than 5 MB.",
+    "ATTACHMENT_QUOTA_EXCEEDED": "You reached the receipt limit: up to 10 per movement and 1,000 (500 MB) in total. Delete one to upload another.",
     "ATTACHMENTS_UNAVAILABLE": "Receipt storage isn't configured.",
     "ATTACHMENT_NOT_FOUND": "Receipt not found.",
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "That card kind doesn't belong on this account type.",
@@ -2870,6 +2873,7 @@
     "CUSTOM_FIELD_NOT_APPLICABLE": "That column doesn’t apply to this movement.",
     "CUSTOM_FIELD_ASSIGNMENT_TOO_LARGE": "Too many movements at once: narrow the filter to 5,000 or fewer.",
     "CUSTOM_FIELD_FILTER_INVALID": "That column filter can’t be applied.",
+    "CUSTOM_FIELD_FILTER_TOO_BROAD": "The filter covers too many movements. Narrow it with a date range or an account.",
     "COVER_FIELD_NOT_BOOLEAN": "Only the pending movements of a Yes / No column can be transferred.",
     "COVER_SELECTION_INVALID": "Choose movements of one type and one currency, that of both accounts, that the column applies to.",
     "COVER_SELECTION_CHANGED": "Some movement changed meanwhile. Refresh the list and try again.",

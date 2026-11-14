@@ -128,6 +128,11 @@ export const cardLimitSchema = z.object({
 });
 export type CardLimit = z.infer<typeof cardLimitSchema>;
 
+/** At most this many currency lines on one account or card (the MVP has 3 currencies). */
+export const ACCOUNT_CURRENCY_LINES_MAX = 10;
+/** At most this many cards created inline with one account. */
+export const ACCOUNT_CARDS_MAX = 20;
+
 export const createCardLimitSchema = z.object({
   currency: z.string().trim().length(3),
   limitAmount: moneyString,
@@ -206,7 +211,7 @@ export const createCardSchema = z.object({
   network: cardNetwork.nullish(),
   /** Non-primary CREDIT cards only: share the account pool (true, default) or use `limits` instead. */
   usesAccountPool: z.boolean().optional().default(true),
-  limits: z.array(createCardLimitSchema).optional(),
+  limits: z.array(createCardLimitSchema).max(ACCOUNT_CURRENCY_LINES_MAX).optional(),
 });
 export type CreateCard = z.infer<typeof createCardSchema>;
 
@@ -405,8 +410,8 @@ const bankAccountFieldsSchema = z.object({
   minimumPaymentPercent: z.string().nullable().optional(),
   /** CREDIT_CARD accounts: credit in currencies OTHER than the account's (spec 039).
    * On an update, present = replaces the whole set, absent = unchanged. */
-  extraCreditLimits: z.array(extraCreditLimitSchema).optional(),
-  cards: z.array(createCardSchema).optional(),
+  extraCreditLimits: z.array(extraCreditLimitSchema).max(ACCOUNT_CURRENCY_LINES_MAX).optional(),
+  cards: z.array(createCardSchema).max(ACCOUNT_CARDS_MAX).optional(),
 });
 
 export const createBankAccountSchema = bankAccountFieldsSchema

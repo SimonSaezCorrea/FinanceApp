@@ -13,6 +13,8 @@ import { PurgeExpiredTrustedDevicesCommand } from "../../domains/user/applicatio
 import { PurgeStaleMfaCodesCommand } from "../../domains/user/application/commands/purge-stale-mfa-codes.command";
 import { RefreshAuthenticatorCatalogCommand } from "../../domains/user/application/commands/refresh-authenticator-catalog.command";
 import { ReviewCompromisedPasskeysCommand } from "../../domains/user/application/commands/review-compromised-passkeys.command";
+import { PurgeDeletedObjectsCommand } from "../../domains/storage-deletion/application/commands/purge-deleted-objects.command";
+import type { PurgeOutcome } from "../../domains/storage-deletion/application/commands/purge-deleted-objects.handler";
 import type { CatalogRefreshOutcome } from "../../domains/user/application/authenticator-catalog";
 import type { ReviewOutcome } from "../../domains/user/application/commands/review-compromised-passkeys.handler";
 
@@ -28,7 +30,8 @@ import type { ReviewOutcome } from "../../domains/user/application/commands/revi
  * 4. Email links expired or used more than 7 days ago (specs/032).
  * 5. Remembered devices whose 30 days ran out (specs/040).
  * 6. Second-factor codes used or expired more than 7 days ago (specs/040).
- * 7. The FIDO catalog (specs/041): download a newer signed one, then review passkeys of models it
+ * 7. Attachment files whose row is gone (security run-3): deleted from object storage.
+ * 8. The FIDO catalog (specs/041): download a newer signed one, then review passkeys of models it
  *    declares compromised (also at boot when no catalog is stored yet).
  *
  * Each step runs on its own: one failing is logged and never stops the others.
@@ -89,6 +92,14 @@ export class MaintenanceCron implements OnApplicationBootstrap {
         new PurgeStaleMfaCodesCommand(),
       );
       return `purged ${deleted} expired or used`;
+    });
+    await this.step("deleted attachment files", async () => {
+      const outcome = await this.commandBus.execute<PurgeDeletedObjectsCommand, PurgeOutcome>(
+        new PurgeDeletedObjectsCommand(),
+      );
+      return outcome.skipped
+        ? "skipped (no object storage configured)"
+        : `deleted ${outcome.deleted}, ${outcome.failed} to retry`;
     });
     await this.fidoCatalog(false);
   }

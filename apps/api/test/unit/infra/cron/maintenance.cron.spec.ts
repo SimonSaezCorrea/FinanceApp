@@ -13,6 +13,7 @@ import { PurgeStaleMfaCodesCommand } from "../../../../src/domains/user/applicat
 import { PurgeExpiredTrustedDevicesCommand } from "../../../../src/domains/user/application/commands/purge-expired-trusted-devices.command";
 import type { CronSwitch } from "../../../../src/infra/config/cron.config";
 import { MaintenanceCron } from "../../../../src/infra/cron/maintenance.cron";
+import { PurgeDeletedObjectsCommand } from "../../../../src/domains/storage-deletion/application/commands/purge-deleted-objects.command";
 
 const ON = { enabled: true } as CronSwitch;
 const OFF = { enabled: false } as CronSwitch;
@@ -34,7 +35,7 @@ function busRunning(behaviour: (command: unknown) => Promise<number>): {
 describe("MaintenanceCron", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("runs the six sweeps and the FIDO catalog, closing expired sessions before purging them", async () => {
+  it("runs the seven sweeps and the FIDO catalog, closing expired sessions before purging them", async () => {
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
     const { bus, ran } = busRunning(() => Promise.resolve(0));
 
@@ -48,6 +49,7 @@ describe("MaintenanceCron", () => {
       PurgeStaleEmailTokensCommand.name,
       PurgeExpiredTrustedDevicesCommand.name,
       PurgeStaleMfaCodesCommand.name,
+      PurgeDeletedObjectsCommand.name,
       RefreshAuthenticatorCatalogCommand.name,
       ReviewCompromisedPasskeysCommand.name,
     ]);

@@ -9,6 +9,11 @@ export interface AttachmentRepositoryPort {
   findOne(userId: string, transactionId: string, attachmentId: string): Promise<Attachment | null>;
   save(props: Omit<AttachmentProps, "createdAt">): Promise<Attachment>;
   remove(userId: string, attachmentId: string): Promise<boolean>;
+  /** How many files the person keeps, their total size, and how many are on this movement. */
+  usage(
+    userId: string,
+    transactionId: string,
+  ): Promise<{ userCount: number; userBytes: number; transactionCount: number }>;
 }
 
 /* Ownership of the MOVEMENT is checked through the `transaction` domain's own

@@ -1,7 +1,7 @@
 import { hash } from "bcryptjs";
 import * as OTPAuth from "otpauth";
 import { fakeMfaCodes } from "../../../../support/fake-ports";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { VerifyStepUpHandler } from "../../../../../../src/domains/user/application/commands/verify-step-up.handler";
 import { VerifyStepUpCommand } from "../../../../../../src/domains/user/application/commands/verify-step-up.command";
@@ -15,6 +15,7 @@ import type { UserRepositoryPort } from "../../../../../../src/domains/user/doma
 import type { PasskeyRepositoryPort } from "../../../../../../src/domains/passkey/domain/ports/passkey.repository.port";
 import type { SessionStepUpPort } from "../../../../../../src/domains/session/domain/ports/session-step-up.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { resetFailureCounters } from "../../../../../../src/domains/user/application/failure-counter";
 
 const SECRET = "JBSWY3DPEHPK3PXP";
 
@@ -94,6 +95,8 @@ const currentTotp = () =>
   new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(SECRET) }).generate();
 
 describe("VerifyStepUpHandler", () => {
+  beforeEach(() => resetFailureCounters());
+
   it("accepts the password when the user has no second factor, and stamps the session", async () => {
     const { handler, stepUp } = setup(props({ passwordHash: await hash("secret123", 4) }));
 

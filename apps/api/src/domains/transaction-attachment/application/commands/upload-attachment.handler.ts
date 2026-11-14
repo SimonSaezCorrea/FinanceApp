@@ -1,7 +1,7 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
-import type { transactions } from "@finance/contracts";
+import { transactions } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { generateRowId } from "../../../../infra/id/generate-row-id";
@@ -11,6 +11,7 @@ import {
 } from "../../../transaction/domain/ports/transaction.repository.port";
 import { AttachmentPolicy, storageKeyFor } from "../../domain/attachment-policy";
 import {
+  AttachmentQuotaExceededError,
   AttachmentTransactionNotFoundError,
   AttachmentsUnavailableError,
 } from "../../domain/errors";
@@ -33,6 +34,8 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
   transactions.Attachment,
   { storageKey: string; attachmentId: string }
 > {
+  private readonly logger = new Logger(UploadAttachmentHandler.name);
+
   constructor(
     eventBus: EventBus,
     @Inject(ATTACHMENT_REPOSITORY) private readonly repo: AttachmentRepositoryPort,
@@ -57,6 +60,16 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
       bytes: new Uint8Array(command.file.buffer),
     });
 
+    // Security run-3: storage had no bound — any account could keep uploading forever.
+    const usage = await this.repo.usage(command.userId, command.transactionId);
+    if (
+      usage.transactionCount >= transactions.ATTACHMENT_MAX_PER_TRANSACTION ||
+      usage.userCount >= transactions.ATTACHMENT_MAX_PER_USER ||
+      usage.userBytes + command.file.size > transactions.ATTACHMENT_MAX_BYTES_PER_USER
+    ) {
+      throw new AttachmentQuotaExceededError();
+    }
+
     const attachmentId = generateRowId();
     return {
       attachmentId,
@@ -74,15 +87,25 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
       command.file.mimetype,
     );
 
-    const saved = await this.repo.save({
-      id: context.attachmentId,
-      userId: command.userId,
-      transactionId: command.transactionId,
-      storageKey: context.storageKey,
-      fileName: command.file.originalname.slice(0, 255),
-      contentType: command.file.mimetype,
-      sizeBytes: command.file.size,
-    });
+    let saved;
+    try {
+      saved = await this.repo.save({
+        id: context.attachmentId,
+        userId: command.userId,
+        transactionId: command.transactionId,
+        storageKey: context.storageKey,
+        fileName: command.file.originalname.slice(0, 255),
+        contentType: command.file.mimetype,
+        sizeBytes: command.file.size,
+      });
+    } catch (err: unknown) {
+      // The row didn't land (the movement was deleted meanwhile, the database failed): the file
+      // just written has nothing pointing at it, so it goes too (security run-3).
+      await this.storage.delete(context.storageKey).catch((cleanupErr: unknown) => {
+        this.logger.warn(`could not delete an unsaved upload: ${String(cleanupErr)}`);
+      });
+      throw err;
+    }
 
     return { result: saved.toContract(), events: [] };
   }

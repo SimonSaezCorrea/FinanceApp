@@ -1,5 +1,5 @@
 import { compare, hash } from "bcryptjs";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { ChangePasswordHandler } from "../../../../../../src/domains/user/application/commands/change-password.handler";
 import { ChangePasswordCommand } from "../../../../../../src/domains/user/application/commands/change-password.command";
@@ -9,6 +9,7 @@ import type { UserRepositoryPort } from "../../../../../../src/domains/user/doma
 import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import { fakeTrustedDevices } from "../../../../support/fake-ports";
+import { resetFailureCounters } from "../../../../../../src/domains/user/application/failure-counter";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -92,7 +93,21 @@ function fakePrisma(): PrismaService {
   } as unknown as PrismaService;
 }
 
+function fakeStepUp() {
+  return {
+    steppedUpAt: vi.fn().mockResolvedValue(null),
+    markSteppedUp: vi.fn(),
+    consumeWithTx: vi.fn().mockResolvedValue(true),
+  } as never;
+}
+
+function fakePasskeys() {
+  return { countUsable: vi.fn().mockResolvedValue(0) } as never;
+}
+
 describe("ChangePasswordHandler", () => {
+  beforeEach(() => resetFailureCounters());
+
   it("rejects an incorrect current password and never saves", async () => {
     const passwordHash = await hash("correct-pw", 1);
     const repo = fakeRepo({
@@ -107,6 +122,8 @@ describe("ChangePasswordHandler", () => {
       fakeTrustedDevices(),
       { cancelPendingWithTx: vi.fn() } as never,
       { revokeActiveWithTx: vi.fn() } as never,
+      fakeStepUp(),
+      fakePasskeys(),
     );
 
     await expect(
@@ -118,11 +135,8 @@ describe("ChangePasswordHandler", () => {
         ),
       ),
     ).rejects.toThrow(InvalidCurrentPasswordError);
-    // Only the failure count is written (security run-3), nothing the request asked for.
-    expect(repo.saveWithTx).toHaveBeenCalledTimes(1);
-    expect(
-      (vi.mocked(repo.saveWithTx).mock.calls[0][1] as User).snapshot().loginFailedAttempts,
-    ).toBe(1);
+    // Counted in memory (security run-3), never on the account row: nothing is written.
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
     expect(sessions.closeAllExceptForUserWithTx).not.toHaveBeenCalled();
   });
 
@@ -140,6 +154,8 @@ describe("ChangePasswordHandler", () => {
       fakeTrustedDevices(),
       { cancelPendingWithTx: vi.fn() } as never,
       { revokeActiveWithTx: vi.fn() } as never,
+      fakeStepUp(),
+      fakePasskeys(),
     );
 
     await handler.execute(
@@ -170,6 +186,8 @@ describe("ChangePasswordHandler", () => {
       fakeTrustedDevices(),
       { cancelPendingWithTx: vi.fn() } as never,
       { revokeActiveWithTx: vi.fn() } as never,
+      fakeStepUp(),
+      fakePasskeys(),
     );
 
     await handler.execute(
@@ -207,6 +225,8 @@ describe("ChangePasswordHandler", () => {
       fakeTrustedDevices(),
       { cancelPendingWithTx: vi.fn() } as never,
       { revokeActiveWithTx: vi.fn() } as never,
+      fakeStepUp(),
+      fakePasskeys(),
     );
 
     await expect(
@@ -221,7 +241,7 @@ describe("ChangePasswordHandler", () => {
     // Both writes happen inside the SAME $transaction callback — a real Postgres
     // transaction would roll back `saveWithTx` too when the callback throws; this
     // fake only proves both calls are issued through that one callback (FR-007).
-    // The counted password check runs its own transaction before this one (security run-3).
-    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    // The password check runs no transaction of its own (counted in memory, security run-3).
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

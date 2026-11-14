@@ -29,6 +29,9 @@ export const RATE_LIMIT_POLICIES = {
   authAttempt: { limit: 30, windowSeconds: 10 * 60, key: "ip" },
   /** Sends an email (sign-up, recovery, a code) or starts a ceremony. */
   authEmail: { limit: 10, windowSeconds: 60 * 60, key: "ip" },
+  /** Re-entering the password (or a code) from inside a session: step-up, change password,
+   * disable MFA, delete account. Each runs bcrypt; per user, so a stolen session can't burn CPU. */
+  sessionPassword: { limit: 10, windowSeconds: 10 * 60, key: "user" },
   /** Imports and attachment uploads: big bodies, long transactions. */
   heavyWrite: { limit: 20, windowSeconds: 10 * 60, key: "user" },
 } as const satisfies Record<string, { limit: number; windowSeconds: number; key: "ip" | "user" }>;

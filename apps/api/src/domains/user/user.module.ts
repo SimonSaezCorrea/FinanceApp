@@ -82,6 +82,7 @@ import { ListPasskeysQueryHandler } from "./application/queries/list-passkeys.ha
 import { ListSessionsQueryHandler } from "./application/queries/list-sessions.handler";
 import { GeoIpLookup } from "./application/geoip-lookup";
 import { PasskeyChallengeToken } from "./application/passkey-challenge-token";
+import { LoginDeviceToken } from "./application/login-device";
 import { SessionIssuer } from "./application/session-issuer";
 import { TokenIssuer } from "./application/token-issuer";
 import { USER_REPOSITORY } from "./domain/ports/user.repository.port";
@@ -178,6 +179,7 @@ const queryHandlers = [
     ...queryHandlers,
     TokenIssuer,
     PasskeyChallengeToken,
+    LoginDeviceToken,
     GeoIpLookup,
     SessionIssuer,
     AccountEmailService,

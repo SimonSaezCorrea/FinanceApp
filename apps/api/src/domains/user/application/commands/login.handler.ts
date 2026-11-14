@@ -21,6 +21,8 @@ import {
 import { trustedDeviceIsValidFor } from "../../../trusted-device/domain/trusted-device.entity";
 import { hashTrustedDeviceToken } from "../trusted-device-cookie";
 import { MfaCodeService } from "../mfa-code-service";
+import { LoginDeviceToken } from "../login-device";
+import { loginDeviceFailures } from "../failure-counter";
 
 /**
  * A user without MFA gets a real session, exactly as before. A user WITH MFA active gets
@@ -50,6 +52,8 @@ interface Context {
   passwordHash: string;
   /** Whether the read (unlocked) found the account locked: no bcrypt is spent then. */
   lockedAtRead: boolean;
+  /** This browser signed in to this account before (`LoginDeviceToken`): its id, else null. */
+  knownDevice: string | null;
 }
 
 /**
@@ -84,6 +88,7 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     private readonly prisma: PrismaService,
     @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
     private readonly mfaCodes: MfaCodeService,
+    private readonly loginDevices: LoginDeviceToken,
   ) {
     super(eventBus);
   }
@@ -98,11 +103,17 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
       this.logger.warn(`failed login attempt for ${maskedRut}`);
       throw new InvalidCredentialsError();
     }
+    const knownDevice = this.loginDevices.deviceFor(command.loginDeviceToken, user.id);
     return {
       userId: user.id,
       maskedRut,
       passwordHash: user.passwordHash,
-      lockedAtRead: user.isLoginLocked(new Date()),
+      // A known browser answers only for its own failures (security run-3): the account-wide
+      // lock, which anyone knowing the RUT can trigger, doesn't apply to it.
+      lockedAtRead: knownDevice
+        ? loginDeviceFailures.isLocked(knownDevice)
+        : user.isLoginLocked(new Date()),
+      knownDevice,
     };
   }
 
@@ -190,10 +201,22 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     if (!user?.passwordHash) return { kind: "invalid" };
 
     const now = new Date();
-    if (user.isLoginLocked(now)) return { kind: "locked" };
+    if (context.knownDevice) {
+      if (loginDeviceFailures.isLocked(context.knownDevice, now.getTime())) {
+        return { kind: "locked" };
+      }
+    } else if (user.isLoginLocked(now)) {
+      return { kind: "locked" };
+    }
     // The password changed between the read and the lock: what was checked is no longer it.
     if (user.passwordHash !== context.passwordHash) return { kind: "invalid" };
 
+    if (!matches && context.knownDevice) {
+      // Its own count only: the owner's typos never lock the account for other browsers.
+      const locked = loginDeviceFailures.recordFailure(context.knownDevice, now.getTime());
+      return { kind: locked ? "locked" : "invalid" };
+    }
+    if (context.knownDevice) loginDeviceFailures.reset(context.knownDevice);
     if (!matches) {
       user.recordLoginFailure(LOGIN_LOCKOUT_THRESHOLD, LOGIN_LOCKOUT_MINUTES, now);
       await this.repo.saveWithTx(tx, user);

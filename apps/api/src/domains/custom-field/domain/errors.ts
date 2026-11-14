@@ -75,6 +75,14 @@ export class CustomFieldFilterInvalidError extends DomainError {
   }
 }
 
+/** The filter matches more movements than one query can name (security run-3: it answered 500).
+ * Narrow it with a date range or an account. */
+export class CustomFieldFilterTooBroadError extends DomainError {
+  constructor() {
+    super("CUSTOM_FIELD_FILTER_TOO_BROAD", 400, "cf");
+  }
+}
+
 /** An account in the scope that isn't the person's own (Principle II). */
 export class CustomFieldAccountNotFoundError extends DomainError {
   constructor() {

@@ -107,6 +107,15 @@ export type ListConsentsResponse = z.infer<typeof listConsentsResponseSchema>;
 export const preferredCurrencySchema = z.enum(["CLP", "USD", "CLF"]);
 /** Any ISO 4217 alpha code from the reference `Currency` list (not restricted like the primary currency). */
 export const currencyCodeSchema = z.string().trim().length(3);
+/** At most this many extra currencies (the MVP catalogue has 3). Bounds what a preferences
+ * update stores and what removing them costs (run-3: an unbounded list of duplicates turned one
+ * request into millions of usage queries). */
+export const EXTRA_CURRENCIES_MAX = 10;
+/** The extra currencies a person picks: upper-case ISO 4217 alpha codes, each once. */
+export const extraCurrenciesSchema = z
+  .array(currencyCodeSchema.toUpperCase().regex(/^[A-Z]{3}$/))
+  .max(EXTRA_CURRENCIES_MAX)
+  .transform((codes) => [...new Set(codes)]);
 export const themeSchema = z.enum(["dark", "light", "system"]);
 
 export const currentUserSchema = z.object({
@@ -207,7 +216,7 @@ export const updatePreferencesRequestSchema = z.object({
   locale: localeSchema.optional(),
   theme: themeSchema.optional(),
   hideBalances: z.boolean().optional(),
-  extraCurrencies: z.array(currencyCodeSchema).optional(),
+  extraCurrencies: extraCurrenciesSchema.optional(),
   budgetAlertThreshold: z.number().int().min(1).max(100).nullable().optional(),
 });
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>;

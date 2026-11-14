@@ -52,4 +52,23 @@ export class PrismaAttachmentRepository implements AttachmentRepositoryPort {
     });
     return result.count > 0;
   }
+
+  async usage(
+    userId: string,
+    transactionId: string,
+  ): Promise<{ userCount: number; userBytes: number; transactionCount: number }> {
+    const [all, onMovement] = await Promise.all([
+      this.prisma.transactionAttachment.aggregate({
+        where: { userId },
+        _count: { _all: true },
+        _sum: { sizeBytes: true },
+      }),
+      this.prisma.transactionAttachment.count({ where: { userId, transactionId } }),
+    ]);
+    return {
+      userCount: all._count._all,
+      userBytes: all._sum.sizeBytes ?? 0,
+      transactionCount: onMovement,
+    };
+  }
 }

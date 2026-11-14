@@ -8,5 +8,8 @@ export class DeleteAccountCommand implements UserScopedCommand {
   constructor(
     public readonly userId: string,
     public readonly input: auth.DeleteAccountRequest,
+    /** The `sid` of the session asking (security run-3): with a second factor or a passkey it
+     * must have stepped up recently. */
+    public readonly currentSessionId: string,
   ) {}
 }

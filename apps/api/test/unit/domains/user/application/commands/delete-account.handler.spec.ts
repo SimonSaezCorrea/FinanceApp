@@ -1,9 +1,13 @@
 import { hash } from "bcryptjs";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { DeleteAccountHandler } from "../../../../../../src/domains/user/application/commands/delete-account.handler";
 import { DeleteAccountCommand } from "../../../../../../src/domains/user/application/commands/delete-account.command";
-import { InvalidCurrentPasswordError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  InvalidCurrentPasswordError,
+  LoginLockedError,
+  StepUpRequiredError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { AccountSecurityEvent } from "../../../../../../src/domains/user/domain/events/account-security.event";
 import { UserAccountDeletedEvent } from "../../../../../../src/domains/user/domain/events/user-account-deleted.event";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
@@ -11,6 +15,7 @@ import type { UserRepositoryPort } from "../../../../../../src/domains/user/doma
 import type { AccountDeletionLogRepositoryPort } from "../../../../../../src/domains/account-deletion-log/domain/ports/account-deletion-log.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import type { ConfigService } from "@nestjs/config";
+import { resetFailureCounters } from "../../../../../../src/domains/user/application/failure-counter";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -93,6 +98,8 @@ function buildHandler(
     deletionLog?: AccountDeletionLogRepositoryPort;
     prisma?: PrismaService;
     publish?: ReturnType<typeof vi.fn>;
+    stepUp?: unknown;
+    passkeyCount?: number;
   } = {},
 ) {
   return new DeleteAccountHandler(
@@ -101,6 +108,12 @@ function buildHandler(
     overrides.deletionLog ?? fakeDeletionLog(),
     fakeConfig(),
     overrides.prisma ?? fakePrisma(),
+    (overrides.stepUp ?? {
+      steppedUpAt: vi.fn().mockResolvedValue(null),
+      markSteppedUp: vi.fn(),
+      consumeWithTx: vi.fn().mockResolvedValue(true),
+    }) as never,
+    { countUsable: vi.fn().mockResolvedValue(overrides.passkeyCount ?? 0) } as never,
   );
 }
 
@@ -114,18 +127,17 @@ async function userWithPassword(overrides: Partial<UserProps> = {}) {
 }
 
 describe("DeleteAccountHandler", () => {
+  beforeEach(() => resetFailureCounters());
+
   it("rejects an incorrect password and changes nothing", async () => {
     const repo = await userWithPassword();
     const handler = buildHandler({ repo });
 
     await expect(
-      handler.execute(new DeleteAccountCommand("u1", { password: "wrong" })),
+      handler.execute(new DeleteAccountCommand("u1", { password: "wrong" }, "session-a")),
     ).rejects.toThrow(InvalidCurrentPasswordError);
-    // Only the failure count is written (security run-3), nothing the request asked for.
-    expect(repo.saveWithTx).toHaveBeenCalledTimes(1);
-    expect(
-      (vi.mocked(repo.saveWithTx).mock.calls[0][1] as User).snapshot().loginFailedAttempts,
-    ).toBe(1);
+    // Counted in memory (security run-3), never on the account row: nothing is written.
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
     expect(repo.deleteWithTx).not.toHaveBeenCalled();
   });
 
@@ -134,10 +146,10 @@ describe("DeleteAccountHandler", () => {
     const prisma = fakePrisma();
     const handler = buildHandler({ repo, prisma });
 
-    await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
+    await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a"));
 
-    // The counted password check runs its own transaction before this one (security run-3).
-    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    // The password check runs no transaction of its own (counted in memory, security run-3).
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(repo.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
     expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
@@ -148,7 +160,7 @@ describe("DeleteAccountHandler", () => {
     const handler = buildHandler({ repo, deletionLog });
 
     await handler.execute(
-      new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
+      new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }, "session-a"),
     );
 
     expect(repo.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
@@ -162,7 +174,9 @@ describe("DeleteAccountHandler", () => {
       const deletionLog = fakeDeletionLog();
       const handler = buildHandler({ repo, deletionLog });
 
-      await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
+      await handler.execute(
+        new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a"),
+      );
 
       expect(deletionLog.createWithTx).toHaveBeenCalledWith(expect.anything(), false, null);
     });
@@ -175,7 +189,9 @@ describe("DeleteAccountHandler", () => {
       const deletionLog = fakeDeletionLog();
       const handler = buildHandler({ repo, deletionLog });
 
-      await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
+      await handler.execute(
+        new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a"),
+      );
 
       const [, keepHistoryArg, identifierHash] = (
         deletionLog.createWithTx as ReturnType<typeof vi.fn>
@@ -191,7 +207,7 @@ describe("DeleteAccountHandler", () => {
     const publish = vi.fn();
     const handler = buildHandler({ repo, publish });
 
-    await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
+    await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a"));
 
     // The deletion itself, plus the goodbye notice to the address the account had (specs/032).
     const published = publish.mock.calls.map(([e]) => e as object);
@@ -208,8 +224,78 @@ describe("DeleteAccountHandler", () => {
     const handler = buildHandler({ repo, deletionLog });
 
     await expect(
-      handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" })),
+      handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a")),
     ).rejects.toThrow("db down");
     expect(deletionLog.createWithTx).not.toHaveBeenCalled();
+  });
+
+  describe("with a second factor or a passkey (security run-3)", () => {
+    const stepUpAt = (at: Date | null) => ({
+      steppedUpAt: vi.fn().mockResolvedValue(at),
+      markSteppedUp: vi.fn(),
+      consumeWithTx: vi.fn().mockResolvedValue(true),
+    });
+
+    it("refuses an MFA account whose session has no recent step-up, before checking the password", async () => {
+      const repo = await userWithPassword({ mfaEnabled: true });
+      const handler = buildHandler({ repo, stepUp: stepUpAt(null) });
+
+      await expect(
+        handler.execute(new DeleteAccountCommand("u1", { password: "wrong" }, "session-a")),
+      ).rejects.toThrow(StepUpRequiredError);
+      expect(repo.deleteWithTx).not.toHaveBeenCalled();
+    });
+
+    it("refuses an account with a passkey and no step-up", async () => {
+      const repo = await userWithPassword();
+      const handler = buildHandler({ repo, stepUp: stepUpAt(null), passkeyCount: 1 });
+
+      await expect(
+        handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a")),
+      ).rejects.toThrow(StepUpRequiredError);
+      expect(repo.deleteWithTx).not.toHaveBeenCalled();
+    });
+
+    it("deletes with a recent step-up and spends it in the same transaction", async () => {
+      const repo = await userWithPassword({ mfaEnabled: true });
+      const at = new Date();
+      const stepUp = stepUpAt(at);
+      const handler = buildHandler({ repo, stepUp });
+
+      await handler.execute(
+        new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a"),
+      );
+      expect(stepUp.consumeWithTx).toHaveBeenCalledWith({}, "u1", "session-a", at);
+      expect(repo.deleteWithTx).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses when the step-up was already spent by a concurrent request", async () => {
+      const repo = await userWithPassword({ mfaEnabled: true });
+      const stepUp = stepUpAt(new Date());
+      stepUp.consumeWithTx.mockResolvedValue(false);
+      const handler = buildHandler({ repo, stepUp });
+
+      await expect(
+        handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a")),
+      ).rejects.toThrow(StepUpRequiredError);
+      expect(repo.deleteWithTx).not.toHaveBeenCalled();
+    });
+  });
+
+  it("locks the password check after 5 wrong answers, the right one included", async () => {
+    const repo = await userWithPassword();
+    const handler = buildHandler({ repo });
+    for (let i = 0; i < 4; i++) {
+      await expect(
+        handler.execute(new DeleteAccountCommand("u1", { password: `wrong-${i}` }, "session-a")),
+      ).rejects.toThrow(InvalidCurrentPasswordError);
+    }
+    await expect(
+      handler.execute(new DeleteAccountCommand("u1", { password: "wrong-4" }, "session-a")),
+    ).rejects.toThrow(LoginLockedError);
+    await expect(
+      handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }, "session-a")),
+    ).rejects.toThrow(LoginLockedError);
+    expect(repo.deleteWithTx).not.toHaveBeenCalled();
   });
 });

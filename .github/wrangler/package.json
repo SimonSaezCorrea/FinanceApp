@@ -1,0 +1,8 @@
+{
+  "name": "fik-deploy-wrangler",
+  "private": true,
+  "description": "Pins the Cloudflare Pages uploader used by the deploy workflows (security run-3): installed with `npm ci` from this lockfile, never `npx` of a floating dependency tree.",
+  "devDependencies": {
+    "wrangler": "4.156.0"
+  }
+}

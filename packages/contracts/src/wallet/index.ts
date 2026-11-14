@@ -27,9 +27,14 @@ export const createWalletItemSchema = z
   });
 export type CreateWalletItem = z.infer<typeof createWalletItemSchema>;
 
-/** Persist a new manual order: the full list of item ids, in the desired order. */
+/** Persist a new manual order: the item ids the Panel shows, in the desired order — at most
+ * `WALLET_MAX_ITEMS`, each once (run-3: an unbounded list ran one UPDATE per id). */
 export const reorderWalletSchema = z.object({
-  ids: z.array(rowId).min(1),
+  ids: z
+    .array(rowId)
+    .min(1)
+    .max(WALLET_MAX_ITEMS)
+    .refine((ids) => new Set(ids).size === ids.length, { message: "each id at most once" }),
 });
 export type ReorderWallet = z.infer<typeof reorderWalletSchema>;
 

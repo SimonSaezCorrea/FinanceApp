@@ -37,15 +37,20 @@ env:
   AWS_REGION: us-east-2
   ECR_REPOSITORY: fik-api
   SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-  WRANGLER: wrangler@4.149.0
+  # Pinned with its whole dependency tree in .github/wrangler/package-lock.json (security run-3):
+  # `npx wrangler@x` resolved the tree at run time, with the Cloudflare token in the environment.
+  WRANGLER: ${{ github.workspace }}/.github/wrangler/node_modules/.bin/wrangler
 
 jobs:
   changes:
     # `branches: [main]` above matches a branch NAME — a pull request from a fork whose branch is
     # also called "main" would match it too. Deploy only a CI run that came from a push to main of
     # THIS repository (or a manual run, which needs write access and the production environment).
+    # A manual run deploys only from main (security run-3): from any other branch it would run
+    # that branch's code with the production environment's AWS role and Cloudflare token. The
+    # production environment's own branch rule (Settings > Environments) is the second lock.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_branch == 'main' &&
@@ -218,8 +223,11 @@ jobs:
             echo "::error::apps/web/dist has source maps; they must never reach Cloudflare Pages."
             exit 1
           fi
+      - name: Install the pinned Cloudflare uploader
+        run: npm ci --prefix .github/wrangler --ignore-scripts --no-audit --no-fund
       - name: Upload to Cloudflare Pages (fik-app)
-        run: npx --yes "$WRANGLER" pages deploy apps/web/dist --project-name=fik-app --branch=main --commit-hash="$SHA" --commit-dirty=true
+        run: |
+          "$WRANGLER" pages deploy apps/web/dist --project-name=fik-app --branch=main --commit-hash="$SHA" --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -251,11 +259,14 @@ jobs:
           # Visit statistics on the public pages only (empty = none); see PageLayout.astro.
           PUBLIC_CF_WEB_ANALYTICS_TOKEN: ${{ vars.CF_WEB_ANALYTICS_TOKEN }}
           RELEASE_DATE: ${{ needs.changes.outputs.release_date }}
+      - name: Install the pinned Cloudflare uploader
+        run: npm ci --prefix .github/wrangler --ignore-scripts --no-audit --no-fund
       - name: Upload to Cloudflare Pages (fik-landing)
         # From apps/landing, uploading `dist` (static only: no Pages Functions since the Spanish
         # home moved to the root).
         working-directory: apps/landing
-        run: npx --yes "$WRANGLER" pages deploy dist --project-name=fik-landing --branch=main --commit-hash="$SHA" --commit-dirty=true
+        run: |
+          "$WRANGLER" pages deploy dist --project-name=fik-landing --branch=main --commit-hash="$SHA" --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

@@ -1,3 +1,4 @@
+import { transactions } from "@finance/contracts";
 import {
   fakeCardAccountRepo,
   fakeCategoryLookup,
@@ -157,7 +158,7 @@ describe("ListTransactionsQueryHandler", () => {
     ).rejects.toBeInstanceOf(InvalidCursorError);
   });
 
-  it("omits pagination entirely when no limit is given (aggregate consumers)", async () => {
+  it("never lists unbounded: without a limit it asks for one capped page (security run-3)", async () => {
     const list = vi.fn().mockResolvedValue(emptyPage);
     const handler = new ListTransactionsQueryHandler(
       fakeRepo({ list }),
@@ -168,7 +169,10 @@ describe("ListTransactionsQueryHandler", () => {
       fakeConfig(),
     );
     await handler.execute(new ListTransactionsQuery("u1", {}));
-    expect(list.mock.calls[0]![2]).toMatchObject({ limit: undefined, cursor: undefined });
+    expect(list.mock.calls[0]![2]).toMatchObject({
+      limit: transactions.TRANSACTION_UNPAGED_MAX,
+      cursor: undefined,
+    });
   });
 });
 

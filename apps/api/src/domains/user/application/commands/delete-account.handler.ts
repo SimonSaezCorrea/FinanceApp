@@ -12,7 +12,16 @@ import {
   ACCOUNT_DELETION_LOG_REPOSITORY,
   type AccountDeletionLogRepositoryPort,
 } from "../../../account-deletion-log/domain/ports/account-deletion-log.repository.port";
-import { UnauthorizedError } from "../../domain/errors";
+import {
+  PASSKEY_REPOSITORY,
+  type PasskeyRepositoryPort,
+} from "../../../passkey/domain/ports/passkey.repository.port";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
+import { StepUpRequiredError, UnauthorizedError } from "../../domain/errors";
+import { requireStepUpIfProtected } from "../step-up";
 import { verifyPasswordCounted } from "../password-check";
 import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 import { User } from "../../domain/user.aggregate";
@@ -27,6 +36,9 @@ interface Context {
   /** Same reason: the address (and its language/confirmation) the deletion notice goes to, read
    * before the row loses it (specs/032). */
   emailAtRequest: { address: string; locale: string; verified: boolean } | null;
+  currentSessionId: string;
+  /** The step-up this request spends (an account with a second factor or a passkey), else null. */
+  steppedUpAt: Date | null;
 }
 
 @Injectable()
@@ -41,20 +53,30 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
     private readonly deletionLog: AccountDeletionLogRepositoryPort,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
+    @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: DeleteAccountCommand): Promise<Context> {
-    // Counted like a login attempt (security run-3): a stolen session can't guess it freely.
-    await verifyPasswordCounted(
-      { prisma: this.prisma, users: this.repo },
-      command.userId,
-      command.input.password,
+    const found = await this.repo.findById(command.userId);
+    if (!found) throw new UnauthorizedError();
+    // Security run-3: deleting is irreversible — with a second factor or a passkey, the session
+    // and the password are not enough; the session must have stepped up with that factor. Checked
+    // first, so a session without it can't even try passwords here.
+    const steppedUpAt = await requireStepUpIfProtected(
+      { stepUp: this.stepUp, passkeys: this.passkeys },
+      found,
+      command.currentSessionId,
     );
+    // Counted (security run-3): a stolen session can't guess it freely.
+    await verifyPasswordCounted({ users: this.repo }, command.userId, command.input.password);
     const user = await this.repo.findById(command.userId);
     if (!user) throw new UnauthorizedError();
     return {
+      currentSessionId: command.currentSessionId,
+      steppedUpAt,
       user,
       identifierValueAtRequest: user.identifierValue,
       emailAtRequest: user.email
@@ -94,6 +116,15 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
       : null;
 
     await this.prisma.$transaction(async (tx) => {
+      if (context.steppedUpAt) {
+        const spent = await this.stepUp.consumeWithTx(
+          tx,
+          context.user.id,
+          context.currentSessionId,
+          context.steppedUpAt,
+        );
+        if (!spent) throw new StepUpRequiredError();
+      }
       // Always a hard delete (the "keep an anonymized history" option was removed 2026-10-14):
       // removing the User row cascades to every table via its own `onDelete: Cascade` on
       // `userId` — sessions, passkeys, recovery codes, addresses and every financial row.

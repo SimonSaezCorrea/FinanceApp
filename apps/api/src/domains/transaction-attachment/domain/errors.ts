@@ -2,7 +2,7 @@
 export class AttachmentDomainError extends Error {
   constructor(
     public readonly code: string,
-    public readonly httpStatus: 400 | 404 | 503 = 400,
+    public readonly httpStatus: 400 | 404 | 409 | 503 = 400,
     public readonly field?: string,
   ) {
     super(code);
@@ -19,6 +19,13 @@ export class AttachmentTypeNotAllowedError extends AttachmentDomainError {
 export class AttachmentTooLargeError extends AttachmentDomainError {
   constructor() {
     super("ATTACHMENT_TOO_LARGE", 400, "file");
+  }
+}
+
+/** Security run-3: per-movement and per-person limits on how many files (and bytes) are kept. */
+export class AttachmentQuotaExceededError extends AttachmentDomainError {
+  constructor() {
+    super("ATTACHMENT_QUOTA_EXCEEDED", 409, "file");
   }
 }
 

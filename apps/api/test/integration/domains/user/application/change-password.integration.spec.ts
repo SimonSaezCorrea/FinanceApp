@@ -18,6 +18,12 @@ import { PrismaUserEmailRepository } from "../../../../../src/domains/user-email
 import { PrismaEmailTokenRepository } from "../../../../../src/domains/email-token/infrastructure/prisma-email-token.repository";
 import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
 
+const noStepUp = {
+  steppedUpAt: async () => null,
+  markSteppedUp: async () => {},
+  consumeWithTx: async () => true,
+} as never;
+
 describe("ChangePasswordHandler (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
   const userRepo = buildUserRepo(prisma);
@@ -63,6 +69,8 @@ describe("ChangePasswordHandler (integration)", () => {
       new PrismaTrustedDeviceRepository(prisma),
       new PrismaUserEmailRepository(prisma),
       new PrismaEmailTokenRepository(prisma),
+      noStepUp,
+      { countUsable: async () => 0 } as never,
     );
     await handler.execute(
       new ChangePasswordCommand(
@@ -96,6 +104,8 @@ describe("ChangePasswordHandler (integration)", () => {
       new PrismaTrustedDeviceRepository(prisma),
       new PrismaUserEmailRepository(prisma),
       new PrismaEmailTokenRepository(prisma),
+      noStepUp,
+      { countUsable: async () => 0 } as never,
     );
     await expect(
       handler.execute(

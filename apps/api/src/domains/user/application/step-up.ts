@@ -25,3 +25,24 @@ export async function assertRecentStepUp(
   const at = await stepUp.steppedUpAt(userId, sessionId);
   if (!at || stepUpExpiry(at).getTime() <= now.getTime()) throw new StepUpRequiredError();
 }
+
+/**
+ * Irreversible or credential-replacing actions that are confirmed with the password (change the
+ * password, delete the account — security run-3): when the account has a second factor or a usable
+ * passkey, the password alone is not enough — the session must also have stepped up recently, and
+ * with such an account a step-up is that factor, never the password (`auth.stepUpMethodsFor`).
+ * Returns the step-up to spend, or null when the account has neither (the password is then the
+ * whole assurance, as a step-up would be the password again).
+ */
+export async function requireStepUpIfProtected(
+  deps: { stepUp: SessionStepUpPort; passkeys: { countUsable(userId: string): Promise<number> } },
+  user: { id: string; mfaEnabled: boolean },
+  sessionId: string,
+  now: Date = new Date(),
+): Promise<Date | null> {
+  const protectedAccount = user.mfaEnabled || (await deps.passkeys.countUsable(user.id)) > 0;
+  if (!protectedAccount) return null;
+  const at = await deps.stepUp.steppedUpAt(user.id, sessionId);
+  if (!at || stepUpExpiry(at).getTime() <= now.getTime()) throw new StepUpRequiredError();
+  return at;
+}

@@ -56,7 +56,16 @@ export class AttachmentsController {
   @UseInterceptors(
     FileInterceptor("file", {
       // In memory, never on disk: a rejected file must not touch the filesystem.
-      limits: { fileSize: transactions.ATTACHMENT_MAX_BYTES },
+      // Exactly one file part and no text fields: without these bounds multer buffers any
+      // number of 1 MB text fields before the handler can refuse the request.
+      limits: {
+        fileSize: transactions.ATTACHMENT_MAX_BYTES,
+        files: 1,
+        fields: 0,
+        parts: 1,
+        fieldSize: 1024,
+        headerPairs: 50,
+      },
       fileFilter: (_req, file, cb) => {
         if (!transactions.isAllowedAttachmentType(file.mimetype)) {
           cb(new AttachmentTypeNotAllowedError(), false);

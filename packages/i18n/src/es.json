@@ -2310,6 +2310,7 @@
     "security": {
       "title": "Seguridad",
       "password": {
+        "stepUpHint": "Para cambiar la contraseña, confirma que eres tú con tu segundo factor o tu llave de acceso.",
         "label": "Contraseña",
         "hint": "Puedes cambiarla cuando quieras.",
         "hint8": "Usa al menos 8 caracteres.",
@@ -2491,6 +2492,7 @@
       }
     },
     "danger": {
+      "stepUpHint": "Para eliminar tu cuenta, confirma que eres tú con tu segundo factor o tu llave de acceso.",
       "deactivate": "Eliminar cuenta",
       "confirmTitle": "¿Eliminar tu cuenta?",
       "confirmDescription": "Se borrarán tu cuenta y todos tus datos: cuentas, movimientos, deudas, ahorros y datos personales. No podrás volver a iniciar sesión. Esta acción no se puede deshacer.",
@@ -2779,6 +2781,7 @@
     "TRANSFER_EDIT_AS_PAIR": "Un traspaso se edita completo, desde sus dos lados.",
     "ATTACHMENT_TYPE_NOT_ALLOWED": "Solo se admiten imágenes JPG, PNG, WebP o archivos PDF.",
     "ATTACHMENT_TOO_LARGE": "El archivo supera los 5 MB.",
+    "ATTACHMENT_QUOTA_EXCEEDED": "Llegaste al máximo de comprobantes: hasta 10 por movimiento y 1.000 (500 MB) en total. Elimina alguno para subir otro.",
     "ATTACHMENTS_UNAVAILABLE": "El almacenamiento de comprobantes no está configurado.",
     "ATTACHMENT_NOT_FOUND": "No se encontró el comprobante.",
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "Ese tipo de tarjeta no corresponde a este tipo de cuenta.",
@@ -2870,6 +2873,7 @@
     "CUSTOM_FIELD_NOT_APPLICABLE": "Esa columna no aplica a este movimiento.",
     "CUSTOM_FIELD_ASSIGNMENT_TOO_LARGE": "Son demasiados movimientos a la vez: acota el filtro a 5.000 o menos.",
     "CUSTOM_FIELD_FILTER_INVALID": "Ese filtro por columna no se puede aplicar.",
+    "CUSTOM_FIELD_FILTER_TOO_BROAD": "El filtro abarca demasiados movimientos. Acótalo con un rango de fechas o una cuenta.",
     "COVER_FIELD_NOT_BOOLEAN": "Solo se pueden transferir los pendientes de una columna Sí / No.",
     "COVER_SELECTION_INVALID": "Elige movimientos de un solo tipo y una sola moneda, la de ambas cuentas, a los que la columna aplique.",
     "COVER_SELECTION_CHANGED": "Algún movimiento cambió mientras tanto. Actualiza la lista e inténtalo de nuevo.",

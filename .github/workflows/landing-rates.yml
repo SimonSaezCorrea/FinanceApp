@@ -29,10 +29,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  WRANGLER: wrangler@4.149.0
+  # Pinned with its whole dependency tree in .github/wrangler/package-lock.json (security run-3):
+  # `npx wrangler@x` resolved the tree at run time, with the Cloudflare token in the environment.
+  WRANGLER: ${{ github.workspace }}/.github/wrangler/node_modules/.bin/wrangler
 
 jobs:
   landing:
+    # A manual run only from main (security run-3), like Deploy.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 20
@@ -56,11 +60,13 @@ jobs:
           PUBLIC_SITE_URL: https://mifik.cl
           PUBLIC_CF_WEB_ANALYTICS_TOKEN: ${{ vars.CF_WEB_ANALYTICS_TOKEN }}
           EXCHANGE_RATES_REQUIRED: "true"
+      - name: Install the pinned Cloudflare uploader
+        run: npm ci --prefix .github/wrangler --ignore-scripts --no-audit --no-fund
       - name: Upload to Cloudflare Pages (fik-landing)
         working-directory: apps/landing
         run: |
           sha="$(git rev-parse HEAD)"
-          npx --yes "$WRANGLER" pages deploy dist --project-name=fik-landing --branch=main --commit-hash="$sha" --commit-dirty=true
+          "$WRANGLER" pages deploy dist --project-name=fik-landing --branch=main --commit-hash="$sha" --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

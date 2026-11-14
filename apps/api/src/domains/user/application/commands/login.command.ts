@@ -14,5 +14,8 @@ export class LoginCommand implements SystemCommand {
     /** The browser's `mfa_trusted` cookie, when it has one (specs/040): a valid one of THIS
      * account skips the second factor, never the password. */
     public readonly trustedDeviceToken?: string,
+    /** The browser's `login_device` cookie (security run-3): a valid one of THIS account is not
+     * held back by the account-wide lockout, only by its own failures. */
+    public readonly loginDeviceToken?: string,
   ) {}
 }

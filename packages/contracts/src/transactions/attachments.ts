@@ -5,6 +5,11 @@ import { rowId } from "../common/row-id";
 /** Receipt/voucher files attached to a movement. */
 
 export const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+/** At most this many files on one movement (security run-3: storage had no bound at all). */
+export const ATTACHMENT_MAX_PER_TRANSACTION = 10;
+/** At most this many files, and this many bytes, across all of one person's movements. */
+export const ATTACHMENT_MAX_PER_USER = 1000;
+export const ATTACHMENT_MAX_BYTES_PER_USER = 500 * 1024 * 1024;
 
 export const ATTACHMENT_CONTENT_TYPES = [
   "image/jpeg",

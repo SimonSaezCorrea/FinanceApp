@@ -5,6 +5,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { ExchangeRateModule } from "../../domains/exchange-rate/exchange-rate.module";
 import { IdempotencyRecordModule } from "../../domains/idempotency-record/idempotency-record.module";
 import { IpGeolocationCacheModule } from "../../domains/ip-geolocation-cache/ip-geolocation-cache.module";
+import { StorageDeletionModule } from "../../domains/storage-deletion/storage-deletion.module";
 import { UserModule } from "../../domains/user/user.module";
 import { CronSwitch } from "../config/cron.config";
 import { ExchangeRateCron } from "./exchange-rate.cron";
@@ -32,6 +33,7 @@ import { StatementGenerationCron } from "./statement-generation.cron";
     ExchangeRateModule,
     IdempotencyRecordModule,
     IpGeolocationCacheModule,
+    StorageDeletionModule,
     UserModule,
   ],
   providers: [CronSwitch, ExchangeRateCron, MaintenanceCron, StatementGenerationCron],

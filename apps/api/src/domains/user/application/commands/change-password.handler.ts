@@ -20,8 +20,21 @@ import {
   USER_EMAIL_REPOSITORY,
   type UserEmailRepositoryPort,
 } from "../../../user-email/domain/ports/user-email.repository.port";
+import {
+  PASSKEY_REPOSITORY,
+  type PasskeyRepositoryPort,
+} from "../../../passkey/domain/ports/passkey.repository.port";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
 import { cancelPendingEmailChangeWithTx } from "../pending-email-change";
-import { InvalidCurrentPasswordError } from "../../domain/errors";
+import { requireStepUpIfProtected } from "../step-up";
+import {
+  InvalidCurrentPasswordError,
+  StepUpRequiredError,
+  UnauthorizedError,
+} from "../../domain/errors";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { ChangePasswordCommand } from "./change-password.command";
 import { AccountSecurityEvent } from "../../domain/events/account-security.event";
@@ -32,6 +45,8 @@ interface Context {
   currentSessionId: string;
   /** The hash the current password was checked against: the write refuses if it changed. */
   verifiedHash: string;
+  /** The step-up this request spends (an account with a second factor or a passkey), else null. */
+  steppedUpAt: Date | null;
   /** Set by `handle()`. */
   newHash?: string;
 }
@@ -53,18 +68,35 @@ export class ChangePasswordHandler extends BaseCommandHandler<
     @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
     @Inject(USER_EMAIL_REPOSITORY) private readonly emails: UserEmailRepositoryPort,
     @Inject(EMAIL_TOKEN_REPOSITORY) private readonly tokens: EmailTokenRepositoryPort,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
+    @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: ChangePasswordCommand): Promise<Context> {
-    // Counted like a login attempt (security run-3): a stolen session can't guess it freely.
+    const user = await this.repo.findById(command.userId);
+    if (!user) throw new UnauthorizedError();
+    // Security run-3: with a second factor or a passkey, the session and the password are not
+    // enough to replace the password — the session must have stepped up with that factor. Checked
+    // first, so a session without it can't even try passwords here.
+    const steppedUpAt = await requireStepUpIfProtected(
+      { stepUp: this.stepUp, passkeys: this.passkeys },
+      user,
+      command.currentSessionId,
+    );
+    // Counted (security run-3): a stolen session can't guess it freely.
     const verifiedHash = await verifyPasswordCounted(
-      { prisma: this.prisma, users: this.repo },
+      { users: this.repo },
       command.userId,
       command.input.currentPassword,
     );
-    return { userId: command.userId, currentSessionId: command.currentSessionId, verifiedHash };
+    return {
+      userId: command.userId,
+      currentSessionId: command.currentSessionId,
+      verifiedHash,
+      steppedUpAt,
+    };
   }
 
   protected async handle(
@@ -87,6 +119,15 @@ export class ChangePasswordHandler extends BaseCommandHandler<
    * read before would put back counters and lockouts written meanwhile. */
   protected override async persist(context: Context): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      if (context.steppedUpAt) {
+        const spent = await this.stepUp.consumeWithTx(
+          tx,
+          context.userId,
+          context.currentSessionId,
+          context.steppedUpAt,
+        );
+        if (!spent) throw new StepUpRequiredError();
+      }
       const user = await this.repo.findByIdForUpdateWithTx(tx, context.userId);
       // Changed (or gone) since it was checked: what was verified is no longer the password.
       if (!user || user.passwordHash !== context.verifiedHash || !context.newHash) {

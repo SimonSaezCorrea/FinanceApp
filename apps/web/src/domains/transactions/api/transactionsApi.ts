@@ -31,9 +31,27 @@ function toQuery(filters: transactions.TransactionFilters = {}): string {
 }
 
 export const transactionsApi = {
-  /** One page when `filters.limit` is set, otherwise every match. */
-  list: (filters?: transactions.TransactionFilters) =>
-    apiFetch<transactions.TransactionPage>(`/transactions${toQuery(filters)}`),
+  /** One page when `filters.limit` is set, otherwise every match — fetched page by page, since
+   * the API never answers more than `TRANSACTION_UNPAGED_MAX` rows at once (security run-3). */
+  list: async (
+    filters?: transactions.TransactionFilters,
+  ): Promise<transactions.TransactionPage> => {
+    if (filters?.limit !== undefined) {
+      return apiFetch<transactions.TransactionPage>(`/transactions${toQuery(filters)}`);
+    }
+    const first = await apiFetch<transactions.TransactionPage>(`/transactions${toQuery(filters)}`);
+    if (!first.nextCursor) return first;
+    const items = [...first.items];
+    let cursor: string | null = first.nextCursor;
+    while (cursor) {
+      const page: transactions.TransactionPage = await apiFetch<transactions.TransactionPage>(
+        `/transactions${toQuery({ ...filters, cursor })}`,
+      );
+      items.push(...page.items);
+      cursor = page.nextCursor;
+    }
+    return { items, nextCursor: null };
+  },
 
   /** Totals/count/categories over the whole filtered set — see the contract. */
   summary: (filters?: transactions.TransactionFilters) =>

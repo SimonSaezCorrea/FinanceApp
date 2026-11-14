@@ -344,6 +344,10 @@ export type Transfer = z.infer<typeof transferSchema>;
 
 export const TRANSACTION_PAGE_SIZE = 20;
 const TRANSACTION_MAX_PAGE_SIZE = 100;
+/** A request without `limit` gets pages of this size (security run-3: it used to return every
+ * movement in one response — 40,000 rows were 30 MB and 321 MB of server memory). A client
+ * that wants everything follows `nextCursor`. */
+export const TRANSACTION_UNPAGED_MAX = 1000;
 
 /** Optional list filters (query params). */
 export const transactionFiltersSchema = z.object({
@@ -419,8 +423,8 @@ export const coverTransferResponseSchema = z.object({
 export type CoverTransferResponse = z.infer<typeof coverTransferResponseSchema>;
 
 /**
- * One page of movements. `nextCursor` is `null` on the last page (and always
- * `null` when the request carried no `limit`, since that returns everything).
+ * One page of movements. `nextCursor` is `null` on the last page. A request without `limit`
+ * gets up to `TRANSACTION_UNPAGED_MAX` rows and a cursor when there are more.
  */
 export const transactionPageSchema = z.object({
   items: z.array(transactionSchema),

@@ -1,4 +1,13 @@
 <!--
+Sync Impact Report — 2026-11-14 (amendment 2.12.0)
+- Version change: 2.11.1 → 2.12.0 (MINOR: a table is added; no principle text changes meaning).
+- AMENDED Principle VI title and Principle VIII: 38 → 39 tables — `storage-deletion` (security run-3):
+  object-storage keys of attachment rows that were deleted, queued by a database trigger on
+  `transaction-attachment` (its own delete or any cascade), deleted by the maintenance cron. Global,
+  no `userId`; rows written by the database get a UUID v7 from the `fik_uuid_v7()` SQL function.
+- RECORDED (Principle VII): the purge is form (a) — an object is deleted, then its queue row; an S3
+  delete is idempotent, so a retry after a failure deletes nothing twice.
+
 Sync Impact Report — 2026-11-07 (amendment 2.11.1)
 - Version change: 2.11.0 → 2.11.1 (PATCH: product rename "fik" → "mifik", matching the domain;
   the public site's Spanish home is served at the root `/` instead of a 302 by language, `/es/` is
@@ -2032,7 +2041,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 38 tables)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 39 tables)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -2112,7 +2121,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 38 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 39 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -2421,4 +2430,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.11.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-07
+**Version**: 2.12.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-11-14

@@ -1115,7 +1115,18 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
 5. ~~**`deploy/` en el servidor**~~ — **sincronizado (2026-11-12)**: `deploy.sh`, `docker-compose.yml`
    y `Caddyfile` de `/opt/fik` iguales al repo; Caddy pasó de 2.8 a 2.11.9 y Vector quedó fijado por
    digest. Sigue siendo a mano: cada cambio en `deploy/` hay que copiarlo (sección 8 de DEPLOY.md).
-6. **wrangler** se baja con `npx wrangler@<versión exacta>`, fuera del lockfile. Meterlo al lockfile
-   instalaría `workerd` (~100 MB) en cada job de CI; se dejó así a propósito.
+6. ~~**wrangler** se bajaba con `npx`~~ — **hecho (2026-11-14, run-3)**: fijado con todo su árbol en
+   `.github/wrangler/package-lock.json`, instalado con `npm ci --ignore-scripts` solo en los jobs que
+   suben a Pages (no en el install del monorepo), con su propia entrada de Dependabot.
 7. **Límite por IP en memoria**: se pierde al reiniciar y, en el minuto de deploy con dos contenedores,
-   un cliente puede llegar al doble. Aceptado con un solo servidor.
+   un cliente puede llegar al doble. Aceptado con un solo servidor. Lo mismo vale para los contadores
+   en memoria nuevos de run-3 (`loginDeviceFailures`, `sessionPasswordFailures`).
+8. **Rama del entorno `production` en GitHub** (run-3, por hacer a mano): Settings > Environments >
+   production > Deployment branches = solo `main`. El workflow ya rechaza un disparo manual desde
+   otra rama, pero una rama con el workflow modificado se saltaría ese chequeo; la regla del entorno
+   no.
+9. **Archivos de comprobantes subidos antes de la cola `storage-deletion`** (run-3): los objetos que
+   quedaron huérfanos antes de la migración `20261114120000_storage_deletion` no están en la cola.
+   Barrerlos exige listar el bucket y comparar con la tabla (permiso `ListBucket`); pendiente.
+10. **Cuota de adjuntos**: se revisa antes de subir, sin bloqueo; dos subidas simultáneas pueden pasar
+    el tope por una. Aceptado (límite de 20 subidas cada 10 minutos por usuario).

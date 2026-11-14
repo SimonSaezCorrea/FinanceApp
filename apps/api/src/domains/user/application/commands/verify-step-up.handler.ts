@@ -75,11 +75,7 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     if (command.input.method === "password") {
       // Counted like a login attempt (security run-3): unlimited guesses here let a stolen
       // session find the password and pass the step-up that guards changing the email.
-      await verifyPasswordCounted(
-        { prisma: this.prisma, users: this.users },
-        user.id,
-        command.input.password,
-      );
+      await verifyPasswordCounted({ users: this.users }, user.id, command.input.password);
     } else {
       const input = command.input;
       const outcome = await this.verifyCode(user.id, (tx, locked, now) =>

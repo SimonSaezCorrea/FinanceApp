@@ -1036,6 +1036,20 @@ model TransactionAttachment {
   @@map("transaction-attachment")
 }
 
+/// A file in object storage whose `transaction-attachment` row is gone (security run-3). Filled by
+/// a database trigger on every delete of that table — the row's own delete, or a cascade from its
+/// movement, account or user — so no deletion path can leave a file behind. The maintenance cron
+/// deletes each object and then its row; S3 deletes are idempotent, so a retry is harmless.
+model StorageDeletion {
+  id         String   @id @default(uuid(7))
+  storageKey String
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("storage-deletion")
+}
+
 model InstallmentPlan {
   id                String               @id @default(uuid(7))
   userId            String

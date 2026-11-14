@@ -1,5 +1,5 @@
 import { hash } from "bcryptjs";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginHandler } from "../../../../../../src/domains/user/application/commands/login.handler";
 import { LoginCommand } from "../../../../../../src/domains/user/application/commands/login.command";
@@ -14,6 +14,10 @@ import { User, type UserProps } from "../../../../../../src/domains/user/domain/
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import { fakeMfaCodes, fakeTrustedDevices } from "../../../../support/fake-ports";
+import { LoginDeviceToken } from "../../../../../../src/domains/user/application/login-device";
+import { resetFailureCounters } from "../../../../../../src/domains/user/application/failure-counter";
+
+const loginDevices = new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never);
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -116,6 +120,7 @@ function makeHandler(
     prisma,
     deps.devices ?? fakeTrustedDevices(),
     deps.mfaCodes ?? fakeMfaCodes(),
+    loginDevices,
   );
   return { handler, repo, tokenIssuer, sessionIssuer };
 }
@@ -129,6 +134,8 @@ const attempt = (password: string, identifierValue = "123456785") =>
   new LoginCommand({ identifierValue, password });
 
 describe("LoginHandler", () => {
+  beforeEach(() => resetFailureCounters());
+
   it("accepts a correct password and issues tokens", async () => {
     const { handler, repo } = makeHandler(await userWith());
     const result = await handler.execute(attempt("secret123", "12.345.678-5"));
@@ -277,5 +284,56 @@ describe("LoginHandler — remembered device (specs/040 US2)", () => {
     ).rejects.toThrow(InvalidCredentialsError);
     expect(user.snapshot().loginFailedAttempts).toBe(1);
     expect(devices.findValidByTokenHash).not.toHaveBeenCalled();
+  });
+
+  describe("a browser that signed in before (login_device, security run-3)", () => {
+    const fromDevice = (password: string, token: string) =>
+      new LoginCommand({ identifierValue: "123456785", password }, undefined, undefined, token);
+
+    it("is not held back by the account-wide lock someone else caused", async () => {
+      const user = await userWith({
+        loginFailedAttempts: 5,
+        loginLockedUntil: new Date(Date.now() + 10 * 60_000),
+      });
+      const { handler, sessionIssuer } = makeHandler(user);
+      const result = await handler.execute(fromDevice("secret123", loginDevices.issue("u1")));
+      expect(result.mfaRequired).toBe(false);
+      expect(sessionIssuer.establish).toHaveBeenCalledTimes(1);
+      // Signing in clears the lock the third party set.
+      expect(user.snapshot().loginLockedUntil).toBeNull();
+    });
+
+    it("counts only its own failures, never on the account, and locks itself after 5", async () => {
+      const user = await userWith();
+      const { handler, repo } = makeHandler(user);
+      const token = loginDevices.issue("u1");
+      for (let i = 0; i < 4; i++) {
+        await expect(handler.execute(fromDevice(`wrong-${i}`, token))).rejects.toThrow(
+          InvalidCredentialsError,
+        );
+      }
+      await expect(handler.execute(fromDevice("wrong-4", token))).rejects.toThrow(LoginLockedError);
+      await expect(handler.execute(fromDevice("secret123", token))).rejects.toThrow(
+        LoginLockedError,
+      );
+      expect(user.snapshot().loginFailedAttempts).toBe(0);
+      expect(repo.saveWithTx).not.toHaveBeenCalled();
+      // Another browser is unaffected by this one's lock.
+      const other = await handler.execute(attempt("secret123"));
+      expect(other.mfaRequired).toBe(false);
+    });
+
+    it("a token of another account, or a tampered one, is treated as an unknown browser", async () => {
+      const locked = { loginFailedAttempts: 5, loginLockedUntil: new Date(Date.now() + 600_000) };
+      const { handler } = makeHandler(await userWith(locked));
+      await expect(
+        handler.execute(fromDevice("secret123", loginDevices.issue("someone-else"))),
+      ).rejects.toThrow(LoginLockedError);
+      const token = loginDevices.issue("u1");
+      const tampered = `${token.slice(0, -2)}${token.endsWith("A") ? "B" : "A"}A`;
+      await expect(handler.execute(fromDevice("secret123", tampered))).rejects.toThrow(
+        LoginLockedError,
+      );
+    });
   });
 });

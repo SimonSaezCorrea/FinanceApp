@@ -52,6 +52,7 @@ function fakeRepo(overrides: Partial<AttachmentRepositoryPort> = {}): Attachment
     findOne: vi.fn(async () => attachment()),
     save: vi.fn(async () => attachment()),
     remove: vi.fn(async () => true),
+    usage: vi.fn(async () => ({ userCount: 0, userBytes: 0, transactionCount: 0 })),
     ...overrides,
   };
 }
@@ -124,6 +125,38 @@ describe("UploadAttachmentHandler", () => {
     await expect(
       handler.execute(new UploadAttachmentCommand("u1", "t1", { ...file, mimetype: "image/png" })),
     ).rejects.toThrow(/ATTACHMENT_TYPE_NOT_ALLOWED/);
+  });
+});
+
+describe("UploadAttachmentHandler limits (security run-3)", () => {
+  const upload = (repo: AttachmentRepositoryPort, storage = fakeStorage()) =>
+    new UploadAttachmentHandler(eventBus, repo, storage, fakeTransactions()).execute(
+      new UploadAttachmentCommand("u1", "t1", file),
+    );
+
+  it.each([
+    ["a movement already holding 10 files", { userCount: 10, userBytes: 10, transactionCount: 10 }],
+    [
+      "a person already keeping 1,000 files",
+      { userCount: 1000, userBytes: 10, transactionCount: 0 },
+    ],
+    [
+      "a file that would pass 500 MB in total",
+      { userCount: 1, userBytes: 500 * 1024 * 1024 - 2, transactionCount: 0 },
+    ],
+  ])("refuses %s, before uploading anything", async (_label, usage) => {
+    const storage = fakeStorage();
+    const repo = fakeRepo({ usage: vi.fn(async () => usage) });
+    await expect(upload(repo, storage)).rejects.toThrow(/ATTACHMENT_QUOTA_EXCEEDED/);
+    expect(storage.put).not.toHaveBeenCalled();
+  });
+
+  it("deletes the uploaded file when its row can't be saved", async () => {
+    const storage = fakeStorage();
+    const repo = fakeRepo({ save: vi.fn(async () => Promise.reject(new Error("db down"))) });
+    await expect(upload(repo, storage)).rejects.toThrow("db down");
+    const key = vi.mocked(storage.put).mock.calls[0]![0];
+    expect(storage.delete).toHaveBeenCalledWith(key);
   });
 });
 

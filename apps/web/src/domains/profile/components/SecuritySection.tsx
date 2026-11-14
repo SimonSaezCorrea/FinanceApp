@@ -91,6 +91,8 @@ function ChangePasswordDialog({
 }: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void }>) {
   const { t } = useTranslation();
   const { changePassword } = useProfileMutations();
+  // Security run-3: with a second factor or a passkey, the server asks for a step-up first.
+  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.security.password.stepUpHint"));
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -120,6 +122,7 @@ function ChangePasswordDialog({
       toast.success(t("profile.security.password.updated"));
       close(false);
     } catch (err) {
+      if (needsStepUp(err, () => void handleSubmit())) return;
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       // INVALID_CURRENT_PASSWORD is about the CURRENT password field — anchor
       // it there instead of showing it under the new one (the old bug).
@@ -188,6 +191,7 @@ function ChangePasswordDialog({
           ) : null}
         </div>
       </div>
+      {stepUpPanel}
     </FormSurface>
   );
 }

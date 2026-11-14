@@ -11,6 +11,7 @@ import type { TokenIssuer } from "../../../../../src/domains/user/application/to
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import { buildUserRepo } from "../../../support/repositories";
 import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
+import { LoginDeviceToken } from "../../../../../src/domains/user/application/login-device";
 
 /**
  * Proves the password check runs on a locked row: N concurrent wrong passwords against a fresh
@@ -59,6 +60,7 @@ describe("login rate limit under concurrency (integration)", () => {
       prisma,
       new PrismaTrustedDeviceRepository(prisma),
       { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
   it("5 concurrent wrong passwords each count exactly once, and the 5th locks", async () => {

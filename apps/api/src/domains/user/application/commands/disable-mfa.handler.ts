@@ -54,11 +54,7 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
     // Same guard "Eliminar cuenta" already uses: re-entering the current password is what
     // authorizes this, not merely holding a valid session. Counted like a login attempt
     // (security run-3).
-    await verifyPasswordCounted(
-      { prisma: this.prisma, users: this.repo },
-      command.userId,
-      command.input.password,
-    );
+    await verifyPasswordCounted({ users: this.repo }, command.userId, command.input.password);
     const user = await this.repo.findById(command.userId);
     if (!user) throw new UnauthorizedError();
     // The password alone is not enough (2026-11-08): with the session and the password, someone

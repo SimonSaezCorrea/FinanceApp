@@ -12,9 +12,14 @@ import { randomValidRut } from "../../support/rut";
 
 /**
  * Security run-3: re-entering the password from inside a session (step-up by password, change
- * password, disable MFA, delete the account) counts like a login attempt and shares login's
- * lockout. Before, a stolen session could guess the password without limit and, once right, pass
+ * password, disable MFA, delete the account) is limited — 5 wrong answers lock these checks for 15
+ * minutes. Before, a stolen session could guess the password without limit and, once right, pass
  * the step-up that guards changing the email.
+ *
+ * Run-3 (second pass): that count is the SESSION's own, no longer login's. Sharing it let anyone who
+ * knows a RUT (5 wrong logins every 15 minutes) keep the signed-in owner from changing the password;
+ * and a browser that signed in before (`login_device`) answers only for its own failures, so the
+ * same third party can't lock the owner out of it either.
  */
 describe("Password guesses from inside a session (e2e)", { timeout: 30_000 }, () => {
   let app: INestApplication;
@@ -55,7 +60,7 @@ describe("Password guesses from inside a session (e2e)", { timeout: 30_000 }, ()
       .set("Cookie", cookies)
       .send({ method: "password", password: pw });
 
-  it("locks the step-up by password after 5 wrong guesses, the right one included, and login too", async () => {
+  it("locks the step-up by password after 5 wrong guesses, the right one included", async () => {
     const { rut, cookies } = await registered();
 
     for (let i = 0; i < 4; i++) {
@@ -71,12 +76,64 @@ describe("Password guesses from inside a session (e2e)", { timeout: 30_000 }, ()
     expect(right.status).toBe(429);
     expect(right.body.error.code).toBe("LOGIN_LOCKED");
 
-    // One counter: switching to login buys no more attempts.
+    // The session's count, not the account's: a login elsewhere is unaffected.
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password });
-    expect(login.status).toBe(429);
-    expect(login.body.error.code).toBe("LOGIN_LOCKED");
+    expect(login.status).toBe(200);
+  });
+
+  it("a third party's wrong logins lock unknown browsers, not the owner's session nor their browser", async () => {
+    const { rut, cookies } = await registered();
+    const deviceCookie = cookies.filter((c) => c.startsWith("login_device="));
+    expect(deviceCookie).toHaveLength(1);
+
+    const wrongLogin = () =>
+      request(app.getHttpServer())
+        .post("/api/v1/auth/login")
+        .send({ identifierValue: rut, password: "not-it" });
+    for (let i = 0; i < 4; i++) expect((await wrongLogin()).status).toBe(401);
+    const fifth = await wrongLogin();
+    expect(fifth.status).toBe(429);
+    expect(fifth.body.error.code).toBe("LOGIN_LOCKED");
+
+    // A browser that never signed in is locked out, the right password included…
+    const stranger = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ identifierValue: rut, password });
+    expect(stranger.status).toBe(429);
+
+    // …the owner's own browser is not…
+    const owner = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .set("Cookie", deviceCookie)
+      .send({ identifierValue: rut, password });
+    expect(owner.status).toBe(200);
+
+    // …and neither is the owner's session asking for their password.
+    const change = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/password")
+      .set("Cookie", cookies)
+      .send({ currentPassword: password, newPassword: "An0therSecret!" });
+    expect(change.status).toBe(204);
+  });
+
+  it("a known browser's own wrong passwords lock only that browser", async () => {
+    const { rut, cookies } = await registered();
+    const deviceCookie = cookies.filter((c) => c.startsWith("login_device="));
+    const fromDevice = (pw: string) =>
+      request(app.getHttpServer())
+        .post("/api/v1/auth/login")
+        .set("Cookie", deviceCookie)
+        .send({ identifierValue: rut, password: pw });
+    for (let i = 0; i < 4; i++) expect((await fromDevice(`nope-${i}`)).status).toBe(401);
+    expect((await fromDevice("nope-4")).status).toBe(429);
+    expect((await fromDevice(password)).status).toBe(429);
+
+    const elsewhere = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ identifierValue: rut, password });
+    expect(elsewhere.status).toBe(200);
   });
 
   it("counts wrong current passwords on change-password and stops at the lockout", async () => {

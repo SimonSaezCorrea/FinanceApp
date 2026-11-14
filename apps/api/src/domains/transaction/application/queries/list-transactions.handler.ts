@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { QueryHandler } from "@nestjs/cqrs";
 
-import type { transactions } from "@finance/contracts";
+import { transactions } from "@finance/contracts";
 
 import { getCursorSigningSecret } from "../../../../infra/config/cursor.config";
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
@@ -64,7 +64,8 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
   ): Promise<transactions.TransactionPage> {
     const { limit, cursor } = query.filters;
     const page = await this.repo.list(query.userId, where, {
-      limit,
+      // Never unbounded (security run-3): without `limit`, a large page and a cursor.
+      limit: limit ?? transactions.TRANSACTION_UNPAGED_MAX,
       cursor: cursor ? decodeCursor(cursor, this.cursorSecret) : undefined,
     });
     const items = page.items.map((r) => r.toContract());
