@@ -18,6 +18,7 @@ import { User, type UserProps } from "../../../../../../src/domains/user/domain/
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { PasskeyRepositoryPort } from "../../../../../../src/domains/passkey/domain/ports/passkey.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { LoginDeviceToken } from "../../../../../../src/domains/user/application/login-device";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -139,6 +140,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       sessionIssuer,
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     const result = await handler.execute(
@@ -169,6 +171,7 @@ describe("VerifyPasskeyLoginHandler", () => {
         PASSKEY_RP_ID: "mifik.cl",
       }),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false));
@@ -189,6 +192,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakeSessionIssuer(),
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -211,6 +215,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakeSessionIssuer(),
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     const result = await handler.execute(
@@ -230,6 +235,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakeSessionIssuer(),
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -249,6 +255,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakeSessionIssuer(),
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -265,6 +272,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakeSessionIssuer(),
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -282,6 +290,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakeSessionIssuer(),
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -302,6 +311,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       sessionIssuer,
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
     await handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false));
     expect(sessionIssuer.establish).toHaveBeenCalledWith(
@@ -327,6 +337,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       sessionIssuer,
       config(),
       fakePrisma(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
     await expect(
       handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false)),

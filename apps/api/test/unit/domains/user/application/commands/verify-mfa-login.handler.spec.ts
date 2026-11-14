@@ -14,6 +14,7 @@ import type { UserRepositoryPort } from "../../../../../../src/domains/user/doma
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import { fakeMfaCodes, fakeTrustedDevices } from "../../../../support/fake-ports";
+import { LoginDeviceToken } from "../../../../../../src/domains/user/application/login-device";
 
 const SECRET = "JBSWY3DPEHPK3PXP";
 
@@ -114,6 +115,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     const result = await handler.execute(
@@ -137,6 +139,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -160,6 +163,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -185,6 +189,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -211,6 +216,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     const result = await handler.execute(new VerifyMfaLoginCommand("u1", { code: "AB3D-9F2K" }));
@@ -237,6 +243,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -257,6 +264,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -275,6 +283,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -292,6 +301,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -310,6 +320,7 @@ describe("VerifyMfaLoginHandler", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     await expect(
@@ -336,6 +347,7 @@ describe("VerifyMfaLoginHandler — remember this device (specs/040 US2)", () =>
       fakePrisma(),
       devices,
       fakeMfaCodes(),
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
     const command = new VerifyMfaLoginCommand(
       "u1",
@@ -389,6 +401,7 @@ describe("VerifyMfaLoginHandler — email method (specs/040 US3)", () => {
       fakePrisma(),
       fakeTrustedDevices(),
       mfaCodes,
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
     return { handler, user, mfaCodes };
   }

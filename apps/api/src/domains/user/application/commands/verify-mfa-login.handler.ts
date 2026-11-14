@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
+import { LoginDeviceToken } from "../login-device";
 import { compare } from "bcryptjs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
@@ -78,6 +79,7 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     private readonly prisma: PrismaService,
     @Inject(TRUSTED_DEVICE_REPOSITORY) private readonly devices: TrustedDeviceRepositoryPort,
     private readonly mfaCodes: MfaCodeService,
+    private readonly loginDevices: LoginDeviceToken,
   ) {
     super(eventBus);
   }
@@ -126,6 +128,7 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
           result: {
             tokens,
             user: outcome.user.toContract(outcome.remaining),
+            loginDeviceToken: this.loginDevices.issue(outcome.user.id, outcome.user.passwordHash),
             ...(remembered ? { trustedDeviceToken: remembered.token } : {}),
           },
           events: remembered

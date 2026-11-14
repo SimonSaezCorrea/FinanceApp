@@ -103,7 +103,11 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
       this.logger.warn(`failed login attempt for ${maskedRut}`);
       throw new InvalidCredentialsError();
     }
-    const knownDevice = this.loginDevices.deviceFor(command.loginDeviceToken, user.id);
+    const knownDevice = this.loginDevices.deviceFor(
+      command.loginDeviceToken,
+      user.id,
+      user.passwordHash,
+    );
     return {
       userId: user.id,
       maskedRut,
@@ -179,7 +183,15 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
       { id: user.id, email: user.email },
       { userAgent: command.device?.userAgent, ip: command.device?.ip },
     );
-    return { result: { mfaRequired: false, tokens, user: user.toContract() }, events: [] };
+    return {
+      result: {
+        mfaRequired: false,
+        tokens,
+        user: user.toContract(),
+        loginDeviceToken: this.loginDevices.issue(user.id, user.passwordHash),
+      },
+      events: [],
+    };
   }
 
   /** A remembered browser of THIS account, not expired (specs/040). Touched when it is used. */

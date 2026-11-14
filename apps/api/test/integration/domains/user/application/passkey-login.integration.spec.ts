@@ -20,6 +20,7 @@ import { buildUserRepo, noopIpGeolocationCacheRepo } from "../../../support/repo
 import { PrismaPasskeyRepository } from "../../../../../src/domains/passkey/infrastructure/prisma-passkey.repository";
 import { PrismaSessionRepository } from "../../../../../src/domains/session/infrastructure/prisma-session.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+import { LoginDeviceToken } from "../../../../../src/domains/user/application/login-device";
 
 describe("Passkey login (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
@@ -83,6 +84,7 @@ describe("Passkey login (integration)", () => {
       sessionIssuer,
       config,
       prisma,
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     const result = await handler.execute(

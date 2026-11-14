@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
+import { LoginDeviceToken } from "../login-device";
 import { hash } from "bcryptjs";
 
 import { auth } from "@finance/contracts";
@@ -35,6 +36,8 @@ import { RegisterCommand } from "./register.command";
 export interface AuthResult {
   tokens: TokenPair;
   user: auth.CurrentUser;
+  /** The `login_device` cookie's value for this sign-in (security run-3), bound to the password. */
+  loginDeviceToken?: string;
 }
 
 interface Context {
@@ -54,6 +57,7 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly accountEmails: AccountEmailService,
+    private readonly loginDevices: LoginDeviceToken,
   ) {
     super(eventBus);
   }
@@ -123,7 +127,14 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     // "Confirma tu correo" (FR-007). Never fails the registration: an email that can't go out is
     // logged, and the app's notice offers to send it again (FR-006).
     await this.accountEmails.sendVerification({ userId: user.id, locale: plan.locale }, primary);
-    return { result: { tokens, user: user.toContract() }, events: [] };
+    return {
+      result: {
+        tokens,
+        user: user.toContract(),
+        loginDeviceToken: this.loginDevices.issue(user.id, user.passwordHash),
+      },
+      events: [],
+    };
   }
 
   /**

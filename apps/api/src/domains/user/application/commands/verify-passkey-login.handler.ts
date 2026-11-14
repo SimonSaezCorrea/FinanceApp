@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
+import { LoginDeviceToken } from "../login-device";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { isoBase64URL } from "@simplewebauthn/server/helpers";
 import type { AuthenticationResponseJSON, WebAuthnCredential } from "@simplewebauthn/server";
@@ -34,6 +35,7 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
     private readonly sessionIssuer: SessionIssuer,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly loginDevices: LoginDeviceToken,
   ) {
     super(eventBus);
   }
@@ -110,6 +112,13 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
     }
     // Never routes through mfa_pending_token / VerifyMfaLoginCommand, even if user.mfaEnabled —
     // the passkey is its own strong authentication (specs/022 FR-007).
-    return { result: { tokens, user: user.toContract() }, events: [] };
+    return {
+      result: {
+        tokens,
+        user: user.toContract(),
+        loginDeviceToken: this.loginDevices.issue(user.id, user.passwordHash),
+      },
+      events: [],
+    };
   }
 }

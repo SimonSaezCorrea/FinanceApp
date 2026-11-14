@@ -118,6 +118,28 @@ describe("Password guesses from inside a session (e2e)", { timeout: 30_000 }, ()
     expect(change.status).toBe(204);
   });
 
+  it("changing the password voids the device cookies issued before it", async () => {
+    const { rut, cookies } = await registered();
+    const oldDevice = cookies.filter((c) => c.startsWith("login_device="));
+    const newPassword = "An0therSecret!";
+    const change = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/password")
+      .set("Cookie", cookies)
+      .send({ currentPassword: password, newPassword });
+    expect(change.status).toBe(204);
+
+    for (let i = 0; i < 5; i++) {
+      await request(app.getHttpServer())
+        .post("/api/v1/auth/login")
+        .send({ identifierValue: rut, password: `bad-${i}` });
+    }
+    const withOldCookie = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .set("Cookie", oldDevice)
+      .send({ identifierValue: rut, password: newPassword });
+    expect(withOldCookie.status).toBe(429);
+  });
+
   it("a known browser's own wrong passwords lock only that browser", async () => {
     const { rut, cookies } = await registered();
     const deviceCookie = cookies.filter((c) => c.startsWith("login_device="));

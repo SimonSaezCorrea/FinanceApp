@@ -11,6 +11,7 @@ import { getMfaEncryptionKey } from "../../../../../src/infra/config/mfa.config"
 import { encryptMfaSecret } from "../../../../../src/domains/user/application/mfa-secret-cipher";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import { PrismaTrustedDeviceRepository } from "../../../../../src/domains/trusted-device/infrastructure/prisma-trusted-device.repository";
+import { LoginDeviceToken } from "../../../../../src/domains/user/application/login-device";
 
 /**
  * Proves the `SELECT ... FOR UPDATE` row lock in `findByIdForUpdateWithTx` genuinely closes the
@@ -56,6 +57,7 @@ describe("MFA login rate limit under concurrency (integration)", () => {
       prisma,
       new PrismaTrustedDeviceRepository(prisma),
       { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
+      new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
     );
 
     const attempts = Array.from({ length: 5 }, () =>

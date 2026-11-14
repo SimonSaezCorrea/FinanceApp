@@ -86,7 +86,6 @@ import {
   LOGIN_DEVICE_COOKIE,
   LOGIN_DEVICE_COOKIE_MAX_AGE_MS,
   LOGIN_DEVICE_COOKIE_PATH,
-  LoginDeviceToken,
 } from "../application/login-device";
 
 const MFA_PENDING_COOKIE = "mfa_pending_token";
@@ -121,7 +120,6 @@ export class AuthController {
     private readonly config: ConfigService,
     private readonly tokenIssuer: TokenIssuer,
     private readonly passkeyChallenge: PasskeyChallengeToken,
-    private readonly loginDevices: LoginDeviceToken,
   ) {}
 
   @Post("register")
@@ -132,11 +130,12 @@ export class AuthController {
     @Body(new ZodValidationPipe(auth.registerRequestSchema)) body: auth.RegisterRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.CurrentUser> {
-    const { tokens, user } = await this.commandBus.execute<RegisterCommand, AuthResult>(
-      new RegisterCommand(body, this.deviceFrom(req)),
-    );
+    const { tokens, user, loginDeviceToken } = await this.commandBus.execute<
+      RegisterCommand,
+      AuthResult
+    >(new RegisterCommand(body, this.deviceFrom(req)));
     this.setAuthCookies(res, tokens);
-    this.setLoginDeviceCookie(res, user.id);
+    this.setLoginDeviceCookie(res, loginDeviceToken);
     return user;
   }
 
@@ -172,7 +171,7 @@ export class AuthController {
       };
     }
     this.setAuthCookies(res, result.tokens);
-    this.setLoginDeviceCookie(res, result.user.id);
+    this.setLoginDeviceCookie(res, result.loginDeviceToken);
     return { mfaRequired: false, user: result.user };
   }
 
@@ -212,10 +211,10 @@ export class AuthController {
       if (claim) releaseClaim(claim);
       throw error;
     }
-    const { tokens, user, trustedDeviceToken } = result;
+    const { tokens, user, trustedDeviceToken, loginDeviceToken } = result;
     res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
-    this.setLoginDeviceCookie(res, user.id);
+    this.setLoginDeviceCookie(res, loginDeviceToken);
     if (trustedDeviceToken) {
       // Flags written out, not spread from cookieBase(): CodeQL doesn't follow the spread.
       res.cookie(TRUSTED_DEVICE_COOKIE, trustedDeviceToken, {
@@ -265,7 +264,10 @@ export class AuthController {
       PASSKEY_CHALLENGE_COOKIE
     ];
     const { challenge, userId, discoverable } = this.passkeyChallenge.verify(cookieToken ?? "");
-    const { tokens, user } = await this.commandBus.execute<VerifyPasskeyLoginCommand, AuthResult>(
+    const { tokens, user, loginDeviceToken } = await this.commandBus.execute<
+      VerifyPasskeyLoginCommand,
+      AuthResult
+    >(
       new VerifyPasskeyLoginCommand(
         body.response,
         challenge,
@@ -276,7 +278,7 @@ export class AuthController {
     );
     res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
-    this.setLoginDeviceCookie(res, user.id);
+    this.setLoginDeviceCookie(res, loginDeviceToken);
     return { user };
   }
 
@@ -717,9 +719,10 @@ export class AuthController {
 
   /** After a completed sign-in: this browser is now one the account's lockout never holds back
    * for someone else's failures (security run-3). Renewed on each sign-in. */
-  private setLoginDeviceCookie(res: Response, userId: string): void {
+  private setLoginDeviceCookie(res: Response, token: string | undefined): void {
+    if (!token) return;
     // Flags written out, not spread from cookieBase(): CodeQL doesn't follow the spread.
-    res.cookie(LOGIN_DEVICE_COOKIE, this.loginDevices.issue(userId), {
+    res.cookie(LOGIN_DEVICE_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",
       secure: requiresSecureCookies(this.config),

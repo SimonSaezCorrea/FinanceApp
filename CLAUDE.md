@@ -2568,7 +2568,9 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     login lockout no longer lets a third party lock the owner out**: every completed sign-in
     (register, login, MFA verify, passkey) sets the httpOnly cookie **`login_device`** (path
     `/api/v1/auth`, 180 days; stateless `base64url(payload).HMAC`, key = HKDF of
-    `JWT_REFRESH_SECRET`, info `fik/login-device` — `user/application/login-device.ts`); a login
+    `JWT_REFRESH_SECRET`, info `fik/login-device` — `user/application/login-device.ts`; it carries
+    an HMAC of the account's password hash, so changing or recovering the password voids every
+    device token issued before; the handlers issue it, the controller only sets it); a login
     carrying a valid one of THAT account ignores the account-wide lock and counts only its own
     failures (in memory, `failure-counter.ts`'s `loginDeviceFailures`, 5 → 15 min), never on the
     account row. **Re-entering the password inside a session** (step-up, change password, disable

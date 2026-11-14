@@ -296,7 +296,9 @@ describe("LoginHandler — remembered device (specs/040 US2)", () => {
         loginLockedUntil: new Date(Date.now() + 10 * 60_000),
       });
       const { handler, sessionIssuer } = makeHandler(user);
-      const result = await handler.execute(fromDevice("secret123", loginDevices.issue("u1")));
+      const result = await handler.execute(
+        fromDevice("secret123", loginDevices.issue("u1", user.snapshot().passwordHash)),
+      );
       expect(result.mfaRequired).toBe(false);
       expect(sessionIssuer.establish).toHaveBeenCalledTimes(1);
       // Signing in clears the lock the third party set.
@@ -306,7 +308,7 @@ describe("LoginHandler — remembered device (specs/040 US2)", () => {
     it("counts only its own failures, never on the account, and locks itself after 5", async () => {
       const user = await userWith();
       const { handler, repo } = makeHandler(user);
-      const token = loginDevices.issue("u1");
+      const token = loginDevices.issue("u1", user.snapshot().passwordHash);
       for (let i = 0; i < 4; i++) {
         await expect(handler.execute(fromDevice(`wrong-${i}`, token))).rejects.toThrow(
           InvalidCredentialsError,
@@ -325,13 +327,27 @@ describe("LoginHandler — remembered device (specs/040 US2)", () => {
 
     it("a token of another account, or a tampered one, is treated as an unknown browser", async () => {
       const locked = { loginFailedAttempts: 5, loginLockedUntil: new Date(Date.now() + 600_000) };
-      const { handler } = makeHandler(await userWith(locked));
+      const user = await userWith(locked);
+      const { handler } = makeHandler(user);
       await expect(
-        handler.execute(fromDevice("secret123", loginDevices.issue("someone-else"))),
+        handler.execute(fromDevice("secret123", loginDevices.issue("someone-else", null))),
       ).rejects.toThrow(LoginLockedError);
-      const token = loginDevices.issue("u1");
+      const token = loginDevices.issue("u1", user.snapshot().passwordHash);
       const tampered = `${token.slice(0, -2)}${token.endsWith("A") ? "B" : "A"}A`;
       await expect(handler.execute(fromDevice("secret123", tampered))).rejects.toThrow(
+        LoginLockedError,
+      );
+    });
+
+    it("a token issued before the password changed no longer counts (security run-3)", async () => {
+      const before = await userWith();
+      const token = loginDevices.issue("u1", before.snapshot().passwordHash);
+      const after = await userWith({
+        loginFailedAttempts: 5,
+        loginLockedUntil: new Date(Date.now() + 600_000),
+      });
+      const { handler } = makeHandler(after);
+      await expect(handler.execute(fromDevice("secret123", token))).rejects.toThrow(
         LoginLockedError,
       );
     });

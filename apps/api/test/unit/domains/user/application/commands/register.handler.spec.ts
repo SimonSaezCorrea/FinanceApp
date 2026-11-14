@@ -16,6 +16,7 @@ import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.se
 import type { ConfigService } from "@nestjs/config";
 import type { UserEmailRepositoryPort } from "../../../../../../src/domains/user-email/domain/ports/user-email.repository.port";
 import type { AccountEmailService } from "../../../../../../src/domains/user/application/account-emails";
+import { LoginDeviceToken } from "../../../../../../src/domains/user/application/login-device";
 
 const ADULT_BIRTHDATE = new Date("1990-01-01T00:00:00Z");
 const MINOR_BIRTHDATE = new Date(new Date().getFullYear() - 10, 0, 1); // always ~10 years old
@@ -139,6 +140,7 @@ function buildHandler(
     fakePrisma(),
     fakeConfig(),
     overrides.accountEmails ?? fakeAccountEmails(),
+    new LoginDeviceToken({ getOrThrow: () => "test-refresh-secret" } as never),
   );
 }
 
