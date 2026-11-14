@@ -138,6 +138,7 @@ function setup(
       id === "acc_1" ? creditAccount : fromAccount,
     ),
     incrementBalanceWithTx: vi.fn(),
+    lockLimitsWithTx: vi.fn(async () => new Map()),
     incrementCreditUsedWithTx: vi.fn(),
     saveWithTx: vi.fn(),
   } as unknown as BankAccountRepositoryPort;

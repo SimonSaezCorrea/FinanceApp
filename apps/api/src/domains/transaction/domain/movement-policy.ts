@@ -1,4 +1,14 @@
 import type { accounts, transactions } from "@finance/contracts";
+
+/** What `assertNetEffect` reads from a locked account row. */
+export interface LockedAccountLimits {
+  type: string;
+  currentBalance: string;
+  overdraftLimit: string | null;
+  balanceCeiling: string | null;
+  creditLimit: string;
+  creditUsed: string;
+}
 import { addMoney, subtractMoney, toMoney } from "@finance/money";
 
 import {
@@ -280,28 +290,41 @@ export class MovementPolicy {
    * is checked against the balance as it was BEFORE its own old charge.
    */
   /**
-   * The same balance and pool rules, checked again against the account row LOCKED inside the
-   * write's transaction (run-3 hardening). `validate` runs on a read taken before the
-   * transaction, so two movements at once could each pass and together go past a prepaid
-   * account's zero, an overdraft line, a ceiling or the credit pool. `cash` and `contribution`
-   * are what this movement does to the balance and to the pool.
+   * The balance and pool rules, checked on an account row LOCKED inside the write's transaction
+   * against what the write does to it (security run-3): the net change of its cash balance
+   * (`cash`) and of its credit pool (`pool`). The checks before the transaction read a copy that
+   * another write could change at the same moment, so two movements could each pass and together
+   * go past a prepaid account's zero, an overdraft line, a ceiling or the credit pool.
+   *
+   * Same rules as `assertWithinPrepaidBalance`/`assertWithinOverdraft`/`assertWithinCeiling` and
+   * the pool check of `validate`: an edit's net change already gives back its old charge, which is
+   * what their `offset` does. A change in the safe direction is never refused, so undoing or
+   * correcting something on an account already past a limit still works.
    */
-  static recheckLocked(
-    m: { type: transactions.TransactionType; amount: string },
-    account: Pick<
-      AccountContext,
-      "type" | "currentBalance" | "overdraftLimit" | "balanceCeiling" | "creditLimit" | "creditUsed"
-    >,
-    effect: { cash: string; contribution: string },
+  static assertNetEffect(
+    account: LockedAccountLimits,
+    effect: { cash: string; pool: string },
   ): void {
-    if (effect.cash !== "0") {
-      this.assertWithinPrepaidBalance(m, account);
-      this.assertWithinOverdraft(m, account);
-      this.assertWithinCeiling(m, account);
+    const cash = toMoney(effect.cash);
+    const balanceAfter = toMoney(account.currentBalance).plus(cash);
+    if (cash.isNegative()) {
+      if (account.type === "PREPAID" && balanceAfter.isNegative()) {
+        throw new PrepaidInsufficientBalanceError();
+      }
+      const overdraft = toMoney(account.overdraftLimit ?? "0");
+      if (overdraft.greaterThan(0) && balanceAfter.lessThan(overdraft.negated())) {
+        throw new OverdraftLimitExceededError();
+      }
     }
-    if (toMoney(effect.contribution).greaterThan(0)) {
-      const projected = toMoney(account.creditUsed).plus(toMoney(effect.contribution));
-      if (projected.greaterThan(toMoney(account.creditLimit))) throw new CardLimitExceededError();
+    if (cash.greaterThan(0) && account.balanceCeiling != null) {
+      if (balanceAfter.greaterThan(toMoney(account.balanceCeiling))) {
+        throw new BalanceCeilingExceededError();
+      }
+    }
+    const pool = toMoney(effect.pool);
+    if (pool.greaterThan(0)) {
+      const usedAfter = toMoney(account.creditUsed).plus(pool);
+      if (usedAfter.greaterThan(toMoney(account.creditLimit))) throw new CardLimitExceededError();
     }
   }
 

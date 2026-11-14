@@ -96,6 +96,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPair: vi.fn(async () => pair),
     saveTransferPairWithTx: vi.fn(async () => pair),
     updateTransferPair: vi.fn(async () => pair),
+    updateTransferPairWithTx: vi.fn(async () => pair),
     removeTransferPair: vi.fn(async () => true),
     removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,
@@ -107,6 +108,8 @@ function fakeAccounts(types: Record<string, "CHECKING" | "SAVINGS" | "CREDIT_CAR
     findById: vi.fn(async (_userId: string, id: string) =>
       types[id] ? accountAggregate({ id, type: types[id] }) : null,
     ),
+    // Nothing locked here: the limit checks on locked rows are covered by account-limits.spec.
+    lockLimitsWithTx: vi.fn(async () => new Map()),
   } as never;
 }
 
@@ -200,13 +203,14 @@ describe("UpdateTransferHandler", () => {
       fakeAccounts({ a1: "CHECKING", a2: "SAVINGS", a3: "SAVINGS" }),
       fakeCategoryLookup(),
       statements,
+      prisma,
     );
 
     await handler.execute(
       new UpdateTransferCommand("u1", "g1", { toBankAccountId: "a3", amountIn: "1000" }),
     );
 
-    const deltas = vi.mocked(repo.updateTransferPair).mock.calls[0]![4];
+    const deltas = vi.mocked(repo.updateTransferPairWithTx).mock.calls[0]![5];
     // a1 is unchanged (−1000 reverted, −1000 reapplied ⇒ 0), a2 gives the money
     // back and a3 receives it.
     expect(deltas).toEqual(
@@ -225,6 +229,7 @@ describe("UpdateTransferHandler", () => {
       fakeAccounts({}),
       fakeCategoryLookup(),
       statements,
+      prisma,
     );
     await expect(
       handler.execute(new UpdateTransferCommand("u1", "nope", { amountOut: "5" })),

@@ -101,6 +101,7 @@ function fakeAccountRepo(
     createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
     setStatusWithTx: vi.fn(async () => {}),
     findByIdForUpdateWithTx: vi.fn(),
+    lockLimitsWithTx: vi.fn(async () => new Map()),
     saveCardRolesWithTx: vi.fn(async () => {}),
     addCardWithTx: vi.fn(async () => "new-card"),
     removeCardWithTx: vi.fn(async () => true),

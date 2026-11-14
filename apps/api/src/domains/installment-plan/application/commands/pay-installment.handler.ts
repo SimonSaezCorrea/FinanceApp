@@ -44,6 +44,7 @@ import {
   type InstallmentPlanRepositoryPort,
 } from "../../domain/ports/installment-plan.repository.port";
 import { PayInstallmentCommand } from "./pay-installment.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   plan: InstallmentPlan;
@@ -232,6 +233,12 @@ export class PayInstallmentHandler extends BaseIdempotentCommandHandler<
     accountId: string,
     amount: string,
   ): Promise<void> {
-    await this.accounts.incrementBalanceWithTx(tx, userId, accountId, subtractMoney("0", amount));
+    await incrementBalanceCheckedWithTx(
+      this.accounts,
+      tx,
+      userId,
+      accountId,
+      subtractMoney("0", amount),
+    );
   }
 }

@@ -2601,10 +2601,20 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     removed and created with the goal row (and then the entry) locked FOR UPDATE inside the
     transaction (`savings-entry/application/lock-entry.ts`'s `lockEntryForChange`, port
     `findOneForUpdateWithTx`), like closing a goal: removing an entry while its goal was being
-    closed "to an account" returned its money twice. (b) `POST /transactions` re-reads the account
-    LOCKED inside its transaction and re-checks the prepaid floor, overdraft, ceiling and credit pool
-    on it (`MovementPolicy.recheckLocked`): parallel movements could each pass a stale check. Card
-    sub-limits and foreign-currency lines are still checked only before the transaction. (c) Paying
+    closed "to an account" returned its money twice. (b) **Every write that moves money on an
+    account checks its limits on the account row LOCKED inside its transaction**:
+    `transaction/application/account-limits.ts`'s `assertAccountEffectsLocked` (accounts locked in id
+    order through the light `BankAccountRepositoryPort.lockLimitsWithTx`, effects netted per
+    account, `MovementPolicy.assertNetEffect`: prepaid floor, declared overdraft, declared ceiling,
+    pool ≤ limit; a change in the safe direction is never refused) and
+    `incrementBalanceCheckedWithTx` for single-account writes. Used by create/update movement,
+    create/update transfer and "Transferir pendientes" (inside `writeTransferPairWithTx`; the
+    repository gained `updateTransferPairWithTx`), paying a debt or an instalment, savings
+    contributions and the goal withdrawal, and paying/prepaying/correcting a statement. Create and
+    update movement also re-run `MovementPolicy.validate` inside the transaction when a card's own
+    limit or credit in another currency is involved (those are sums of other movements). Deleting a
+    movement and the template import are not checked this way (undoing must always work; the import
+    replays its own timeline). (c) Paying
     a statement and syncing it write `creditUsed` as a relative increment, never a save of the
     account read before; sync recomputes its deltas from the statement read locked; correcting a
     payment refuses with **`STATEMENT_CHANGED`** (409) when the locked re-read finds another paid

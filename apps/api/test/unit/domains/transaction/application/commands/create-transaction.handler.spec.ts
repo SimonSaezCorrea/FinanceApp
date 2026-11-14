@@ -62,6 +62,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPair: vi.fn(),
     saveTransferPairWithTx: vi.fn(),
     updateTransferPair: vi.fn(),
+    updateTransferPairWithTx: vi.fn(),
     removeTransferPair: vi.fn(async () => true),
     removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,

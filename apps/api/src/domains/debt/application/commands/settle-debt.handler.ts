@@ -36,6 +36,7 @@ import {
 } from "../../domain/errors";
 import { DEBT_REPOSITORY, type DebtRepositoryPort } from "../../domain/ports/debt.repository.port";
 import { SettleDebtCommand } from "./settle-debt.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   account: BankAccount;
@@ -134,7 +135,8 @@ export class SettleDebtHandler extends BaseIdempotentCommandHandler<
         description: snap.title ? `${snap.counterparty} · ${snap.title}` : snap.counterparty,
         debtId: command.id,
       });
-      await this.accounts.incrementBalanceWithTx(
+      await incrementBalanceCheckedWithTx(
+        this.accounts,
         tx,
         command.userId,
         account.id,

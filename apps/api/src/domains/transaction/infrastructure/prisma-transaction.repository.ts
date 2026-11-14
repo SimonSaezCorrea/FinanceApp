@@ -528,7 +528,21 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     incoming: TransferLegPatch,
     balanceDeltas: LegDelta[],
   ): Promise<TransferPair | null> {
-    const existing = await this.prisma.transaction.findMany({
+    return this.prisma.$transaction((tx) =>
+      this.updateTransferPairWithTx(tx, userId, transferGroupId, outgoing, incoming, balanceDeltas),
+    );
+  }
+
+  async updateTransferPairWithTx(
+    tx: unknown,
+    userId: string,
+    transferGroupId: string,
+    outgoing: TransferLegPatch,
+    incoming: TransferLegPatch,
+    balanceDeltas: LegDelta[],
+  ): Promise<TransferPair | null> {
+    const client = tx as PrismaService;
+    const existing = await client.transaction.findMany({
       where: { userId, transferGroupId },
       select: { id: true, type: true },
     });
@@ -536,18 +550,17 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     const inId = existing.find((r) => r.type === TransactionType.INCOME)?.id;
     if (!outId || !inId) return null;
 
-    const rows = await this.prisma.$transaction(async (tx) => {
-      const updated = [];
-      for (const [id, patch] of [
-        [outId, outgoing],
-        [inId, incoming],
-      ] as [string, TransferLegPatch][]) {
-        updated.push(await tx.transaction.update({ where: { id, userId }, data: legData(patch) }));
-      }
-      await this.applyBalanceDeltas(tx, userId, balanceDeltas);
-      return updated;
-    });
-    return this.toPair(transferGroupId, rows);
+    const updated = [];
+    for (const [id, patch] of [
+      [outId, outgoing],
+      [inId, incoming],
+    ] as [string, TransferLegPatch][]) {
+      updated.push(
+        await client.transaction.update({ where: { id, userId }, data: legData(patch) }),
+      );
+    }
+    await this.applyBalanceDeltas(client, userId, balanceDeltas);
+    return this.toPair(transferGroupId, updated);
   }
 
   async removeTransferPair(

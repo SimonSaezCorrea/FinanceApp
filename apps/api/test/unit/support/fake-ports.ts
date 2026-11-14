@@ -57,6 +57,7 @@ export function fakeBankAccountRepo(
     incrementBalanceWithTx: vi.fn(),
     adjustOpeningWithTx: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
+    lockLimitsWithTx: vi.fn(async () => new Map()),
     saveCardRolesWithTx: vi.fn(async () => {}),
     addCardWithTx: vi.fn(async () => "new-card"),
     removeCardWithTx: vi.fn(async () => true),

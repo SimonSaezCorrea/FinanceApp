@@ -46,6 +46,7 @@ describe("Concurrent movements against an account's limits (e2e)", { timeout: 30
 
   afterAll(async () => {
     await prisma.transaction.deleteMany({ where: { user: { email } } });
+    await prisma.creditStatement.deleteMany({ where: { account: { user: { email } } } });
     await prisma.bankAccount.deleteMany({ where: { user: { email } } });
     await prisma.idempotencyRecord.deleteMany({ where: { user: { email } } });
     await prisma.user.deleteMany({ where: { email } });
@@ -90,5 +91,99 @@ describe("Concurrent movements against an account's limits (e2e)", { timeout: 30
     }
     const account = await api().get(`/api/v1/accounts/${accountId}`).set("Cookie", cookies);
     expect(Number(account.body.currentBalance)).toBe(200);
+  });
+
+  it("5 simultaneous transfers of 400 out of a prepaid account holding 1,000: at most 2 pass", async () => {
+    const prepaid = await api().post("/api/v1/accounts").set("Cookie", cookies).send({
+      name: "Prepago traspasos",
+      type: "PREPAID",
+      currency: "CLP",
+      accountNumber: "TP-10",
+      accountAlias: null,
+      initialBalance: "1000",
+    });
+    const checking = await api().post("/api/v1/accounts").set("Cookie", cookies).send({
+      name: "Corriente destino",
+      type: "CHECKING",
+      currency: "CLP",
+      accountNumber: "CC-10",
+      accountAlias: null,
+      initialBalance: "0",
+    });
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        api()
+          .post("/api/v1/transactions/transfers")
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
+          .send({
+            fromBankAccountId: prepaid.body.id,
+            toBankAccountId: checking.body.id,
+            amountOut: "400",
+            amountIn: "400",
+            currencyOut: "CLP",
+            currencyIn: "CLP",
+            occurredAt: new Date().toISOString(),
+          }),
+      ),
+    );
+    expect(results.filter((r) => r.status === 201).length).toBe(2);
+    const account = await api().get(`/api/v1/accounts/${prepaid.body.id}`).set("Cookie", cookies);
+    expect(Number(account.body.currentBalance)).toBe(200);
+  });
+
+  it("5 simultaneous purchases of 400 on an additional card limited to 1,000: at most 2 pass", async () => {
+    const card = (name: string, last4: string, extra: Record<string, unknown> = {}) => ({
+      name,
+      kind: "CREDIT",
+      last4,
+      expiryMonth: 12,
+      expiryYear: 2030,
+      ...extra,
+    });
+    const created = await api()
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "Tarjeta de crédito",
+        type: "CREDIT_CARD",
+        currency: "CLP",
+        creditLimit: "1000000",
+        cards: [
+          card("Titular", "1111"),
+          card("Adicional", "2222", {
+            isAdditional: true,
+            usesAccountPool: false,
+            limits: [{ currency: "CLP", limitAmount: "1000" }],
+          }),
+        ],
+      });
+    expect(created.status).toBe(201);
+    const additional = (created.body.cards as { id: string; last4: string }[]).find(
+      (c) => c.last4 === "2222",
+    )!;
+    const categoryId = await categoryIdFor(prisma, "RESTAURANTS");
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        api()
+          .post("/api/v1/transactions")
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
+          .send({
+            type: "EXPENSE",
+            amount: "400",
+            currency: "CLP",
+            occurredAt: new Date().toISOString(),
+            categoryId,
+            description: "Compra",
+            bankAccountId: created.body.id,
+            cardId: additional.id,
+          }),
+      ),
+    );
+    expect(results.filter((r) => r.status === 201).length).toBe(2);
+    for (const r of results.filter((x) => x.status !== 201)) {
+      expect(r.body.error.code).toBe("CARD_SUBLIMIT_EXCEEDED");
+    }
   });
 });

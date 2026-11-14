@@ -29,6 +29,7 @@ import {
 import { toStatementDto } from "../statement-dto.mapper";
 import { assertSourceCovers } from "../source-funds";
 import { UpdateStatementPaymentCommand } from "./update-statement-payment.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   account: BankAccount;
@@ -229,7 +230,8 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       // lower balance there. Without this the movement and the balance disagree.
       const fromAccountId = context.statement.paidFromAccountId;
       if (fromAccountId) {
-        await this.accountRepo.incrementBalanceWithTx(
+        await incrementBalanceCheckedWithTx(
+          this.accountRepo,
           tx,
           context.account.userId,
           fromAccountId,

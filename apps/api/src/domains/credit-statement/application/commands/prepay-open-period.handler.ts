@@ -39,6 +39,7 @@ import { planForeignSettlement } from "../foreign-settlement";
 import { assertSourceCovers } from "../source-funds";
 import { toStatementDto } from "../statement-dto.mapper";
 import { PrepayOpenPeriodCommand } from "./prepay-open-period.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   account: BankAccount;
@@ -182,7 +183,8 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         assertSourceCovers(context.fromAccount, settlement.charged);
         await this.transactions.createWithTx(tx, settlement.expense);
         await this.transactions.createWithTx(tx, settlement.income);
-        await this.accountRepo.incrementBalanceWithTx(
+        await incrementBalanceCheckedWithTx(
+          this.accountRepo,
           tx,
           command.userId,
           context.fromAccount.id,
@@ -205,7 +207,8 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
           prepaymentStatementId: statement.id,
           prepaymentAccountId: context.account.id,
         });
-        await this.accountRepo.incrementBalanceWithTx(
+        await incrementBalanceCheckedWithTx(
+          this.accountRepo,
           tx,
           command.userId,
           context.fromAccount.id,

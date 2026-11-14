@@ -48,6 +48,7 @@ import {
 } from "../../domain/ports/savings-entry.repository.port";
 import { lockEntryForChange } from "../lock-entry";
 import { UpdateSavingsEntryCommand } from "./update-savings-entry.command";
+import { assertAccountEffectsLocked } from "../../../transaction/application/account-limits";
 
 interface Context {
   entry: SavingsEntry;
@@ -161,6 +162,12 @@ export class UpdateSavingsEntryHandler extends BaseIdempotentCommandHandler<
         if (newAccountSnap.type === "CREDIT_CARD") throw new SavingsEntryFromCreditAccountError();
         if (newAccountSnap.currency !== newCurrency) throw new SavingsEntryCurrencyMismatchError();
 
+        // Security run-3: both accounts locked and the net change checked on them (the old aporte
+        // given back, the new one taken) before anything is written.
+        await assertAccountEffectsLocked(this.accounts, tx, userId, [
+          { accountId: entry.transactionId ? entry.bankAccountId : null, cash: entry.amount },
+          { accountId: newAccountId, cash: subtractMoney("0", newAmount) },
+        ]);
         // Reverse the old movement first — old account, opposite delta.
         if (entry.transactionId && entry.bankAccountId) {
           await this.transactions.deleteWithTx(tx, command.userId, entry.transactionId);

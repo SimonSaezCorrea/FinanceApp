@@ -25,6 +25,8 @@ import {
 } from "../../domain/balance-delta";
 import { TransferNotFoundError } from "../../domain/errors";
 import { TransferPolicy, type TransferAccountContext } from "../../domain/transfer-policy";
+import { assertAccountEffectsLocked, legEffects } from "../account-limits";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
@@ -63,6 +65,7 @@ export class UpdateTransferHandler extends BaseCommandHandler<
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY)
     private readonly statements: CreditStatementRepositoryPort,
+    private readonly prisma: PrismaService,
   ) {
     super(eventBus);
   }
@@ -151,25 +154,31 @@ export class UpdateTransferHandler extends BaseCommandHandler<
     const outStatement = await statementFor(context.from!, existing.outgoing);
     const inStatement = await statementFor(context.to!, existing.incoming);
 
-    const pair = await this.repo.updateTransferPair(
-      userId,
-      command.transferGroupId,
-      {
-        ...shared,
-        amount: amountOut,
-        ...(input.currencyOut !== undefined ? { currency: input.currencyOut } : {}),
-        bankAccountId: fromId,
-        creditStatementId: outStatement,
-      },
-      {
-        ...shared,
-        amount: amountIn,
-        ...(input.currencyIn !== undefined ? { currency: input.currencyIn } : {}),
-        bankAccountId: toId,
-        creditStatementId: inStatement,
-      },
-      deltas,
-    );
+    const pair = await this.prisma.$transaction(async (tx) => {
+      // Security run-3: the accounts this edit touches are locked and the net change checked on
+      // them before writing; `TransferPolicy` above ran on copies read earlier.
+      await assertAccountEffectsLocked(this.accounts, tx, userId, legEffects(deltas));
+      return this.repo.updateTransferPairWithTx(
+        tx,
+        userId,
+        command.transferGroupId,
+        {
+          ...shared,
+          amount: amountOut,
+          ...(input.currencyOut !== undefined ? { currency: input.currencyOut } : {}),
+          bankAccountId: fromId,
+          creditStatementId: outStatement,
+        },
+        {
+          ...shared,
+          amount: amountIn,
+          ...(input.currencyIn !== undefined ? { currency: input.currencyIn } : {}),
+          bankAccountId: toId,
+          creditStatementId: inStatement,
+        },
+        deltas,
+      );
+    });
     if (!pair) throw new TransferNotFoundError();
 
     return { result: toTransferContract(pair), events: [] };

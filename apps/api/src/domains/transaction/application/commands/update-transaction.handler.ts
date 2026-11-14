@@ -17,6 +17,7 @@ import {
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { cashDelta, reverseCashDelta } from "../../domain/balance-delta";
+import { assertAccountEffectsLocked } from "../account-limits";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -83,6 +84,8 @@ interface Context {
     oldAmount: string;
     newAmount: string;
   } | null;
+  /** Re-runs the rules that read sums of other movements, inside the transaction (run-3). */
+  recheckUsage: (() => Promise<string>) | null;
 }
 
 /**
@@ -205,6 +208,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       : false;
 
     let newContribution = "0";
+    let recheckUsage: (() => Promise<string>) | null = null;
     // Hoisted out of the block below: the cash delta needs to know what the
     // movement is charged to on BOTH sides of the edit, not just its pool.
     let newAccount: AccountContext | null = null;
@@ -231,44 +235,51 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         card?.kind === "CREDIT"
           ? await this.cardLimits.findForCardCurrency(userId, effective.cardId!, effective.currency)
           : null;
-      const cardUsage =
-        cardLimit && card
-          ? await cardLimitUsage(
-              { movements: this.repo },
-              {
-                userId,
-                accountId: effective.bankAccountId,
-                accountCurrency: account.currency ?? effective.currency,
-                card,
-                currency: effective.currency,
-                excludeTxId: id,
-              },
-            )
-          : { income: "0", expense: "0" };
-      const foreign = await foreignCreditContext(
-        { lines: this.creditLines, movements: this.repo, statements: this.statements },
-        account,
-        {
-          userId,
-          accountId: effective.bankAccountId,
-          currency: effective.currency,
-          excludeTxId: id,
-        },
-      );
-      newContribution = MovementPolicy.validate(
-        effective,
-        account,
-        card,
-        cardLimit,
-        cardUsage,
-        sameAccount ? oldContribution : "0",
-        // Re-saving a movement already charged to THIS account must check against
-        // the balance as it was BEFORE that charge, or editing it at all would look
-        // like it doesn't fit. Only matters for a prepaid account, the one type the
-        // policy bounds.
-        sameAccount && current.type === "EXPENSE" ? current.amount : "0",
-        foreign,
-      );
+      const checkedAccount = account;
+      const runValidate = async (): Promise<string> => {
+        const cardUsage =
+          cardLimit && card
+            ? await cardLimitUsage(
+                { movements: this.repo },
+                {
+                  userId,
+                  accountId: effective.bankAccountId,
+                  accountCurrency: account.currency ?? effective.currency,
+                  card,
+                  currency: effective.currency,
+                  excludeTxId: id,
+                },
+              )
+            : { income: "0", expense: "0" };
+        const foreign = await foreignCreditContext(
+          { lines: this.creditLines, movements: this.repo, statements: this.statements },
+          account,
+          {
+            userId,
+            accountId: effective.bankAccountId,
+            currency: effective.currency,
+            excludeTxId: id,
+          },
+        );
+        return MovementPolicy.validate(
+          effective,
+          checkedAccount,
+          card,
+          cardLimit,
+          cardUsage,
+          sameAccount ? oldContribution : "0",
+          // Re-saving a movement already charged to THIS account must check against
+          // the balance as it was BEFORE that charge, or editing it at all would look
+          // like it doesn't fit. Only matters for a prepaid account, the one type the
+          // policy bounds.
+          sameAccount && current.type === "EXPENSE" ? current.amount : "0",
+          foreign,
+        );
+      };
+      newContribution = await runValidate();
+      // Sums of other movements (a card's own limit, credit in another currency) are read again
+      // inside the transaction, after the accounts are locked (security run-3).
+      if (cardLimit || effective.currency !== account.currency) recheckUsage = runValidate;
     }
 
     const patch: TransactionPatch = {};
@@ -365,7 +376,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         }
       : null;
 
-    return { current, patch, creditUsedDeltas, balanceDeltas, prepaymentReversal };
+    return { current, patch, creditUsedDeltas, balanceDeltas, prepaymentReversal, recheckUsage };
   }
 
   protected async handle(
@@ -373,17 +384,25 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     context: Context,
   ): Promise<HandleResult<transactions.Transaction>> {
     const reversal = context.prepaymentReversal;
-    if (reversal) {
-      return this.prisma.$transaction(async (tx) => {
-        const row = await this.repo.saveUpdateWithTx(
-          tx,
-          command.userId,
-          command.id,
-          context.patch,
-          context.creditUsedDeltas,
-          context.balanceDeltas,
-        );
-        if (!row) throw new TransactionNotFoundError();
+    return this.prisma.$transaction(async (tx) => {
+      // Security run-3: the accounts this edit moves money on are locked first and the net effect
+      // checked on them; then the sums of other movements are read again. Before, every check
+      // read a copy another write could change at the same moment.
+      await assertAccountEffectsLocked(this.accounts, tx, command.userId, [
+        ...context.balanceDeltas.map((d) => ({ accountId: d.accountId, cash: d.delta })),
+        ...context.creditUsedDeltas.map((d) => ({ accountId: d.accountId, pool: d.delta })),
+      ]);
+      if (context.recheckUsage) await context.recheckUsage();
+      const row = await this.repo.saveUpdateWithTx(
+        tx,
+        command.userId,
+        command.id,
+        context.patch,
+        context.creditUsedDeltas,
+        context.balanceDeltas,
+      );
+      if (!row) throw new TransactionNotFoundError();
+      if (reversal) {
         await reconcilePrepaymentWithTx(
           {
             statements: this.statements,
@@ -393,17 +412,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
           tx,
           { userId: command.userId, ...reversal },
         );
-        return { result: row.toContract(), events: [] };
-      });
-    }
-    const row = await this.repo.saveUpdate(
-      command.userId,
-      command.id,
-      context.patch,
-      context.creditUsedDeltas,
-      context.balanceDeltas,
-    );
-    if (!row) throw new TransactionNotFoundError();
-    return { result: row.toContract(), events: [] };
+      }
+      return { result: row.toContract(), events: [] };
+    });
   }
 }

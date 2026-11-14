@@ -21,10 +21,22 @@ import {
   fakeAccountCreditLimitRepo,
   fakeCreditStatementRepo,
   fakeInstallmentPaymentLookup,
+  fakePrismaTransaction,
   fakeTransactionWriterRepo,
 } from "../../../../support/fake-ports";
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
+  // The handler now writes inside its own transaction (run-3): the tx-scoped write delegates to
+  // whatever `saveUpdate` a test passed, so its assertions keep reading the same mock.
+  const saveUpdate = overrides.saveUpdate;
+  if (saveUpdate && !overrides.saveUpdateWithTx) {
+    overrides = {
+      ...overrides,
+      saveUpdateWithTx: vi.fn((_tx: unknown, ...args: Parameters<typeof saveUpdate>) =>
+        saveUpdate(...args),
+      ),
+    };
+  }
   return {
     list: vi.fn(),
     summary: vi.fn(),
@@ -42,6 +54,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPair: vi.fn(),
     saveTransferPairWithTx: vi.fn(),
     updateTransferPair: vi.fn(),
+    updateTransferPairWithTx: vi.fn(),
     removeTransferPair: vi.fn(async () => true),
     removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,
@@ -127,8 +140,7 @@ function makeHandler(
       isLinkedToPayment: vi.fn(async () => opts.linkedToInstallment ?? false),
     }),
     fakeTransactionWriterRepo(),
-    // Unused unless a fixture carries `prepaymentStatementId` (none in this file do).
-    {} as never,
+    fakePrismaTransaction() as never,
     fakeCategoryLookup(),
     { findOne: vi.fn(async () => null) } as never,
     fakeAccountCreditLimitRepo(),

@@ -130,7 +130,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
 
     const result = await this.prisma.$transaction(async (tx) => {
       const pair = await writeTransferPairWithTx(
-        { repo: this.repo, statements: this.statements },
+        { repo: this.repo, statements: this.statements, accounts: this.accounts },
         tx,
         userId,
         transferGroupId,

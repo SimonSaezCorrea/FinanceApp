@@ -56,7 +56,6 @@ import {
 import { AccountNotFoundError, CardInactiveError } from "../../domain/errors";
 import type {
   AccountContext,
-  CardContext,
   CardLimitContext,
   ForeignCreditContext,
 } from "../../domain/movement-policy";
@@ -68,12 +67,16 @@ import {
 } from "../../domain/ports/transaction.repository.port";
 import { loadAccountContext } from "../account-context.loader";
 import { cardLimitUsage } from "../card-limit-usage";
+import { assertAccountEffectsLocked } from "../account-limits";
 import { foreignCreditContext } from "../credit-pool-usage";
 import { CreateTransactionCommand } from "./create-transaction.command";
 
+/** The card as the card repository returns it (it carries `isPrimary`, which card usage reads). */
+type LoadedCard = Awaited<ReturnType<CardAccountRepositoryPort["findOnAccount"]>>;
+
 interface Context {
   account: AccountContext;
-  card: CardContext | null;
+  card: LoadedCard;
   cardLimit: CardLimitContext | null;
   contribution: string;
   creditStatementId: string | null;
@@ -148,41 +151,11 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       card?.kind === "CREDIT"
         ? await this.cardLimits.findForCardCurrency(command.userId, input.cardId!, input.currency)
         : null;
-    const cardUsage =
-      cardLimit && card
-        ? await cardLimitUsage(
-            { movements: this.repo },
-            {
-              userId: command.userId,
-              accountId: input.bankAccountId,
-              accountCurrency: account.currency ?? input.currency,
-              card,
-              currency: input.currency,
-            },
-          )
-        : { income: "0", expense: "0" };
-    const foreign = await foreignCreditContext(
-      { lines: this.creditLines, movements: this.repo, statements: this.statements },
-      account,
-      { userId: command.userId, accountId: input.bankAccountId, currency: input.currency },
-    );
-
-    const contribution = MovementPolicy.validate(
-      {
-        type: input.type,
-        bankAccountId: input.bankAccountId,
-        cardId: input.cardId,
-        amount: input.amount,
-        currency: input.currency,
-        financeCharge: input.financeCharge,
-      },
+    const { contribution, foreign } = await this.validateMovement(
+      command,
       account,
       card,
       cardLimit,
-      cardUsage,
-      "0",
-      "0",
-      foreign,
     );
     // Contributing movements link live to whichever billing period is
     // currently OPEN for the account — creates one if this is the first
@@ -213,6 +186,55 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     return { account, card, cardLimit, contribution, creditStatementId, fieldValues };
   }
 
+  /** Every movement rule (`MovementPolicy.validate`), with the card's own-limit usage and the
+   * account's credit lines in other currencies read now. Run before the transaction and again
+   * inside it, on the account row locked there (security run-3): those usages are sums of other
+   * movements, which another write could change at the same moment. */
+  private async validateMovement(
+    command: CreateTransactionCommand,
+    account: Context["account"],
+    card: Context["card"],
+    cardLimit: Context["cardLimit"],
+  ) {
+    const { input } = command;
+    const cardUsage =
+      cardLimit && card
+        ? await cardLimitUsage(
+            { movements: this.repo },
+            {
+              userId: command.userId,
+              accountId: input.bankAccountId,
+              accountCurrency: account.currency ?? input.currency,
+              card,
+              currency: input.currency,
+            },
+          )
+        : { income: "0", expense: "0" };
+    const foreign = await foreignCreditContext(
+      { lines: this.creditLines, movements: this.repo, statements: this.statements },
+      account,
+      { userId: command.userId, accountId: input.bankAccountId, currency: input.currency },
+    );
+    const contribution = MovementPolicy.validate(
+      {
+        type: input.type,
+        bankAccountId: input.bankAccountId,
+        cardId: input.cardId,
+        amount: input.amount,
+        currency: input.currency,
+        financeCharge: input.financeCharge,
+      },
+      account,
+      card,
+      cardLimit,
+      cardUsage,
+      "0",
+      "0",
+      foreign,
+    );
+    return { contribution, foreign };
+  }
+
   protected async handleIdempotent(
     command: CreateTransactionCommand,
     context: Context,
@@ -240,24 +262,16 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Run-3 hardening: the account row locked, and its balance and pool rules checked again on
-      // it — `loadContext` validated a read taken before this transaction, so two movements at
-      // once could each pass and together break a prepaid floor, an overdraft line or the pool.
-      const locked = await this.accounts.findByIdForUpdateWithTx(
-        tx,
-        command.userId,
-        input.bankAccountId,
-      );
-      if (!locked) throw new AccountNotFoundError();
-      MovementPolicy.recheckLocked(
-        input,
-        {
-          ...context.account,
-          currentBalance: locked.currentBalance,
-          creditUsed: locked.creditUsed,
-        },
-        { cash: cashBalance, contribution: context.contribution },
-      );
+      // Security run-3: the account row locked first, then every rule checked again — the balance
+      // and the pool on the locked figures, the card's own limit and the other-currency lines on
+      // sums read now. Two movements at once used to each pass a stale check and together go past
+      // a limit; now the second waits for the first and sees it.
+      await assertAccountEffectsLocked(this.accounts, tx, command.userId, [
+        { accountId: input.bankAccountId, cash: cashBalance, pool: context.contribution },
+      ]);
+      if (context.cardLimit || input.currency !== context.account.currency) {
+        await this.validateMovement(command, context.account, context.card, context.cardLimit);
+      }
       const row = await this.repo.saveNewWithTx(
         tx,
         command.userId,

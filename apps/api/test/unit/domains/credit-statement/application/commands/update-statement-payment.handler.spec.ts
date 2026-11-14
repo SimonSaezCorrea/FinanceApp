@@ -100,6 +100,7 @@ function setup(
   const accountRepo = {
     findById: vi.fn(async (_u: string, id: string) => (id === "acc_1" ? account : from)),
     incrementBalanceWithTx: vi.fn(),
+    lockLimitsWithTx: vi.fn(async () => new Map()),
     incrementCreditUsedWithTx: vi.fn(),
     saveWithTx: vi.fn(),
   } as unknown as BankAccountRepositoryPort;

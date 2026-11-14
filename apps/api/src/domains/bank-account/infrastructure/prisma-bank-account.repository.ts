@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 
 import type { accounts } from "@finance/contracts";
 
@@ -25,6 +26,7 @@ import type {
   BankAccountRepositoryPort,
   CreateAccountPlan,
   CreateCardPlan,
+  LockedAccountLimitsRow,
 } from "../domain/ports/bank-account.repository.port";
 
 type Row = {
@@ -137,6 +139,47 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     `;
     if (locked.length === 0) return null;
     return this.findById(userId, id);
+  }
+
+  async lockLimitsWithTx(
+    tx: unknown,
+    userId: string,
+    accountIds: readonly string[],
+  ): Promise<Map<string, LockedAccountLimitsRow>> {
+    const result = new Map<string, LockedAccountLimitsRow>();
+    const ids = [...new Set(accountIds)].sort();
+    if (ids.length === 0) return result;
+    const client = tx as PrismaService;
+    const rows = await client.$queryRaw<
+      {
+        id: string;
+        type: string;
+        currentBalance: unknown;
+        overdraftLimit: unknown;
+        balanceCeiling: unknown;
+        creditLimit: unknown;
+        creditUsed: unknown;
+      }[]
+    >`
+      SELECT "id", "type"::text AS "type", "currentBalance", "overdraftLimit", "balanceCeiling",
+             "creditLimit", "creditUsed"
+      FROM "bank-account"
+      WHERE "userId" = ${userId} AND "id" IN (${Prisma.join(ids)})
+      ORDER BY "id"
+      FOR UPDATE
+    `;
+    const str = (v: unknown): string => String(v);
+    for (const row of rows) {
+      result.set(row.id, {
+        type: row.type,
+        currentBalance: str(row.currentBalance),
+        overdraftLimit: row.overdraftLimit == null ? null : str(row.overdraftLimit),
+        balanceCeiling: row.balanceCeiling == null ? null : str(row.balanceCeiling),
+        creditLimit: str(row.creditLimit),
+        creditUsed: str(row.creditUsed),
+      });
+    }
+    return result;
   }
 
   async listByUser(

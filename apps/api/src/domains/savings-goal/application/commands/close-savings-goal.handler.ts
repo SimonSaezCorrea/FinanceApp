@@ -49,6 +49,7 @@ import {
   type SavingsGoalRepositoryPort,
 } from "../../domain/ports/savings-goal.repository.port";
 import { CloseSavingsGoalCommand } from "./close-savings-goal.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   /** Only resolved for `WITHDRAW_TO_ACCOUNT`. */
@@ -150,7 +151,13 @@ export class CloseSavingsGoalHandler extends BaseIdempotentCommandHandler<
           description: `Retiro de meta «${goalSnap.title}»`,
           savingsGoalId: goal.id,
         });
-        await this.accounts.incrementBalanceWithTx(tx, command.userId, account.id, sums.total);
+        await incrementBalanceCheckedWithTx(
+          this.accounts,
+          tx,
+          command.userId,
+          account.id,
+          sums.total,
+        );
         // savedAmount/pace stay as computed above — this destination leaves
         // the goal's own aportes untouched.
       } else if (input.destination === "FREE_SAVINGS") {

@@ -202,6 +202,15 @@ export interface TransactionRepositoryPort {
     /** Reverts of the old legs plus the new legs' effects, already netted. */
     balanceDeltas: LegDelta[],
   ): Promise<TransferPair | null>;
+  /** Same, inside the caller's transaction (security run-3: the accounts are locked first). */
+  updateTransferPairWithTx(
+    tx: unknown,
+    userId: string,
+    transferGroupId: string,
+    outgoing: TransferLegPatch,
+    incoming: TransferLegPatch,
+    balanceDeltas: LegDelta[],
+  ): Promise<TransferPair | null>;
   removeTransferPair(
     userId: string,
     transferGroupId: string,

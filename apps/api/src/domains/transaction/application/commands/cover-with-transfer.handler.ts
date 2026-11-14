@@ -207,7 +207,7 @@ export class CoverWithTransferHandler extends BaseIdempotentCommandHandler<
           if (changed) throw new CoverSelectionChangedError();
 
           const pair = await writeTransferPairWithTx(
-            { repo: this.repo, statements: this.statements },
+            { repo: this.repo, statements: this.statements, accounts: this.accounts },
             tx,
             userId,
             transferGroupId,

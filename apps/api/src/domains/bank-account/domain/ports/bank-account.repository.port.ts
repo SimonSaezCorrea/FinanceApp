@@ -3,6 +3,16 @@ import type { accounts } from "@finance/contracts";
 import type { CardPlan } from "../../../card-account/domain/card-account.entity";
 import type { BankAccount } from "../bank-account.aggregate";
 
+/** One locked account's limit figures (decimal strings). */
+export interface LockedAccountLimitsRow {
+  type: string;
+  currentBalance: string;
+  overdraftLimit: string | null;
+  balanceCeiling: string | null;
+  creditLimit: string;
+  creditUsed: string;
+}
+
 export const BANK_ACCOUNT_REPOSITORY = Symbol("BANK_ACCOUNT_REPOSITORY");
 
 /** A card the aggregate resolved and the adapter must write, through the
@@ -54,6 +64,14 @@ export interface BankAccountRepositoryPort {
    * loads the aggregate — what serialises two changes of its cards' roles (spec 039): the
    * second waits for the first to commit and sees its result. */
   findByIdForUpdateWithTx(tx: unknown, userId: string, id: string): Promise<BankAccount | null>;
+  /** Locks these accounts of `userId` (`SELECT … FOR UPDATE`, in id order so two writers never
+   * wait on each other crosswise) and returns the figures the balance and pool rules read. An id
+   * that isn't the user's is simply absent from the map. */
+  lockLimitsWithTx(
+    tx: unknown,
+    userId: string,
+    accountIds: readonly string[],
+  ): Promise<Map<string, LockedAccountLimitsRow>>;
   listByUser(userId: string, where: { status?: accounts.AccountStatus }): Promise<BankAccount[]>;
   /** How many accounts of a type the user holds — the cash one is guaranteed to
    * exist, so removing the last of them is refused. */

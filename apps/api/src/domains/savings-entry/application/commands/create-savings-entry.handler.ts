@@ -47,6 +47,7 @@ import {
   type SavingsEntryRepositoryPort,
 } from "../../domain/ports/savings-entry.repository.port";
 import { CreateSavingsEntryCommand } from "./create-savings-entry.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   account: BankAccount;
@@ -166,7 +167,8 @@ export class CreateSavingsEntryHandler extends BaseIdempotentCommandHandler<
         observation: input.note ?? null,
         savingsEntryId: entry.id,
       });
-      await this.accounts.incrementBalanceWithTx(
+      await incrementBalanceCheckedWithTx(
+        this.accounts,
         tx,
         command.userId,
         account.id,

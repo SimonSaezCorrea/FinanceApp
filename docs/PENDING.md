@@ -1131,9 +1131,9 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    el log, sin detener los demás.
 10. **Cuota de adjuntos**: se revisa antes de subir, sin bloqueo; dos subidas simultáneas pueden pasar
     el tope por una. Aceptado (límite de 20 subidas cada 10 minutos por usuario).
-11. **Límites de tarjeta y de cupo en otra moneda** (run-3): el saldo y el cupo compartido se
-    revalidan con la cuenta bloqueada, pero el sub-tope de una tarjeta adicional y las líneas en
-    otra moneda se calculan con sumas leídas antes de la transacción; dos compras simultáneas
-    pueden pasar ese tope. Afecta solo los datos del propio usuario.
-12. **Traspasos, edición de movimientos y planes** no revalidan con la cuenta bloqueada (solo
-    `POST /transactions` lo hace). Mismo alcance: datos del propio usuario.
+11. ~~**Límites con lecturas viejas**~~ — **hecho (2026-11-14)**: toda escritura que mueve saldo o cupo
+    bloquea las cuentas y revisa el efecto neto dentro de su transacción
+    (`assertAccountEffectsLocked`), y crear/editar un movimiento vuelve a calcular ahí el sub-tope de
+    la tarjeta y el cupo en otra moneda. Quedan fuera a propósito: borrar un movimiento (deshacer
+    siempre debe poder hacerse) y la importación de la plantilla (reproduce su propia línea de
+    tiempo).

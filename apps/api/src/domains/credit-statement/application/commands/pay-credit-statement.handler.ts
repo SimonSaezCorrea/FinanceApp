@@ -47,6 +47,7 @@ import { planForeignSettlement } from "../foreign-settlement";
 import { assertSourceCovers } from "../source-funds";
 import { toStatementDto } from "../statement-dto.mapper";
 import { PayCreditStatementCommand } from "./pay-credit-statement.command";
+import { incrementBalanceCheckedWithTx } from "../../../transaction/application/account-limits";
 
 interface Context {
   account: BankAccount;
@@ -239,7 +240,8 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
       if (settlement) {
         await this.transactions.createWithTx(tx, settlement.expense);
         await this.transactions.createWithTx(tx, settlement.income);
-        await this.accountRepo.incrementBalanceWithTx(
+        await incrementBalanceCheckedWithTx(
+          this.accountRepo,
           tx,
           command.userId,
           context.fromAccount.id,
@@ -282,7 +284,8 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         // Paying is when the cash actually leaves: the purchases themselves moved
         // no balance (they were charged to the credit line, see `cashDelta`), so
         // this single EXPENSE is what the source account's balance must follow.
-        await this.accountRepo.incrementBalanceWithTx(
+        await incrementBalanceCheckedWithTx(
+          this.accountRepo,
           tx,
           command.userId,
           context.fromAccount.id,

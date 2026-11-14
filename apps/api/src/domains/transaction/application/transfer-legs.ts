@@ -1,5 +1,7 @@
 import type { CreditStatementRepositoryPort } from "../../credit-statement/domain/ports/credit-statement.repository.port";
+import type { BankAccountRepositoryPort } from "../../bank-account/domain/ports/bank-account.repository.port";
 import { transferLegDelta } from "../domain/balance-delta";
+import { assertAccountEffectsLocked, legEffects } from "./account-limits";
 import type {
   TransactionRepositoryPort,
   TransferPair,
@@ -57,6 +59,8 @@ export async function writeTransferPairWithTx(
   deps: {
     repo: Pick<TransactionRepositoryPort, "saveTransferPairWithTx">;
     statements: Pick<CreditStatementRepositoryPort, "findOrCreateOpenForAccountWithTx">;
+    /** Locks both accounts and checks the transfer against them (security run-3). */
+    accounts: Pick<BankAccountRepositoryPort, "lockLimitsWithTx">;
   },
   tx: unknown,
   userId: string,
@@ -65,6 +69,13 @@ export async function writeTransferPairWithTx(
   from: TransferAccountContext,
   to: TransferAccountContext,
 ): Promise<TransferPair> {
+  const deltas = [
+    transferLegDelta("EXPENSE", input.amountOut, from),
+    transferLegDelta("INCOME", input.amountIn, to),
+  ];
+  // Both accounts locked and the transfer checked on them first (security run-3): the policy ran
+  // on copies another write could change at the same moment.
+  await assertAccountEffectsLocked(deps.accounts, tx, userId, legEffects(deltas));
   const shared = {
     userId,
     occurredAt: input.occurredAt,
@@ -108,9 +119,6 @@ export async function writeTransferPairWithTx(
       bankAccountId: input.toBankAccountId,
       creditStatementId: inStatement,
     },
-    [
-      transferLegDelta("EXPENSE", input.amountOut, from),
-      transferLegDelta("INCOME", input.amountIn, to),
-    ],
+    deltas,
   );
 }
