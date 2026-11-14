@@ -18,6 +18,7 @@ commits:
   - 357ae1e3
   - 9f4d49e0
   - a943f657
+  - bf4bb92f
 ---
 
 ## Seguridad
