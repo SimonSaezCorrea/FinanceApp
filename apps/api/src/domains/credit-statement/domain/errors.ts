@@ -159,3 +159,11 @@ export class CreditPoolCurrencyNotFoundError extends DomainError {
     super("CREDIT_POOL_CURRENCY_NOT_FOUND", 400, "currency");
   }
 }
+
+/** The statement changed between reading it and correcting it — another request settled or
+ * corrected it meanwhile (run-3 hardening). Reload and try again. */
+export class StatementChangedError extends DomainError {
+  constructor() {
+    super("STATEMENT_CHANGED", 409);
+  }
+}

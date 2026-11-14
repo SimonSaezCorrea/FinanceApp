@@ -1125,8 +1125,15 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    production > Deployment branches = solo `main`. El workflow ya rechaza un disparo manual desde
    otra rama, pero una rama con el workflow modificado se saltaría ese chequeo; la regla del entorno
    no.
-9. **Archivos de comprobantes subidos antes de la cola `storage-deletion`** (run-3): los objetos que
-   quedaron huérfanos antes de la migración `20261114120000_storage_deletion` no están en la cola.
-   Barrerlos exige listar el bucket y comparar con la tabla (permiso `ListBucket`); pendiente.
+9. ~~**Archivos huérfanos de antes de la cola**~~ — **hecho (2026-11-14)**: el cron de mantenimiento
+   barre el bucket a diario (`SweepOrphanObjectsCommand`, hasta 20.000 objetos) y encola los que no
+   tienen fila. Necesita el permiso `s3:ListBucket` sobre el bucket; sin él el paso falla y queda en
+   el log, sin detener los demás.
 10. **Cuota de adjuntos**: se revisa antes de subir, sin bloqueo; dos subidas simultáneas pueden pasar
     el tope por una. Aceptado (límite de 20 subidas cada 10 minutos por usuario).
+11. **Límites de tarjeta y de cupo en otra moneda** (run-3): el saldo y el cupo compartido se
+    revalidan con la cuenta bloqueada, pero el sub-tope de una tarjeta adicional y las líneas en
+    otra moneda se calculan con sumas leídas antes de la transacción; dos compras simultáneas
+    pueden pasar ese tope. Afecta solo los datos del propio usuario.
+12. **Traspasos, edición de movimientos y planes** no revalidan con la cuenta bloqueada (solo
+    `POST /transactions` lo hace). Mismo alcance: datos del propio usuario.

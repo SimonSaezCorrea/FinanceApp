@@ -233,4 +233,37 @@ describe("Savings goal close/reopen (e2e)", () => {
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("SAVINGS_GOAL_TARGET_CURRENCY_MISMATCH");
   });
+
+  it("closing a goal while one of its contributions is removed never returns that money twice (run-3)", async () => {
+    for (let round = 0; round < 5; round++) {
+      const goalId = await createGoal("100000");
+      const entry = await contribute(goalId, "100000");
+      const entryId = entry.body.id as string;
+      const balance = async () =>
+        Number(
+          (
+            await request(app.getHttpServer())
+              .get(`/api/v1/accounts/${accountId}`)
+              .set("Cookie", cookies)
+          ).body.currentBalance,
+        );
+      const before = await balance();
+
+      const [closed, removed] = await Promise.all([
+        request(app.getHttpServer())
+          .post(`/api/v1/savings/goals/${goalId}/close`)
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
+          .send({ destination: "WITHDRAW_TO_ACCOUNT", accountId }),
+        request(app.getHttpServer())
+          .delete(`/api/v1/savings/entries/${entryId}`)
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID()),
+      ]);
+
+      // Whichever wins, the 100,000 comes back to the account exactly once.
+      expect([closed.status, removed.status].some((st) => st < 300)).toBe(true);
+      expect(await balance()).toBe(before + 100000);
+    }
+  });
 });

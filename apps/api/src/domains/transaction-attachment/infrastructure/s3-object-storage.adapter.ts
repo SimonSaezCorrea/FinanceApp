@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -50,6 +51,24 @@ export class S3ObjectStorageAdapter implements ObjectStoragePort {
 
   async delete(key: string): Promise<void> {
     await this.s3().send(new DeleteObjectCommand({ Bucket: this.config.bucket, Key: key }));
+  }
+
+  async listPage(
+    cursor: string | null,
+    max: number,
+  ): Promise<{ items: { key: string; lastModified: Date | null }[]; next: string | null }> {
+    const page = await this.s3().send(
+      new ListObjectsV2Command({
+        Bucket: this.config.bucket,
+        MaxKeys: max,
+        ...(cursor ? { ContinuationToken: cursor } : {}),
+      }),
+    );
+    const items: { key: string; lastModified: Date | null }[] = [];
+    for (const object of page.Contents ?? []) {
+      if (object.Key) items.push({ key: object.Key, lastModified: object.LastModified ?? null });
+    }
+    return { items, next: page.IsTruncated ? (page.NextContinuationToken ?? null) : null };
   }
 
   /** Built lazily so an unconfigured deployment never constructs a client. */

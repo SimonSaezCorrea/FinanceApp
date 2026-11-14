@@ -240,6 +240,24 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // Run-3 hardening: the account row locked, and its balance and pool rules checked again on
+      // it — `loadContext` validated a read taken before this transaction, so two movements at
+      // once could each pass and together break a prepaid floor, an overdraft line or the pool.
+      const locked = await this.accounts.findByIdForUpdateWithTx(
+        tx,
+        command.userId,
+        input.bankAccountId,
+      );
+      if (!locked) throw new AccountNotFoundError();
+      MovementPolicy.recheckLocked(
+        input,
+        {
+          ...context.account,
+          currentBalance: locked.currentBalance,
+          creditUsed: locked.creditUsed,
+        },
+        { cash: cashBalance, contribution: context.contribution },
+      );
       const row = await this.repo.saveNewWithTx(
         tx,
         command.userId,

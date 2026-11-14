@@ -19,6 +19,22 @@ export class PrismaStorageDeletionRepository implements StorageDeletionRepositor
     });
   }
 
+  async queuedKeys(keys: string[]): Promise<Set<string>> {
+    if (keys.length === 0) return new Set();
+    const rows = await this.prisma.storageDeletion.findMany({
+      where: { storageKey: { in: keys } },
+      select: { storageKey: true },
+    });
+    return new Set(rows.map((r) => r.storageKey));
+  }
+
+  async enqueue(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+    await this.prisma.storageDeletion.createMany({
+      data: keys.map((storageKey) => ({ storageKey })),
+    });
+  }
+
   async remove(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
     await this.prisma.storageDeletion.deleteMany({ where: { id: { in: ids } } });

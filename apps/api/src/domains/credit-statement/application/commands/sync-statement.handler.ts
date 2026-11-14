@@ -144,9 +144,7 @@ export class SyncStatementHandler extends BaseCommandHandler<
     // left the pool untouched on purpose, so this is where it gets corrected.
     // Spec 028: a period in another currency never touches the pool — its usage
     // follows its settlement movement instead (see `persist`).
-    if (!toMoney(paidDelta).isZero() && !isForeign(context)) {
-      context.account.adjustCreditUsed(toMoney(paidDelta).negated().toString());
-    }
+    // (The pool is corrected in `persist`, from the deltas of the statement read LOCKED there.)
     return {
       result: toStatementDto(context.statement, {
         amount: context.recomputedAmount,
@@ -165,6 +163,20 @@ export class SyncStatementHandler extends BaseCommandHandler<
   /** Statement + its movements + the payment + the account's pool, atomically. */
   protected override async persist(context: Context): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      // Run-3 hardening: the deltas come from the statement read LOCKED here, not from the copy
+      // read before. Two syncs at once used to apply the same correction twice; now the second
+      // sees the first's result and finds nothing left to move.
+      const locked = await this.statementRepo.findByIdForUpdateWithTx(
+        tx,
+        context.account.userId,
+        context.account.id,
+        context.statement.id,
+      );
+      if (!locked) throw new StatementNotFoundError();
+      const deltas = locked.syncAmount(context.recomputedAmount);
+      context.statement = locked;
+      context.paidDelta = deltas.paidDelta;
+      context.carryOverDelta = deltas.carryOverDelta;
       await this.transactions.relinkToStatementWithTx(tx, {
         statementId: context.statement.id,
         accountId: context.account.id,
@@ -226,7 +238,12 @@ export class SyncStatementHandler extends BaseCommandHandler<
       }
       await this.statementRepo.saveWithTx(tx, context.statement);
       if (!toMoney(context.paidDelta).isZero() && !isForeign(context)) {
-        await this.accountRepo.saveWithTx(tx, context.account);
+        await this.accountRepo.incrementCreditUsedWithTx(
+          tx,
+          context.account.userId,
+          context.account.id,
+          toMoney(context.paidDelta).negated().toString(),
+        );
       }
     });
   }

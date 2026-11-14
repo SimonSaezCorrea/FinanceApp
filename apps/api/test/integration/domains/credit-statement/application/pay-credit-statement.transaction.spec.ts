@@ -98,7 +98,7 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
     await prisma.$disconnect();
   });
 
-  it("rolls back the statement + payment transaction if the account save fails", async () => {
+  it("rolls back the statement + payment transaction if the account write fails", async () => {
     const handler = new PayCreditStatementHandler(
       { publish: vi.fn() } as never,
       buildIdempotencyRecordRepo(prisma),
@@ -109,8 +109,10 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
       prisma,
       buildCategoryLookup(prisma),
     );
-    // Force the third save (BankAccount) to fail by breaking its saveWithTx.
-    vi.spyOn(accountRepo, "saveWithTx").mockRejectedValueOnce(new Error("forced failure"));
+    // Force the account write (the pool's relative decrement, run-3) to fail.
+    vi.spyOn(accountRepo, "incrementCreditUsedWithTx").mockRejectedValueOnce(
+      new Error("forced failure"),
+    );
 
     await expect(
       handler.execute(

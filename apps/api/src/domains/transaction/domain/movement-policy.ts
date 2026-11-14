@@ -279,6 +279,32 @@ export class MovementPolicy {
    * `offset` is what this same movement already took off the balance, so an edit
    * is checked against the balance as it was BEFORE its own old charge.
    */
+  /**
+   * The same balance and pool rules, checked again against the account row LOCKED inside the
+   * write's transaction (run-3 hardening). `validate` runs on a read taken before the
+   * transaction, so two movements at once could each pass and together go past a prepaid
+   * account's zero, an overdraft line, a ceiling or the credit pool. `cash` and `contribution`
+   * are what this movement does to the balance and to the pool.
+   */
+  static recheckLocked(
+    m: { type: transactions.TransactionType; amount: string },
+    account: Pick<
+      AccountContext,
+      "type" | "currentBalance" | "overdraftLimit" | "balanceCeiling" | "creditLimit" | "creditUsed"
+    >,
+    effect: { cash: string; contribution: string },
+  ): void {
+    if (effect.cash !== "0") {
+      this.assertWithinPrepaidBalance(m, account);
+      this.assertWithinOverdraft(m, account);
+      this.assertWithinCeiling(m, account);
+    }
+    if (toMoney(effect.contribution).greaterThan(0)) {
+      const projected = toMoney(account.creditUsed).plus(toMoney(effect.contribution));
+      if (projected.greaterThan(toMoney(account.creditLimit))) throw new CardLimitExceededError();
+    }
+  }
+
   static assertWithinOverdraft(
     m: { type: transactions.TransactionType; amount: string },
     account: Pick<AccountContext, "type" | "currentBalance" | "overdraftLimit">,

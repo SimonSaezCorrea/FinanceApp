@@ -222,7 +222,8 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
       // Only what was actually paid comes off the credit pool: paying the minimum
       // frees exactly that, and the shortfall stays used — it is still owed, just
       // in the next period now.
-      if (!foreign) context.account.adjustCreditUsed(toMoney(amount).negated().toString());
+      // (Written below as a relative decrement: saving the account read before the lock would put
+      // back a `creditUsed` another request changed meanwhile — run-3 hardening.)
 
       const result = toStatementDto(statement, {
         amount: periodAmount,
@@ -304,7 +305,14 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         await this.statementRepo.addCarriedOverWithTx(tx, target.id, carryOver);
       }
       await this.statementRepo.saveWithTx(tx, statement);
-      if (!foreign) await this.accountRepo.saveWithTx(tx, context.account);
+      if (!foreign) {
+        await this.accountRepo.incrementCreditUsedWithTx(
+          tx,
+          command.userId,
+          context.account.id,
+          toMoney(amount).negated().toString(),
+        );
+      }
       // FR-014: settle EVERY instalment this period charged, regardless of whether
       // this payment covered the whole period — "settled" is decided by the fact
       // of payment (`paidAt !== null`), never by the resulting status name.

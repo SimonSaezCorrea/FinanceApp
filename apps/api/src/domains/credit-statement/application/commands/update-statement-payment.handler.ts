@@ -18,6 +18,7 @@ import {
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
 import type { CreditStatement } from "../../domain/credit-statement.aggregate";
 import {
+  StatementChangedError,
   StatementNotFoundError,
   StatementPaymentCurrencyAmbiguousError,
 } from "../../domain/errors";
@@ -44,6 +45,8 @@ interface Context {
   newCharged: string | null;
   /** What the period still leaves unpaid AFTER the correction. */
   carryOver: string;
+  /** `paidAmount` as read, before this correction: the locked re-read must still find it. */
+  paidAmountAtRead: string;
 }
 
 export type UpdatedStatementPaymentResult = accounts.CreditStatement;
@@ -111,6 +114,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       oldCharged,
       breakdown,
       paidDelta: "0",
+      paidAmountAtRead: statement.paidAmount,
       newCharged: null,
       carryOver: "0",
     };
@@ -134,6 +138,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
     }
     // The aggregate is what rejects a non-positive figure, one above the period's
     // total, or a period that was never settled in the first place.
+    context.paidAmountAtRead = context.statement.paidAmount;
     const { paidDelta, carryOver } = context.statement.changePaidAmount(command.amount);
     context.paidDelta = paidDelta;
     context.carryOver = carryOver;
@@ -143,10 +148,9 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
         context.fromAccount.snapshot().currency !== context.statement.currency
           ? (command.chargedAmount ?? null)
           : context.statement.paidAmount;
-    } else {
-      // Paying MORE releases more of the pool; correcting downwards puts it back.
-      context.account.adjustCreditUsed(toMoney(paidDelta).negated().toString());
     }
+    // (Paying MORE releases more of the pool; correcting downwards puts it back — written in
+    // `persist` as a relative change.)
     // Paying MORE takes more out of the source: it must still fit that account's rules
     // (prepaid never negative, overdraft floor), checked against the balance as it was before
     // this payment's own old debit. Correcting downwards only gives money back.
@@ -187,6 +191,18 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
     const fmt = (d: ReturnType<typeof toMoney>): string =>
       foreign ? moneyToString(d) : d.toString();
     await this.prisma.$transaction(async (tx) => {
+      // Run-3 hardening: two corrections at once both computed their delta from the same stale
+      // read, so the source balance and the pool moved twice. The statement is re-read locked;
+      // if another request changed its payment meanwhile, this one stops.
+      const locked = await this.statementRepo.findByIdForUpdateWithTx(
+        tx,
+        context.account.userId,
+        context.account.id,
+        context.statement.id,
+      );
+      if (!locked || locked.paidAmount !== context.paidAmountAtRead) {
+        throw new StatementChangedError();
+      }
       const paymentId = context.statement.paidTransactionId;
       if (paymentId) {
         await this.transactions.updateAmountWithTx(
@@ -234,7 +250,14 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       }
       await this.statementRepo.saveWithTx(tx, context.statement);
       // A period in another currency never touched the pool: nothing to save there.
-      if (!foreign) await this.accountRepo.saveWithTx(tx, context.account);
+      if (!foreign) {
+        await this.accountRepo.incrementCreditUsedWithTx(
+          tx,
+          context.account.userId,
+          context.account.id,
+          toMoney(context.paidDelta).negated().toString(),
+        );
+      }
     });
   }
 

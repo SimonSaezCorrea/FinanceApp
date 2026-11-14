@@ -18,6 +18,9 @@ export interface SavingsEntryRepositoryPort {
   /** Scoped by `userId` — a foreign id resolves to `null`, never to another
    * user's row (Principle VIII: an identifier is not authorization). */
   findOne(userId: string, id: string): Promise<SavingsEntry | null>;
+  /** The row read again with `SELECT … FOR UPDATE` inside the caller's transaction, so an edit or
+   * removal works on what is stored now, not on a copy read before a concurrent change. */
+  findOneForUpdateWithTx(tx: unknown, userId: string, id: string): Promise<SavingsEntry | null>;
   create(userId: string, plan: PlannedSavingsEntry): Promise<SavingsEntry>;
   /** Same write, enlisted in the caller's transaction (idempotency's COMPLETED
    * mark must commit with the effect). */

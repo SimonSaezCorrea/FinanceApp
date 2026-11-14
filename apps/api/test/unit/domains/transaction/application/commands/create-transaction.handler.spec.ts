@@ -135,7 +135,11 @@ function makeHandler(
     creditLine?: { limitAmount: string; usedInitial: string } | null;
   } = {},
 ) {
-  const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => opts.account ?? null) });
+  const accounts = fakeBankAccountRepo({
+    findById: vi.fn(async () => opts.account ?? null),
+    // The row locked inside the write's transaction (run-3 hardening): the same account here.
+    findByIdForUpdateWithTx: vi.fn(async () => opts.account ?? null),
+  });
   const cards = fakeCardAccountRepo({ findOnAccount: vi.fn(async () => opts.card ?? null) });
   const statements =
     opts.statements ??

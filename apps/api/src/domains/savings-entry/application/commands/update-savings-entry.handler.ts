@@ -46,6 +46,7 @@ import {
   SAVINGS_ENTRY_REPOSITORY,
   type SavingsEntryRepositoryPort,
 } from "../../domain/ports/savings-entry.repository.port";
+import { lockEntryForChange } from "../lock-entry";
 import { UpdateSavingsEntryCommand } from "./update-savings-entry.command";
 
 interface Context {
@@ -136,10 +137,16 @@ export class UpdateSavingsEntryHandler extends BaseIdempotentCommandHandler<
     complete: CompleteFn<savings.SavingsEntry>,
   ): Promise<HandleResult<savings.SavingsEntry>> {
     const { input, userId } = command;
-    const { entry } = context;
     const touchesMoney = MONEY_FIELDS.some((f) => input[f] !== undefined);
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const entry = await lockEntryForChange(
+        { entries: this.repo, goals: this.goals },
+        tx,
+        userId,
+        context.entry,
+        [input.savingsGoalId],
+      );
       let newTransactionId = entry.transactionId;
 
       if (touchesMoney) {

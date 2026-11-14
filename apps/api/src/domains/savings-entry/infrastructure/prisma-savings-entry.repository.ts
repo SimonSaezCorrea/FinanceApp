@@ -74,6 +74,20 @@ export class PrismaSavingsEntryRepository implements SavingsEntryRepositoryPort 
     return SavingsEntry.fromPersistence(rowToProps(row));
   }
 
+  async findOneForUpdateWithTx(
+    tx: unknown,
+    userId: string,
+    id: string,
+  ): Promise<SavingsEntry | null> {
+    const client = tx as PrismaService;
+    const locked = await client.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "savings-entry" WHERE "id" = ${id} AND "userId" = ${userId} FOR UPDATE
+    `;
+    if (locked.length === 0) return null;
+    const row = await client.savingsEntry.findFirst({ where: { id, userId } });
+    return row ? SavingsEntry.fromPersistence(rowToProps(row)) : null;
+  }
+
   save(aggregate: SavingsEntry): Promise<void> {
     return this.saveWithTx(this.prisma, aggregate);
   }

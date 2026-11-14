@@ -14,6 +14,8 @@ import { useCompression } from "./infra/http/compression";
 import { useCors } from "./infra/http/cors";
 import { useJsonBodyLimit } from "./infra/http/body-limit";
 import { useNoIndex } from "./infra/http/no-index";
+import { useOriginCheck } from "./infra/http/origin-check";
+import { getAllowedOrigins } from "./infra/config/origins.config";
 import { useSecurityHeaders } from "./infra/http/security-headers";
 import { useTrustProxy } from "./infra/http/trust-proxy";
 
@@ -42,6 +44,9 @@ async function bootstrap() {
       json: production,
       colors: !production,
     }),
+    // Only the parsers the API uses (security run-3 hardening): JSON below, and multipart for
+    // attachments through multer. Nest's default also parsed urlencoded bodies, which no route takes.
+    bodyParser: false,
   });
   const config = app.get(ConfigService);
 
@@ -49,6 +54,8 @@ async function bootstrap() {
   useTrustProxy(app, config);
   useNoIndex(app);
   useSecurityHeaders(app);
+  // A browser's write must come from the public site or the app (security run-3 hardening).
+  useOriginCheck(app, getAllowedOrigins(config));
   app.setGlobalPrefix("api/v1");
   useCompression(app);
   app.use(cookieParser());

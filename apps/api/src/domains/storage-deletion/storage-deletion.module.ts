@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 
 import { TransactionAttachmentDataModule } from "../transaction-attachment/transaction-attachment.data.module";
 import { PurgeDeletedObjectsHandler } from "./application/commands/purge-deleted-objects.handler";
+import { SweepOrphanObjectsHandler } from "./application/commands/sweep-orphan-objects.handler";
 import { StorageDeletionDataModule } from "./storage-deletion.data.module";
 
 /**
@@ -12,6 +13,6 @@ import { StorageDeletionDataModule } from "./storage-deletion.data.module";
  */
 @Module({
   imports: [CqrsModule, StorageDeletionDataModule, TransactionAttachmentDataModule],
-  providers: [PurgeDeletedObjectsHandler],
+  providers: [PurgeDeletedObjectsHandler, SweepOrphanObjectsHandler],
 })
 export class StorageDeletionModule {}

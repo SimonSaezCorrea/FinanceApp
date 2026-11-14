@@ -241,7 +241,14 @@ describe("PayCreditStatementHandler", () => {
 
     expect(result.paidFromAccountId).toBe("acc_2");
     expect(statement.state.name).toBe("PAID");
-    expect(creditAccount.creditUsed).toBe("40000.0000");
+    // A relative decrement inside the transaction, never a save of the account read before.
+    expect(accountRepo.incrementCreditUsedWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "acc_1",
+      "-10000",
+    );
+    expect(accountRepo.saveWithTx).not.toHaveBeenCalled();
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -352,7 +359,12 @@ describe("PayCreditStatementHandler", () => {
       "6000.0000",
     );
     // Only the 4000 actually paid comes off the pool; the 6000 is still used.
-    expect(creditAccount.creditUsed).toBe("46000.0000");
+    expect(accountRepo.incrementCreditUsedWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "acc_1",
+      "-4000",
+    );
   });
 
   // --- spec 014: settling a period settles the instalments it charged ---

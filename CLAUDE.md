@@ -2595,8 +2595,27 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     a custom-field filter naming more than 30,000 movements answers `CUSTOM_FIELD_FILTER_TOO_BROAD`
     (400) instead of 500. **CI**: wrangler is pinned with its whole tree in
     `.github/wrangler/package-lock.json` (`npm ci --ignore-scripts`, Dependabot entry), never `npx`;
-    a manual Deploy / landing-rates run works only from `main` (still to do by the owner: the
-    `production` environment's branch rule in GitHub, Settings > Environments).
+    a manual Deploy / landing-rates run works only from `main` (the `production` environment's
+    branch rule already allows only `main`).
+    **Run-3 hardening (second pass, 2026-11-14):** (a) contributions to a savings goal are edited,
+    removed and created with the goal row (and then the entry) locked FOR UPDATE inside the
+    transaction (`savings-entry/application/lock-entry.ts`'s `lockEntryForChange`, port
+    `findOneForUpdateWithTx`), like closing a goal: removing an entry while its goal was being
+    closed "to an account" returned its money twice. (b) `POST /transactions` re-reads the account
+    LOCKED inside its transaction and re-checks the prepaid floor, overdraft, ceiling and credit pool
+    on it (`MovementPolicy.recheckLocked`): parallel movements could each pass a stale check. Card
+    sub-limits and foreign-currency lines are still checked only before the transaction. (c) Paying
+    a statement and syncing it write `creditUsed` as a relative increment, never a save of the
+    account read before; sync recomputes its deltas from the statement read locked; correcting a
+    payment refuses with **`STATEMENT_CHANGED`** (409) when the locked re-read finds another paid
+    amount. (d) The API registers only the JSON body parser (`NestFactory.create(…, { bodyParser:
+false })` + `useJsonBodyLimit`; no urlencoded), and `infra/http/origin-check.ts`'s
+    `useOriginCheck` refuses a write (not GET/HEAD/OPTIONS) whose `Origin` is present and not in
+    `CORS_ORIGIN` (**`ORIGIN_NOT_ALLOWED`**, 403) — `SameSite=Lax` doesn't stop a sibling subdomain;
+    a request without `Origin` (curl, tests) passes. (e) `MaintenanceCron` also sweeps the bucket
+    (`SweepOrphanObjectsCommand`: up to 20,000 objects a day, UUID keys older than 24 h with no
+    attachment row are queued in `storage-deletion`), so files left before the trigger existed get
+    deleted too; it needs `s3:ListBucket` on the bucket.
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

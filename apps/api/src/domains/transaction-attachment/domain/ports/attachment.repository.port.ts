@@ -9,6 +9,9 @@ export interface AttachmentRepositoryPort {
   findOne(userId: string, transactionId: string, attachmentId: string): Promise<Attachment | null>;
   save(props: Omit<AttachmentProps, "createdAt">): Promise<Attachment>;
   remove(userId: string, attachmentId: string): Promise<boolean>;
+  /** Which of these storage keys still have a row. SYSTEM scope, no `userId`: only the orphan
+   * sweep of the maintenance cron calls it (security run-3), and it returns nothing but keys. */
+  existingStorageKeys(keys: string[]): Promise<Set<string>>;
   /** How many files the person keeps, their total size, and how many are on this movement. */
   usage(
     userId: string,

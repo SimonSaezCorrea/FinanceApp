@@ -53,6 +53,15 @@ export class PrismaAttachmentRepository implements AttachmentRepositoryPort {
     return result.count > 0;
   }
 
+  async existingStorageKeys(keys: string[]): Promise<Set<string>> {
+    if (keys.length === 0) return new Set();
+    const rows = await this.prisma.transactionAttachment.findMany({
+      where: { storageKey: { in: keys } },
+      select: { storageKey: true },
+    });
+    return new Set(rows.map((r) => r.storageKey));
+  }
+
   async usage(
     userId: string,
     transactionId: string,

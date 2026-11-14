@@ -200,7 +200,11 @@ describe("CreateSavingsEntryHandler", () => {
       }),
     );
     const repo = fakeSavingsEntryRepo({ createWithTx });
-    const goals = fakeSavingsGoalRepo({ findOne: vi.fn().mockResolvedValue(makeGoal()) });
+    // The goal is read in `loadContext` and again, locked, inside the transaction (run-3).
+    const goals = fakeSavingsGoalRepo({
+      findOne: vi.fn().mockResolvedValue(makeGoal()),
+      findOneForUpdateWithTx: vi.fn().mockResolvedValue(makeGoal()),
+    });
     const records = fakeIdempotencyRecordRepo();
     const handler = new CreateSavingsEntryHandler(
       { publish: vi.fn() } as never,

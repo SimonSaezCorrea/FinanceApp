@@ -124,6 +124,17 @@ export class CreateSavingsEntryHandler extends BaseIdempotentCommandHandler<
     const account = context.account.snapshot();
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // Locked and checked again inside the transaction (run-3): closing the goal locks the same
+      // row, so a contribution can't land in a goal that closed after `loadContext` read it.
+      if (command.input.savingsGoalId) {
+        const goal = await this.goals.findOneForUpdateWithTx(
+          tx,
+          command.userId,
+          command.input.savingsGoalId,
+        );
+        if (!goal) throw new SavingsGoalNotFoundError();
+        if (goal.snapshot().closedAt !== null) throw new SavingsEntryGoalClosedError();
+      }
       MovementPolicy.assertWithinPrepaidBalance({ type: "EXPENSE", amount: input.amount }, account);
       MovementPolicy.assertWithinOverdraft({ type: "EXPENSE", amount: input.amount }, account);
 

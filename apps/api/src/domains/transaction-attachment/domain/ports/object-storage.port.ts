@@ -13,4 +13,9 @@ export interface ObjectStoragePort {
   /** Short-lived signed read URL, so the API never proxies the bytes. */
   getSignedUrl(key: string, expiresInSeconds: number): Promise<string>;
   delete(key: string): Promise<void>;
+  /** One page of the stored objects (key order), for the orphan sweep (security run-3). */
+  listPage(
+    cursor: string | null,
+    max: number,
+  ): Promise<{ items: { key: string; lastModified: Date | null }[]; next: string | null }>;
 }

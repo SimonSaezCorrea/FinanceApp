@@ -40,6 +40,7 @@ describe("Attachments HTTP (e2e)", () => {
     put: async (key, body) => void objects.set(key, body),
     getSignedUrl: async (key) => `https://bucket.test/${key}?sig=x`,
     delete: async (key) => void objects.delete(key),
+    listPage: async () => ({ items: [], next: null }),
   };
 
   const api = () => request(app.getHttpServer());

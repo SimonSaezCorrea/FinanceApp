@@ -18,6 +18,8 @@ function fakeQueue(
     listPending: vi.fn(async () => pending),
     remove: vi.fn(async () => {}),
     recordFailure: vi.fn(async () => {}),
+    queuedKeys: vi.fn(async () => new Set<string>()),
+    enqueue: vi.fn(async () => {}),
   };
 }
 
@@ -27,6 +29,7 @@ function fakeStorage(overrides: Partial<ObjectStoragePort> = {}): ObjectStorageP
     put: vi.fn(),
     getSignedUrl: vi.fn(),
     delete: vi.fn(async () => {}),
+    listPage: vi.fn(async () => ({ items: [], next: null })),
     ...overrides,
   };
 }

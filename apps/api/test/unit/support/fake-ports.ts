@@ -125,6 +125,7 @@ export function fakeSavingsEntryRepo(
     deleteAllForUserWithTx: vi.fn(async () => {}),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
+    findOneForUpdateWithTx: vi.fn(),
     create: vi.fn(),
     createWithTx: vi.fn(),
     save: vi.fn(),

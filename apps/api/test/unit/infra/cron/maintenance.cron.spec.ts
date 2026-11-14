@@ -14,6 +14,7 @@ import { PurgeExpiredTrustedDevicesCommand } from "../../../../src/domains/user/
 import type { CronSwitch } from "../../../../src/infra/config/cron.config";
 import { MaintenanceCron } from "../../../../src/infra/cron/maintenance.cron";
 import { PurgeDeletedObjectsCommand } from "../../../../src/domains/storage-deletion/application/commands/purge-deleted-objects.command";
+import { SweepOrphanObjectsCommand } from "../../../../src/domains/storage-deletion/application/commands/sweep-orphan-objects.command";
 
 const ON = { enabled: true } as CronSwitch;
 const OFF = { enabled: false } as CronSwitch;
@@ -49,6 +50,7 @@ describe("MaintenanceCron", () => {
       PurgeStaleEmailTokensCommand.name,
       PurgeExpiredTrustedDevicesCommand.name,
       PurgeStaleMfaCodesCommand.name,
+      SweepOrphanObjectsCommand.name,
       PurgeDeletedObjectsCommand.name,
       RefreshAuthenticatorCatalogCommand.name,
       ReviewCompromisedPasskeysCommand.name,

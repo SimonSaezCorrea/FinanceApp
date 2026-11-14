@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaStorageDeletionRepository } from "../../../../src/domains/storage-deletion/infrastructure/prisma-storage-deletion.repository";
+import { PrismaAttachmentRepository } from "../../../../src/domains/transaction-attachment/infrastructure/prisma-attachment.repository";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 
 /**
@@ -116,5 +117,17 @@ describe("storage-deletion trigger (integration)", () => {
     expect(pending.some((p) => p.id === row.id)).toBe(true);
     await repo.remove([row.id]);
     expect(await queued(key)).toBe(0);
+  });
+
+  it("the orphan sweep's reads: which keys still have a row, and which are queued", async () => {
+    const attachments = new PrismaAttachmentRepository(prisma);
+    const live = await attachment(await movement());
+    const orphan = randomUUID();
+    keys.push(orphan);
+    expect([...(await attachments.existingStorageKeys([live, orphan]))]).toEqual([live]);
+
+    expect((await repo.queuedKeys([orphan])).size).toBe(0);
+    await repo.enqueue([orphan]);
+    expect([...(await repo.queuedKeys([orphan, live]))]).toEqual([orphan]);
   });
 });

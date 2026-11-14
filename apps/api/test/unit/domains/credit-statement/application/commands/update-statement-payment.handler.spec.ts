@@ -95,6 +95,8 @@ function setup(
     }),
   );
   const statement = CreditStatement.fromPersistence(paidUsd(opts.statement));
+  // What the locked re-read finds: the payment as stored before this correction.
+  const stored = statement.toPersistenceState();
   const accountRepo = {
     findById: vi.fn(async (_u: string, id: string) => (id === "acc_1" ? account : from)),
     incrementBalanceWithTx: vi.fn(),
@@ -103,6 +105,7 @@ function setup(
   } as unknown as BankAccountRepositoryPort;
   const statementRepo = {
     findById: vi.fn(async () => statement),
+    findByIdForUpdateWithTx: vi.fn(async () => CreditStatement.fromPersistence(stored)),
     breakdown: vi.fn(async () => ({ purchases: "50.41", installments: "0", installmentCount: 0 })),
     saveWithTx: vi.fn(),
     findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),
@@ -235,5 +238,16 @@ describe("UpdateStatementPaymentHandler — the source account's own rules", () 
     await update("50.41", "54000");
     const second = setup({ from: { type: "PREPAID", currentBalance: "0" } });
     await second.update("40", "39200");
+  });
+});
+
+describe("UpdateStatementPaymentHandler — concurrent corrections (run-3 hardening)", () => {
+  it("stops when another request changed the payment after it was read", async () => {
+    const { statementRepo, accountRepo, update } = setup({ fromCurrency: "USD" });
+    vi.mocked(statementRepo.findByIdForUpdateWithTx).mockResolvedValueOnce(
+      CreditStatement.fromPersistence(paidUsd({ paidAmount: "1.0000" })),
+    );
+    await expect(update("40")).rejects.toThrow(/STATEMENT_CHANGED/);
+    expect(accountRepo.incrementBalanceWithTx).not.toHaveBeenCalled();
   });
 });

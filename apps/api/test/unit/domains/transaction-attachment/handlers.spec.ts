@@ -42,6 +42,7 @@ function fakeStorage(overrides: Partial<ObjectStoragePort> = {}): ObjectStorageP
     put: vi.fn(async (key: string, body: Uint8Array) => void objects.set(key, body)),
     getSignedUrl: vi.fn(async (key: string) => `https://bucket.test/${key}?sig=x`),
     delete: vi.fn(async (key: string) => void objects.delete(key)),
+    listPage: vi.fn(async () => ({ items: [], next: null })),
     ...overrides,
   };
 }
@@ -53,6 +54,7 @@ function fakeRepo(overrides: Partial<AttachmentRepositoryPort> = {}): Attachment
     save: vi.fn(async () => attachment()),
     remove: vi.fn(async () => true),
     usage: vi.fn(async () => ({ userCount: 0, userBytes: 0, transactionCount: 0 })),
+    existingStorageKeys: vi.fn(async () => new Set<string>()),
     ...overrides,
   };
 }

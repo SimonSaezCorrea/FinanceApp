@@ -51,7 +51,12 @@ function setup(statement: CreditStatement, recomputed: string) {
     creditLimit: "1000000",
     creditUsed: "5000",
   });
-  const statementRepo = fakeCreditStatementRepo({ findById: vi.fn(async () => statement) });
+  // The locked re-read is a fresh copy of what is stored, as the database would give.
+  const stored = statement.toPersistenceState();
+  const statementRepo = fakeCreditStatementRepo({
+    findById: vi.fn(async () => statement),
+    findByIdForUpdateWithTx: vi.fn(async () => CreditStatement.fromPersistence(stored)),
+  });
   const accountRepo = fakeBankAccountRepo({ findById: vi.fn(async () => account) });
   const sums = fakeTransactionSumsRepo({ netForPeriod: vi.fn(async () => recomputed) });
   const writer = fakeTransactionWriterRepo();
@@ -69,7 +74,7 @@ function setup(statement: CreditStatement, recomputed: string) {
 describe("SyncStatementHandler", () => {
   it("recomputes an unpaid period and re-links the movements dated inside it", async () => {
     const statement = CreditStatement.fromPersistence(statementProps());
-    const { handler, account, writer } = setup(statement, "7500");
+    const { handler, accountRepo, writer } = setup(statement, "7500");
 
     const result = await handler.execute(new SyncStatementCommand("u1", "acc_1", "st_1"));
 
@@ -80,7 +85,7 @@ describe("SyncStatementHandler", () => {
     );
     // Nothing was paid, so no payment movement is touched and the pool is left be.
     expect(writer.updateAmountWithTx).not.toHaveBeenCalled();
-    expect(account.creditUsed).toBe("5000.0000");
+    expect(accountRepo.incrementCreditUsedWithTx).not.toHaveBeenCalled();
   });
 
   it("brings a settled period's payment movement and credit pool in line", async () => {
@@ -94,7 +99,7 @@ describe("SyncStatementHandler", () => {
       }),
     );
     // The period turned out to be worth 1200: 200 more than what was paid.
-    const { handler, account, writer } = setup(statement, "1200");
+    const { handler, accountRepo, writer } = setup(statement, "1200");
 
     const result = await handler.execute(new SyncStatementCommand("u1", "acc_1", "st_1"));
 
@@ -108,7 +113,8 @@ describe("SyncStatementHandler", () => {
     );
     // 200 more was really used than the payment released, and editing those
     // movements had deliberately left the pool alone — so it's corrected here.
-    expect(account.creditUsed).toBe("4800.0000");
+    expect(accountRepo.incrementCreditUsedWithTx).toHaveBeenCalledTimes(1);
+    expect(Number(vi.mocked(accountRepo.incrementCreditUsedWithTx).mock.calls[0]![3])).toBe(-200);
   });
 
   it("gives credit back when the period shrank", async () => {
@@ -121,7 +127,7 @@ describe("SyncStatementHandler", () => {
         paidTransactionId: "tx_pay",
       }),
     );
-    const { handler, account, writer } = setup(statement, "800");
+    const { handler, accountRepo, writer } = setup(statement, "800");
 
     await handler.execute(new SyncStatementCommand("u1", "acc_1", "st_1"));
 
@@ -131,7 +137,8 @@ describe("SyncStatementHandler", () => {
       "tx_pay",
       "800.0000",
     );
-    expect(account.creditUsed).toBe("5200.0000");
+    expect(accountRepo.incrementCreditUsedWithTx).toHaveBeenCalledTimes(1);
+    expect(Number(vi.mocked(accountRepo.incrementCreditUsedWithTx).mock.calls[0]![3])).toBe(200);
   });
 
   describe("a statement in another currency (spec 028)", () => {
@@ -173,7 +180,7 @@ describe("SyncStatementHandler", () => {
         "32.0000",
       );
       expect(accountRepo.incrementBalanceWithTx).not.toHaveBeenCalled();
-      expect(account.creditUsed).toBe("5000.0000");
+      expect(accountRepo.incrementCreditUsedWithTx).not.toHaveBeenCalled();
     });
   });
 });

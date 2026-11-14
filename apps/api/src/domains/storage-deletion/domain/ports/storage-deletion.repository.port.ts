@@ -17,6 +17,10 @@ export interface StorageDeletionRepositoryPort {
   listPending(limit: number): Promise<PendingStorageDeletion[]>;
   /** Forgets files whose object was deleted. */
   remove(ids: string[]): Promise<void>;
+  /** Which of these keys are already queued. */
+  queuedKeys(keys: string[]): Promise<Set<string>>;
+  /** Queues these keys (the orphan sweep). */
+  enqueue(keys: string[]): Promise<void>;
   /** Counts one more failed attempt on these, so they are retried on the next run. */
   recordFailure(ids: string[]): Promise<void>;
 }

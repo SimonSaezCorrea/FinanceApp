@@ -29,6 +29,7 @@ import {
   SAVINGS_ENTRY_REPOSITORY,
   type SavingsEntryRepositoryPort,
 } from "../../domain/ports/savings-entry.repository.port";
+import { lockEntryForChange } from "../lock-entry";
 import { RemoveSavingsEntryCommand } from "./remove-savings-entry.command";
 
 interface Context {
@@ -79,10 +80,16 @@ export class RemoveSavingsEntryHandler extends BaseIdempotentCommandHandler<
 
   protected async handleIdempotent(
     command: RemoveSavingsEntryCommand,
-    { entry }: Context,
+    context: Context,
     complete: CompleteFn<void>,
   ): Promise<HandleResult<void>> {
     await this.prisma.$transaction(async (tx) => {
+      const entry = await lockEntryForChange(
+        { entries: this.repo, goals: this.goals },
+        tx,
+        command.userId,
+        context.entry,
+      );
       if (entry.transactionId && entry.bankAccountId) {
         await this.transactions.deleteWithTx(tx, command.userId, entry.transactionId);
         await this.accounts.incrementBalanceWithTx(
