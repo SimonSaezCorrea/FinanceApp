@@ -24,6 +24,13 @@ summary: We tell you when someone asks to change your email, and changing your p
   tries to use an old copy of it, it closes at once.
 - **Recovering your password deletes your passkeys**: if someone had added one to your account, it
   stops working for them. Then register yours again in Profile, Security.
+- **Your browser isn't locked out by someone else's attempts**: if someone tries passwords with
+  your RUT, the browsers where you already signed in can still sign in, and inside your session you
+  can still change your password.
+- **Deleting the account or changing the password asks for your second factor**: when you have
+  two-step verification or a passkey, besides the password.
+- **Receipts**: up to 10 per movement and 1,000 in total, and deleting a movement, an account or
+  your mifik account also deletes their files.
 - **Only mifik's code runs**: your browser runs only the code we publish, so a script slipped into
   a page doesn't run.
 

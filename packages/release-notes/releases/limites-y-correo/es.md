@@ -16,6 +16,7 @@ commits:
   - 7ddae207
   - ca26361e
   - 357ae1e3
+  - 9f4d49e0
 ---
 
 ## Seguridad
@@ -38,6 +39,13 @@ commits:
   intenta usar una copia vieja de ella, se cierra al momento.
 - **Recuperar la contraseña borra tus llaves de acceso**: si alguien hubiera agregado una llave a tu
   cuenta, deja de servirle. Después vuelve a registrar las tuyas en Perfil, Seguridad.
+- **Tu navegador no queda bloqueado por intentos ajenos**: si alguien prueba contraseñas con tu
+  RUT, los navegadores donde ya entraste siguen pudiendo entrar, y dentro de tu sesión puedes
+  cambiar la contraseña igual.
+- **Borrar la cuenta o cambiar la contraseña pide tu segundo factor**: si tienes verificación en
+  dos pasos o una llave de acceso, además de la contraseña.
+- **Comprobantes**: hasta 10 por movimiento y 1.000 en total, y al borrar un movimiento, una cuenta
+  o tu cuenta de mifik también se borran sus archivos.
 - **Solo corre el código de mifik**: tu navegador ejecuta únicamente el código que publicamos, así
   que un script metido en una página no se ejecuta.
 
