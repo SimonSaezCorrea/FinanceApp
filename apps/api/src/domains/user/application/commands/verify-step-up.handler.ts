@@ -105,17 +105,26 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     userId: string,
     check: (tx: unknown, locked: User, now: Date) => Promise<boolean>,
   ): Promise<CodeOutcome> {
-    if (stepUpCodeFailures.isLocked(userId)) return "locked";
-    const outcome = await this.prisma.$transaction(async (tx): Promise<CodeOutcome> => {
-      const locked = await this.users.findByIdForUpdateWithTx(tx, userId);
-      if (!locked) return "unauthorized";
-      const now = new Date();
-      if (!(await check(tx, locked, now))) return "invalid";
-      await this.users.saveWithTx(tx, locked);
-      return "ok";
-    });
-    if (outcome === "invalid" && stepUpCodeFailures.recordFailure(userId)) return "locked";
+    // Reserved before any await, so parallel guesses can't all slip past the lock check.
+    if (!stepUpCodeFailures.reserve(userId)) return "locked";
+    let outcome: CodeOutcome;
+    try {
+      outcome = await this.prisma.$transaction(async (tx): Promise<CodeOutcome> => {
+        const locked = await this.users.findByIdForUpdateWithTx(tx, userId);
+        if (!locked) return "unauthorized";
+        const now = new Date();
+        if (!(await check(tx, locked, now))) return "invalid";
+        await this.users.saveWithTx(tx, locked);
+        return "ok";
+      });
+    } catch (error) {
+      stepUpCodeFailures.release(userId);
+      throw error;
+    }
     if (outcome === "ok") stepUpCodeFailures.reset(userId);
+    else if (outcome === "invalid")
+      return stepUpCodeFailures.isLocked(userId) ? "locked" : "invalid";
+    else stepUpCodeFailures.release(userId);
     return outcome;
   }
 }

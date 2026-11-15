@@ -87,16 +87,23 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
     // Only the session that started the setup, within its time (security run-4): a stolen
     // session can't finish a setup the owner left open, since starting one needs a step-up.
     if (!user.canConfirmMfaEnrollment(command.sessionId)) throw new MfaNotPendingError();
-    if (mfaEnrollmentFailures.isLocked(user.id)) throw new MfaLockedError();
+    // Reserved before any await, so parallel guesses can't all slip past the lock check.
+    if (!mfaEnrollmentFailures.reserve(user.id)) throw new MfaLockedError();
     const code = command.input.code.trim();
-    const valid =
-      pending === "EMAIL"
-        ? await this.prisma.$transaction((tx) =>
-            this.mfaCodes.verifyWithTx(tx, user.id, "ENROLL", code),
-          )
-        : (context.totpStep = totpStepFor(user.mfaSecret, code)) !== null;
+    let valid: boolean;
+    try {
+      valid =
+        pending === "EMAIL"
+          ? await this.prisma.$transaction((tx) =>
+              this.mfaCodes.verifyWithTx(tx, user.id, "ENROLL", code),
+            )
+          : (context.totpStep = totpStepFor(user.mfaSecret, code)) !== null;
+    } catch (error) {
+      mfaEnrollmentFailures.release(user.id);
+      throw error;
+    }
     if (!valid) {
-      if (mfaEnrollmentFailures.recordFailure(user.id)) throw new MfaLockedError();
+      if (mfaEnrollmentFailures.isLocked(user.id)) throw new MfaLockedError();
       throw new InvalidMfaCodeError();
     }
     mfaEnrollmentFailures.reset(user.id);

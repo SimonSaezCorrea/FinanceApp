@@ -45,6 +45,28 @@ export class FailureCounter {
     return entry.lockedUntil > now;
   }
 
+  /**
+   * Takes one attempt BEFORE checking it, counted as a failure until it proves otherwise: false
+   * (nothing counted) while the key is locked. Synchronous, so concurrent requests can't all pass
+   * the lock check before the first failure is counted — at most `threshold` attempts are ever in
+   * flight. Settle each with `reset` (it was right), `release` (it wasn't an attempt after all)
+   * or nothing (it was wrong: it stays counted).
+   */
+  reserve(key: string, now = Date.now()): boolean {
+    if (this.isLocked(key, now)) return false;
+    this.recordFailure(key, now);
+    return true;
+  }
+
+  /** Gives back one reserved attempt that turned out not to be a guess (an error, no account). */
+  release(key: string): void {
+    const entry = this.entries.get(key);
+    if (!entry) return;
+    entry.failures = Math.max(0, entry.failures - 1);
+    if (entry.failures < this.threshold) entry.lockedUntil = 0;
+    if (entry.failures === 0) this.entries.delete(key);
+  }
+
   reset(key: string): void {
     this.entries.delete(key);
   }
