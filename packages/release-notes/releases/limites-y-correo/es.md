@@ -20,6 +20,7 @@ commits:
   - a943f657
   - bf4bb92f
   - c72bb3da
+  - 25337007
 ---
 
 ## Seguridad
@@ -56,3 +57,5 @@ commits:
 
 - **Menos errores de conexión pasajeros**: si el servidor no logra ubicar la API por un instante,
   ahora igual responde en vez de devolverte un error después de esperar.
+- **Sin bucle al volver a entrar**: si abrías mifik con una sesión de hace más de 30 días, la app y
+  el sitio se mandaban de uno a otro sin parar. Ahora el sitio te muestra el inicio de sesión.

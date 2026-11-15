@@ -38,3 +38,5 @@ summary: We tell you when someone asks to change your email, and changing your p
 
 - **Fewer passing connection errors**: if the server briefly can't find the API, it now still
   answers instead of giving you an error after a wait.
+- **No loop when signing back in**: if you opened mifik with a session from over 30 days ago, the
+  app and the site kept sending you to each other. Now the site shows you the sign-in.
