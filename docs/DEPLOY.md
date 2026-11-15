@@ -115,7 +115,12 @@ Nombre: `fik-api-ec2`.
    URL `https://token.actions.githubusercontent.com`, audience `sts.amazonaws.com`.
 2. **IAM → Roles → Create role → Custom trust policy:** pegar
    `deploy/aws/github-deploy-trust-policy.json` reemplazando `ACCOUNT_ID` (12 dígitos, arriba a la
-   derecha en la consola). Solo el environment `production` de este repo puede asumirlo.
+   derecha en la consola). Solo el environment `production` de este repo, corriendo desde `main`,
+   puede asumirlo. Para eso el `sub` del token OIDC incluye el `ref` (2026-11-15):
+   `gh api -X PUT repos/SimonSaezCorrea/FinanceApp/actions/oidc/customization/sub -F use_default=false -f 'include_claim_keys[]=repo' -f 'include_claim_keys[]=context' -f 'include_claim_keys[]=ref'`
+   → `sub` = `repo:SimonSaezCorrea/FinanceApp:environment:production:ref:refs/heads/main`. Si un
+   deploy falla con `Not authorized to perform sts:AssumeRoleWithWebIdentity`, revisar que ambos
+   lados coincidan; volver atrás = `use_default=true` y la política con el `sub` sin `:ref:…`.
 3. Agregar una política en línea con `deploy/aws/github-deploy-permissions-policy.json`,
    reemplazando `ACCOUNT_ID` e `INSTANCE_ID` (este último se conoce en el paso 6; se puede volver a
    editar). Permite subir solo la imagen `fik-api` y enviar el comando de despliegue solo a ese

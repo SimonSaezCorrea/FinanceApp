@@ -1109,7 +1109,8 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    `saveUpdateWithTx` y `removeWithTx` reciben `userId` y escriben con `where: { id, userId }`; una
    fila ajena lanza (P2025) y revierte la transacción (`owner-scoped-writes.integration.spec.ts`).
 4. **Documento SSM `fik-deploy`** — creado en AWS (2026-11-12), el rol `fik-github-deploy` puede
-   usarlo y la variable `AWS_DEPLOY_DOCUMENT=fik-deploy` está puesta. **Falta**: después del primer
+   usarlo y la variable `AWS_DEPLOY_DOCUMENT=fik-deploy` está puesta. El `deploy.yml` de `main` aún
+   usa `AWS-RunShellScript` (el cambio está en `dev`). **Falta**, en el lanzamiento: después del primer
    despliegue del API que funcione con él, quitar `AWS-RunShellScript` de la política inline
    `fik-deploy` del rol (`docs/DEPLOY.md` §9 paso 4.4).
 5. ~~**`deploy/` en el servidor**~~ — **sincronizado (2026-11-12)**: `deploy.sh`, `docker-compose.yml`
@@ -1121,10 +1122,8 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
 7. **Límite por IP en memoria**: se pierde al reiniciar y, en el minuto de deploy con dos contenedores,
    un cliente puede llegar al doble. Aceptado con un solo servidor. Lo mismo vale para los contadores
    en memoria nuevos de run-3 (`loginDeviceFailures`, `sessionPasswordFailures`).
-8. **Rama del entorno `production` en GitHub** (run-3, por hacer a mano): Settings > Environments >
-   production > Deployment branches = solo `main`. El workflow ya rechaza un disparo manual desde
-   otra rama, pero una rama con el workflow modificado se saltaría ese chequeo; la regla del entorno
-   no.
+8. ~~**Rama del entorno `production` en GitHub**~~ — **hecho** (verificado 2026-11-15): el entorno
+   `production` solo acepta despliegues desde `main`.
 9. ~~**Archivos huérfanos de antes de la cola**~~ — **hecho (2026-11-14)**: el cron de mantenimiento
    barre el bucket a diario (`SweepOrphanObjectsCommand`, hasta 20.000 objetos) y encola los que no
    tienen fila. Necesita el permiso `s3:ListBucket` sobre el bucket; sin él el paso falla y queda en
@@ -1142,16 +1141,16 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
 
 Lo arreglado está en CLAUDE.md (bullet "Security run-4 fixes"). Queda, todo de infraestructura:
 
-1. **Secretos de deploy en el entorno `production`**: `CLOUDFLARE_API_TOKEN` y `SENTRY_AUTH_TOKEN`
-   son secretos del repositorio. Hoy nadie más tiene escritura, pero conviene crearlos en Settings >
-   Environments > production > Environment secrets, borrar los del repositorio y rotarlos; el paso 2
-   de `docs/DEPLOY.md` debe decir eso.
-2. **Subida a Cloudflare en un job aparte**: hoy el mismo job instala dependencias, construye y sube
-   con el token. Separarlo (el build sube `dist/` como artefacto, otro job solo lo publica) deja el
-   código de las dependencias lejos del token.
-3. **Condición de `ref` en el rol de AWS** (`fik-github-deploy`): un segundo candado además de la
-   regla de ramas del entorno (`token.actions.githubusercontent.com:sub` ya exige
-   `environment:production`).
+1. ~~**Secretos de deploy en el entorno `production`**~~ — **descartado (2026-11-15)**: siguen como
+   secretos del repositorio. Nadie más tiene escritura y el entorno ya exige `main`; se revisa si
+   entra otro colaborador.
+2. **Subida a Cloudflare en un job aparte** (se hace en el lanzamiento a producción): hoy el mismo
+   job instala dependencias, construye y sube con el token. Separarlo (el build sube `dist/` como
+   artefacto, otro job solo lo publica) deja el código de las dependencias lejos del token.
+3. ~~**Condición de `ref` en el rol de AWS**~~ — **hecho (2026-11-15)**: el `sub` del token OIDC
+   del repo incluye el `ref` y `fik-github-deploy` solo acepta
+   `…:environment:production:ref:refs/heads/main` (`docs/DEPLOY.md` §5b). Se confirma en el primer
+   deploy del API.
 4. **`bcryptjs` en el event loop**: login, registro, recuperación y códigos de recuperación dependen
    de los límites por IP; un bcrypt nativo o en un worker bajaría el costo por intento.
 5. **Barrido de huérfanos y bucket compartido**: el barrido trata como nuestro todo objeto cuya
