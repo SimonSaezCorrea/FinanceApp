@@ -1108,11 +1108,10 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    `incrementCreditUsedWithTx`, `adjustOpeningWithTx`, `updateAmountWithTx`, `deleteWithTx`,
    `saveUpdateWithTx` y `removeWithTx` reciben `userId` y escriben con `where: { id, userId }`; una
    fila ajena lanza (P2025) y revierte la transacción (`owner-scoped-writes.integration.spec.ts`).
-4. **Documento SSM `fik-deploy`** — creado en AWS (2026-11-12), el rol `fik-github-deploy` puede
-   usarlo y la variable `AWS_DEPLOY_DOCUMENT=fik-deploy` está puesta. El `deploy.yml` de `main` aún
-   usa `AWS-RunShellScript` (el cambio está en `dev`). **Falta**, en el lanzamiento: después del primer
-   despliegue del API que funcione con él, quitar `AWS-RunShellScript` de la política inline
-   `fik-deploy` del rol (`docs/DEPLOY.md` §9 paso 4.4).
+4. ~~**Documento SSM `fik-deploy`**~~ — **hecho (2026-11-15)**: el deploy de v1.4 corrió con él y
+   después se quitó `AWS-RunShellScript` de la política inline `fik-deploy` del rol; quedó igual a
+   `deploy/aws/github-deploy-permissions-policy.json`. GitHub solo puede correr `deploy.sh <tag>`
+   en el servidor.
 5. ~~**`deploy/` en el servidor**~~ — **sincronizado (2026-11-12)**: `deploy.sh`, `docker-compose.yml`
    y `Caddyfile` de `/opt/fik` iguales al repo; Caddy pasó de 2.8 a 2.11.9 y Vector quedó fijado por
    digest. Sigue siendo a mano: cada cambio en `deploy/` hay que copiarlo (sección 8 de DEPLOY.md).
@@ -1149,8 +1148,8 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-4 fixes"). Queda, todo de 
    artefacto, otro job solo lo publica) deja el código de las dependencias lejos del token.
 3. ~~**Condición de `ref` en el rol de AWS**~~ — **hecho (2026-11-15)**: el `sub` del token OIDC
    del repo incluye el `ref` y `fik-github-deploy` solo acepta
-   `…:environment:production:ref:refs/heads/main` (`docs/DEPLOY.md` §5b). Se confirma en el primer
-   deploy del API.
+   `…:environment:production:ref:refs/heads/main` (`docs/DEPLOY.md` §5b). Confirmado
+   en el deploy de v1.4.
 4. **`bcryptjs` en el event loop**: login, registro, recuperación y códigos de recuperación dependen
    de los límites por IP; un bcrypt nativo o en un worker bajaría el costo por intento.
 5. **Barrido de huérfanos y bucket compartido**: el barrido trata como nuestro todo objeto cuya
