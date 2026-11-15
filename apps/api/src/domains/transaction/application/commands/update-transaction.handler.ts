@@ -323,7 +323,10 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
               new Date(input.occurredAt ?? current.snapshot().occurredAt),
             )
           ).id;
-        } else if (oldContribution !== "0") {
+        } else if (oldContribution !== "0" || current.creditStatementId) {
+          // Moving to another account never keeps a link to the old account's period, even one
+          // that contributed nothing (security run-4 hardening: a stale link to a statement of
+          // another account).
           patch.creditStatementId = null;
         }
       }

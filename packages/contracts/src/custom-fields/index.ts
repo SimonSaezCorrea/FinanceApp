@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { cardKind } from "../accounts/index";
-import { customFieldValueSchema } from "../common/custom-field-value";
+import { customFieldValueSchema, customFieldValuesMap } from "../common/custom-field-value";
 import { moneyString } from "../common/money";
 import { rowId } from "../common/row-id";
 import { transactionFiltersSchema } from "../transactions/index";
@@ -169,7 +169,7 @@ export type RevertAssignmentResponse = z.infer<typeof revertAssignmentResponseSc
 
 /** `PATCH /transactions/:id/custom-fields`: `null` takes a value away. */
 export const setTransactionValuesRequestSchema = z.object({
-  values: z.record(rowId, customFieldValueSchema.nullable()),
+  values: customFieldValuesMap(customFieldValueSchema.nullable()),
 });
 export type SetTransactionValuesRequest = z.infer<typeof setTransactionValuesRequestSchema>;
 export const setTransactionValuesResponseSchema = z.object({

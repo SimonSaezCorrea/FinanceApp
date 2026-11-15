@@ -13,31 +13,41 @@ function build(): PasskeyChallengeToken {
 describe("PasskeyChallengeToken", () => {
   it("round-trips a challenge with a resolved userId", () => {
     const token = build();
-    const issued = token.issue({ challenge: "abc123", userId: "u1", discoverable: false });
-    const verified = token.verify(issued);
+    const issued = token.issue({ challenge: "abc123", userId: "u1", discoverable: false }, "login");
+    const verified = token.verify(issued, "login");
     expect(verified).toEqual({ challenge: "abc123", userId: "u1", discoverable: false });
   });
 
   it("round-trips a challenge with userId: null (email had no passkeys)", () => {
     const token = build();
-    const issued = token.issue({ challenge: "xyz", userId: null, discoverable: true });
-    expect(token.verify(issued)).toEqual({ challenge: "xyz", userId: null, discoverable: true });
+    const issued = token.issue({ challenge: "xyz", userId: null, discoverable: true }, "login");
+    expect(token.verify(issued, "login")).toEqual({
+      challenge: "xyz",
+      userId: null,
+      discoverable: true,
+    });
   });
 
   it("is single-use: the same challenge cookie is refused the second time", () => {
     const token = build();
-    const issued = token.issue({ challenge: "once", userId: "u1", discoverable: false });
-    expect(token.verify(issued).challenge).toBe("once");
-    expect(() => token.verify(issued)).toThrow(PasskeyChallengeInvalidError);
+    const issued = token.issue({ challenge: "once", userId: "u1", discoverable: false }, "login");
+    expect(token.verify(issued, "login").challenge).toBe("once");
+    expect(() => token.verify(issued, "login")).toThrow(PasskeyChallengeInvalidError);
   });
 
   it("throws PasskeyChallengeInvalidError on a malformed token", () => {
     const token = build();
-    expect(() => token.verify("not-a-real-jwt")).toThrow(PasskeyChallengeInvalidError);
+    expect(() => token.verify("not-a-real-jwt", "login")).toThrow(PasskeyChallengeInvalidError);
   });
 
   it("throws PasskeyChallengeInvalidError on an empty token", () => {
     const token = build();
-    expect(() => token.verify("")).toThrow(PasskeyChallengeInvalidError);
+    expect(() => token.verify("", "login")).toThrow(PasskeyChallengeInvalidError);
+  });
+
+  it("refuses a challenge presented to another ceremony (security run-4)", () => {
+    const token = build();
+    const issued = token.issue({ challenge: "c", userId: "u1", discoverable: false }, "login");
+    expect(() => token.verify(issued, "register")).toThrow(PasskeyChallengeInvalidError);
   });
 });

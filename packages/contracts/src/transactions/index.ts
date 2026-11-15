@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { customFieldValueSchema } from "../common/custom-field-value";
+import { customFieldValueSchema, customFieldValuesMap } from "../common/custom-field-value";
 import { moneyString } from "../common/money";
 import { rowId } from "../common/row-id";
 
@@ -252,7 +252,7 @@ const transactionFieldsSchema = z.object({
 
 /** Custom field values to write with a new movement (specs/036), by field id. A
  * field left out gets its default when it applies; `null` = no value on purpose. */
-export const customFieldValuesInput = z.record(rowId, customFieldValueSchema.nullable());
+export const customFieldValuesInput = customFieldValuesMap(customFieldValueSchema.nullable());
 
 export const createTransactionSchema = transactionFieldsSchema
   .extend({ customFields: customFieldValuesInput.optional() })

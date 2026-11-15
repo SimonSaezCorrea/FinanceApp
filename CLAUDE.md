@@ -2626,6 +2626,37 @@ false })` + `useJsonBodyLimit`; no urlencoded), and `infra/http/origin-check.ts`
     (`SweepOrphanObjectsCommand`: up to 20,000 objects a day, UUID keys older than 24 h with no
     attachment row are queued in `storage-deletion`), so files left before the trigger existed get
     deleted too; it needs `s3:ListBucket` on the bucket.
+  - **Security run-4 fixes** (2026-11-15, `.security/run-4`, not yet published): **the template
+    import caps the instalments its plans expand into** — `imports.TEMPLATE_IMPORT_MAX_INSTALMENTS`
+    (20,000, summed over `plans[].installmentCount` by `templateInstalmentCount`, a refine on
+    `templateImportRequestSchema`; web `import.template.tooManyInstalments`): 5,000 plans × 600
+    instalments passed the row cap and stalled the API ~7 s / +1 GB in the planner. **Confirming a
+    second-factor setup** (`POST /auth/me/mfa/confirm`) is bound to the session that started it,
+    within `MFA_ENROLLMENT_TTL_MINUTES` (30): `User.mfaPendingSessionId`/`mfaPendingAt` (migration
+    `20261115043505_mfa_pending_session`, expand only; a setup without them answers
+    `MFA_NOT_PENDING`, "start it again"), wrong codes count on the in-memory
+    `mfaEnrollmentFailures` (5 → `MFA_LOCKED` 15 min) and the route carries the per-user
+    `mfaEnrollment` request limit (10 / 10 min). Hardening in the same pass: the 5 MB JSON limit
+    applies only under `LARGE_BODY_PATHS` (`/import`, `/custom-fields`,
+    `/transactions/transfers/cover`), every other route takes 256 KB (`infra/http/body-limit.ts`);
+    `auth/refresh`, `auth/logout` and `auth/session` carry the per-IP `sessionCheck` limit (300 / 10
+    min); `disable-mfa` checks the step-up before the password; login compares against a dummy
+    bcrypt hash when the RUT is unknown or locked (no timing oracle); step-up codes (TOTP/email)
+    count on their own in-memory `stepUpCodeFailures`, never login's MFA counter; re-entering the
+    password in a session runs one check per account at a time (`per-key-queue.ts`'s `serially`);
+    passkey challenges name their ceremony (`login`/`register`/`step-up`, a mismatch is
+    `PASSKEY_CHALLENGE_INVALID`); `customFields` input maps take at most 20 keys
+    (`customFieldValuesMap`); attachment quotas are re-counted and saved in one transaction under a
+    per-user advisory lock (`AttachmentRepositoryPort.saveWithinQuota`); the storage purge filters
+    exhausted rows in the query and the orphan sweep resumes after the last key it reached
+    (`listPage`'s `startAfter`); the custom-field summary refuses past 30,000 ids
+    (`CUSTOM_FIELD_FILTER_TOO_BROAD`); `updateRoleWithTx` matches the card's owner; moving a
+    movement to another account drops a stale `creditStatementId`; `StatementGenerationCron` logs
+    instead of throwing; migration `20261115050000_normalize_extra_currencies` brings stored
+    `extraCurrencies` to ≤ 10 unique upper-case codes. Still open (owner/infra, `docs/PENDING.md`):
+    `CLOUDFLARE_API_TOKEN`/`SENTRY_AUTH_TOKEN` are repository secrets (move them to the `production`
+    environment), the Cloudflare upload shares its job with the build, the AWS deploy role has no
+    `ref` condition, and `bcryptjs` runs on the event loop.
   - **Account and security emails** (specs/032, 2026-10-11): two minimal table-domains composed by
     `user` (no `presentation/`) plus a cross-cutting module. **`user-email`** = the account's
     address registry: one `PRIMARY` (partial unique index), at most one `PENDING` (a requested

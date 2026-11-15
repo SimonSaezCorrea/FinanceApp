@@ -9,6 +9,10 @@ import {
 } from "./errors";
 
 /** The second-factor method as the database names it (specs/040). */
+
+/** How long a started second-factor setup can be confirmed (security run-4). */
+export const MFA_ENROLLMENT_TTL_MINUTES = 30;
+
 export type MfaMethod = "TOTP" | "EMAIL";
 
 export type UserStatus = "ACTIVE" | "DISABLED";
@@ -55,6 +59,9 @@ export interface UserProps {
   mfaMethod?: MfaMethod | null;
   /** The method being set up — activation or change — until its first code is confirmed. */
   mfaPendingMethod?: MfaMethod | null;
+  /** The session that started the pending setup and when (security run-4). */
+  mfaPendingSessionId?: string | null;
+  mfaPendingAt?: Date | null;
   /** Wrong-password counter for login, same shape as the MFA one (see `recordLoginFailure`). */
   loginFailedAttempts: number;
   loginLockedUntil: Date | null;
@@ -315,7 +322,12 @@ export class User {
    * account ignores the secret, and a TOTP account can't "change" to TOTP). Any earlier unconfirmed
    * setup is simply replaced.
    */
-  startMfaEnrollment(method: MfaMethod, secret: string | null = null): void {
+  startMfaEnrollment(
+    method: MfaMethod,
+    secret: string | null = null,
+    sessionId: string | null = null,
+    now: Date = new Date(),
+  ): void {
     if (this.props.mfaEnabled && this.mfaMethodOrDefault() === method) {
       throw new MfaSameMethodError();
     }
@@ -324,6 +336,25 @@ export class User {
       this.props.mfaSecret = secret;
     }
     this.props.mfaPendingMethod = method;
+    this.props.mfaPendingSessionId = sessionId;
+    this.props.mfaPendingAt = now;
+  }
+
+  /** Whether `sessionId` may confirm the pending setup at `now` (security run-4): only the session
+   * that started it, within MFA_ENROLLMENT_TTL_MINUTES. A setup started before these columns
+   * existed has neither and must be started again. */
+  canConfirmMfaEnrollment(sessionId: string | null | undefined, now: Date = new Date()): boolean {
+    const startedAt = this.props.mfaPendingAt ?? null;
+    if (!sessionId || !startedAt || this.props.mfaPendingSessionId !== sessionId) return false;
+    return now.getTime() - startedAt.getTime() <= MFA_ENROLLMENT_TTL_MINUTES * 60 * 1000;
+  }
+
+  get mfaPendingSessionId(): string | null {
+    return this.props.mfaPendingSessionId ?? null;
+  }
+
+  get mfaPendingAt(): Date | null {
+    return this.props.mfaPendingAt ?? null;
   }
 
   /**
@@ -344,6 +375,8 @@ export class User {
     this.props.mfaEnabled = true;
     this.props.mfaMethod = pending;
     this.props.mfaPendingMethod = null;
+    this.props.mfaPendingSessionId = null;
+    this.props.mfaPendingAt = null;
     if (pending === "EMAIL") this.props.mfaSecret = null;
     return outcome;
   }
@@ -364,6 +397,8 @@ export class User {
     this.props.mfaEnabled = false;
     this.props.mfaMethod = null;
     this.props.mfaPendingMethod = null;
+    this.props.mfaPendingSessionId = null;
+    this.props.mfaPendingAt = null;
     this.props.mfaSecret = null;
     this.props.mfaFailedAttempts = 0;
     this.props.mfaLockedUntil = null;
@@ -466,6 +501,8 @@ export class User {
     this.props.mfaEnabled = false;
     this.props.mfaMethod = null;
     this.props.mfaPendingMethod = null;
+    this.props.mfaPendingSessionId = null;
+    this.props.mfaPendingAt = null;
     this.props.mfaSecret = null;
     this.props.mfaFailedAttempts = 0;
     this.props.mfaLockedUntil = null;

@@ -244,7 +244,7 @@ export class AuthController {
     const challenge = (options as { challenge: string }).challenge;
     res.cookie(
       PASSKEY_CHALLENGE_COOKIE,
-      this.passkeyChallenge.issue({ challenge, userId, discoverable }),
+      this.passkeyChallenge.issue({ challenge, userId, discoverable }, "login"),
       { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
     );
     return { options };
@@ -263,7 +263,10 @@ export class AuthController {
     const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
       PASSKEY_CHALLENGE_COOKIE
     ];
-    const { challenge, userId, discoverable } = this.passkeyChallenge.verify(cookieToken ?? "");
+    const { challenge, userId, discoverable } = this.passkeyChallenge.verify(
+      cookieToken ?? "",
+      "login",
+    );
     const { tokens, user, loginDeviceToken } = await this.commandBus.execute<
       VerifyPasskeyLoginCommand,
       AuthResult
@@ -283,6 +286,8 @@ export class AuthController {
   }
 
   @Post("refresh")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("sessionCheck")
   @HttpCode(204)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     const token = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
@@ -293,6 +298,8 @@ export class AuthController {
   }
 
   @Post("logout")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("sessionCheck")
   @HttpCode(204)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     const token = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
@@ -302,8 +309,10 @@ export class AuthController {
   }
 
   /** Whether this browser holds a live session, as a 200 `{ signedIn }` instead of a 401 (spec
-   * 031): the public site asks on every page to offer "Ir a la app". No guard on purpose. */
+   * 031): the public site asks on every page to offer "Ir a la app". No auth guard on purpose. */
   @Get("session")
+  @UseGuards(RateLimitGuard)
+  @RateLimit("sessionCheck")
   session(@Req() req: Request): Promise<auth.SessionStatus> {
     const cookies = req.cookies as Record<string, string> | undefined;
     return this.queryBus.execute(
@@ -361,13 +370,14 @@ export class AuthController {
   }
 
   @Post("me/mfa/confirm")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimit("mfaEnrollment")
   confirmMfaEnrollment(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.confirmMfaEnrollmentRequestSchema))
     body: auth.ConfirmMfaEnrollmentRequest,
   ): Promise<auth.ConfirmMfaEnrollmentResponse> {
-    return this.commandBus.execute(new ConfirmMfaEnrollmentCommand(user.id, body));
+    return this.commandBus.execute(new ConfirmMfaEnrollmentCommand(user.id, body, user.sessionId));
   }
 
   /** New recovery codes (specs/040 US1): spends the session's recent step-up; shown once. */
@@ -425,7 +435,7 @@ export class AuthController {
     const challenge = (options as { challenge: string }).challenge;
     res.cookie(
       PASSKEY_CHALLENGE_COOKIE,
-      this.passkeyChallenge.issue({ challenge, userId: user.id, discoverable: false }),
+      this.passkeyChallenge.issue({ challenge, userId: user.id, discoverable: false }, "register"),
       { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
     );
     return { options };
@@ -455,7 +465,7 @@ export class AuthController {
     const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
       PASSKEY_CHALLENGE_COOKIE
     ];
-    const { challenge, userId } = this.passkeyChallenge.verify(cookieToken ?? "");
+    const { challenge, userId } = this.passkeyChallenge.verify(cookieToken ?? "", "register");
     if (userId !== user.id) {
       res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
       throw new PasskeyChallengeInvalidError();
@@ -561,11 +571,10 @@ export class AuthController {
     );
     res.cookie(
       STEP_UP_CHALLENGE_COOKIE,
-      this.passkeyChallenge.issue({
-        challenge: options.challenge,
-        userId: user.id,
-        discoverable: false,
-      }),
+      this.passkeyChallenge.issue(
+        { challenge: options.challenge, userId: user.id, discoverable: false },
+        "step-up",
+      ),
       { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
     );
     return { options };
@@ -584,7 +593,7 @@ export class AuthController {
     const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
       STEP_UP_CHALLENGE_COOKIE
     ];
-    const { challenge, userId } = this.passkeyChallenge.verify(cookieToken ?? "");
+    const { challenge, userId } = this.passkeyChallenge.verify(cookieToken ?? "", "step-up");
     res.clearCookie(STEP_UP_CHALLENGE_COOKIE, this.cookieBase());
     return this.commandBus.execute(
       new VerifyStepUpPasskeyCommand(user.id, user.sessionId, body.response, challenge, userId),

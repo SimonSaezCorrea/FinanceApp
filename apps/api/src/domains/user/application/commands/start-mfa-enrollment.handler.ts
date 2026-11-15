@@ -60,7 +60,7 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
 
     if (method === "EMAIL") {
       if (!user.email || !user.emailVerified) throw new MfaEmailNotVerifiedError();
-      user.startMfaEnrollment("EMAIL");
+      user.startMfaEnrollment("EMAIL", null, command.sessionId);
       // Sent before the pending method is saved: if it can't go out, nothing changes.
       await this.mfaCodes.issueAndSendOrThrow(
         {
@@ -75,7 +75,7 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
     }
 
     const secret = new OTPAuth.Secret({ size: 20 });
-    user.startMfaEnrollment("TOTP", secret.base32);
+    user.startMfaEnrollment("TOTP", secret.base32, command.sessionId);
     const totp = new OTPAuth.TOTP({
       issuer: ISSUER,
       label: user.email ?? user.id,
@@ -95,8 +95,8 @@ export class StartMfaEnrollmentHandler extends BaseCommandHandler<
     await this.repo.saveFields(
       user,
       user.mfaPendingMethod === "TOTP"
-        ? ["mfaSecretEncrypted", "mfaPendingMethod"]
-        : ["mfaPendingMethod"],
+        ? ["mfaSecretEncrypted", "mfaPendingMethod", "mfaPendingSessionId", "mfaPendingAt"]
+        : ["mfaPendingMethod", "mfaPendingSessionId", "mfaPendingAt"],
     );
   }
 }

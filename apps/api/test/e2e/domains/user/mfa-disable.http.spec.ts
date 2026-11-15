@@ -71,6 +71,19 @@ describe("MFA disable HTTP (e2e)", () => {
   });
 
   it("rejects disabling with the wrong password, MFA stays active", async () => {
+    // Without a recent step-up the password isn't even checked (security run-4 hardening).
+    const noStepUp = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/disable")
+      .set("Cookie", cookies)
+      .send({ password: "wrong" });
+    expect(noStepUp.status).toBe(403);
+    expect(noStepUp.body.error.code).toBe("STEP_UP_REQUIRED");
+
+    const stepped = await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "totp", code: await totpCodeFor(secret) });
+    expect(stepped.status).toBe(200);
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/disable")
       .set("Cookie", cookies)

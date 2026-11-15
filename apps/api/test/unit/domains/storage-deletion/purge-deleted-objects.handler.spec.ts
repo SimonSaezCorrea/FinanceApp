@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { PurgeDeletedObjectsCommand } from "../../../../src/domains/storage-deletion/application/commands/purge-deleted-objects.command";
 import {
+  PURGE_BATCH,
   PURGE_MAX_ATTEMPTS,
   PurgeDeletedObjectsHandler,
 } from "../../../../src/domains/storage-deletion/application/commands/purge-deleted-objects.handler";
@@ -53,12 +54,13 @@ describe("PurgeDeletedObjectsHandler", () => {
     expect(queue.recordFailure).toHaveBeenCalledWith(["q2"]);
   });
 
-  it("stops retrying a file that failed too many times", async () => {
-    const queue = fakeQueue([{ id: "q1", storageKey: "k1", attempts: PURGE_MAX_ATTEMPTS }]);
+  it("asks the queue only for files below the retry limit (filtered in the query, run-4)", async () => {
+    const queue = fakeQueue([]);
     const storage = fakeStorage();
     await new PurgeDeletedObjectsHandler(eventBus, queue, storage).execute(
       new PurgeDeletedObjectsCommand(),
     );
+    expect(queue.listPending).toHaveBeenCalledWith(PURGE_BATCH, PURGE_MAX_ATTEMPTS);
     expect(storage.delete).not.toHaveBeenCalled();
   });
 

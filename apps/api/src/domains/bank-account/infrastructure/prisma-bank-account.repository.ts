@@ -395,7 +395,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     // must never see two at once.
     const cards = [...aggregate.cards].sort((a, b) => Number(a.isPrimary) - Number(b.isPrimary));
     for (const card of cards) {
-      await this.cards.updateRoleWithTx(tx, card.id, {
+      await this.cards.updateRoleWithTx(tx, aggregate.userId, card.id, {
         isPrimary: card.isPrimary,
         isActive: card.isActive,
         limits: card.limits.map((l) => ({

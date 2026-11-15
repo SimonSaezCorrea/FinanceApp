@@ -8,6 +8,7 @@ import { VerifyStepUpCommand } from "../../../../../../src/domains/user/applicat
 import {
   InvalidCurrentPasswordError,
   InvalidMfaCodeError,
+  MfaLockedError,
   StepUpMethodNotAllowedError,
 } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
@@ -94,9 +95,9 @@ function setup(userProps: UserProps, passkeyCount = 0, mfaCodes = fakeMfaCodes()
 const currentTotp = () =>
   new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(SECRET) }).generate();
 
-describe("VerifyStepUpHandler", () => {
-  beforeEach(() => resetFailureCounters());
+beforeEach(() => resetFailureCounters());
 
+describe("VerifyStepUpHandler", () => {
   it("accepts the password when the user has no second factor, and stamps the session", async () => {
     const { handler, stepUp } = setup(props({ passwordHash: await hash("secret123", 4) }));
 
@@ -151,14 +152,19 @@ describe("VerifyStepUpHandler", () => {
     expect(stepUp.markSteppedUp).toHaveBeenCalled();
   });
 
-  it("counts a wrong TOTP code toward the shared lockout", async () => {
+  it("counts a wrong TOTP code on the step-up counter, never on login's (security run-4)", async () => {
     const { handler, users, stepUp } = setup(props({ mfaEnabled: true, mfaSecret: SECRET }));
 
+    for (let i = 0; i < 4; i += 1) {
+      await expect(
+        handler.execute(new VerifyStepUpCommand("u1", "sess", { method: "totp", code: "000000" })),
+      ).rejects.toThrow(InvalidMfaCodeError);
+    }
+    // The account's MFA counter (login's) is never written by a wrong step-up code.
+    expect(users.saveWithTx).not.toHaveBeenCalled();
     await expect(
       handler.execute(new VerifyStepUpCommand("u1", "sess", { method: "totp", code: "000000" })),
-    ).rejects.toThrow(InvalidMfaCodeError);
-    const saved = vi.mocked(users.saveWithTx).mock.calls[0]?.[1] as User;
-    expect(saved.mfaFailedAttempts).toBe(1);
+    ).rejects.toThrow(MfaLockedError);
     expect(stepUp.markSteppedUp).not.toHaveBeenCalled();
   });
 });
@@ -189,12 +195,11 @@ describe("VerifyStepUpHandler - email method (specs/040 US3)", () => {
     ).rejects.toThrow(StepUpMethodNotAllowedError);
   });
 
-  it("a wrong emailed code counts as a failed attempt", async () => {
+  it("a wrong emailed code counts on the step-up counter, not login's", async () => {
     const { handler, users } = setup(emailUser());
     await expect(
       handler.execute(new VerifyStepUpCommand("u1", "sess", { method: "email", code: "000000" })),
     ).rejects.toThrow(InvalidMfaCodeError);
-    const saved = (users.saveWithTx as ReturnType<typeof vi.fn>).mock.calls[0]![1] as User;
-    expect(saved.mfaFailedAttempts).toBe(1);
+    expect(users.saveWithTx).not.toHaveBeenCalled();
   });
 });

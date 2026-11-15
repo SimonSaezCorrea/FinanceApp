@@ -45,6 +45,13 @@ export type LoginResult =
 
 type Outcome = { kind: "invalid" } | { kind: "locked" } | { kind: "success"; user: User };
 
+/**
+ * A bcrypt hash (cost 12, like every password) of a random string nobody knows. Compared against
+ * when the RUT has no account or the account is locked, so those answers take as long as a wrong
+ * password and the response time doesn't tell which RUTs are registered (security run-4).
+ */
+const TIMING_DUMMY_HASH = "$2b$12$btPmlrqgaGue7hwBGWccr.ROulBBMC2rsoj5W5GUPGJhQ32o6LN2S";
+
 interface Context {
   userId: string;
   maskedRut: string;
@@ -100,6 +107,7 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     const maskedRut = maskRut(identifierValue);
     const user = await this.repo.findByIdentifierValue(identifierValue);
     if (!user?.passwordHash) {
+      await compare(command.input.password, TIMING_DUMMY_HASH);
       this.logger.warn(`failed login attempt for ${maskedRut}`);
       throw new InvalidCredentialsError();
     }
@@ -126,6 +134,7 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     context: Context,
   ): Promise<HandleResult<LoginResult>> {
     if (context.lockedAtRead) {
+      await compare(command.input.password, TIMING_DUMMY_HASH);
       this.logger.warn(`login refused, account locked: ${context.maskedRut}`);
       throw new LoginLockedError();
     }

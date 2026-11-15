@@ -16,7 +16,9 @@ import {
 } from "../../domain/ports/storage-deletion.repository.port";
 import { SweepOrphanObjectsCommand } from "./sweep-orphan-objects.command";
 
-/** Objects listed per page, and pages per run (20,000 objects a day at most). */
+/** Objects listed per page, and pages per run (20,000 objects a day at most). A run that stops at
+ * the page cap leaves its last key, and the next run starts after it (security run-4: every run
+ * used to start over, so objects past the first 20,000 were never reached). */
 export const SWEEP_PAGE = 1000;
 export const SWEEP_MAX_PAGES = 20;
 /** Younger files are left alone: an upload writes the file first and its row right after. */
@@ -37,6 +39,10 @@ export class SweepOrphanObjectsHandler extends BaseCommandHandler<
   SweepOutcome,
   null
 > {
+  /** Where the next run starts: the last key the previous one reached, or the beginning. Kept in
+   * memory (the handler is a singleton); a restart starts over, which only repeats work. */
+  private resumeAfter: string | null = null;
+
   constructor(
     eventBus: EventBus,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStoragePort,
@@ -58,9 +64,14 @@ export class SweepOrphanObjectsHandler extends BaseCommandHandler<
     let cursor: string | null = null;
     let scanned = 0;
     let queued = 0;
+    let lastKey: string | null = null;
+    let more = false;
+    const startAfter = this.resumeAfter;
     for (let page = 0; page < SWEEP_MAX_PAGES; page++) {
-      const { items, next } = await this.storage.listPage(cursor, SWEEP_PAGE);
+      const { items, next } = await this.storage.listPage(cursor, SWEEP_PAGE, startAfter);
       scanned += items.length;
+      if (items.length > 0) lastKey = items[items.length - 1]!.key;
+      more = next !== null;
       const candidates = items
         .filter((o) => STORAGE_KEY.test(o.key))
         .filter((o) => o.lastModified !== null && o.lastModified.getTime() < cutoff)
@@ -77,6 +88,8 @@ export class SweepOrphanObjectsHandler extends BaseCommandHandler<
       if (!next) break;
       cursor = next;
     }
+    // Stopped at the page cap: continue after the last key next time. Reached the end: start over.
+    this.resumeAfter = more ? lastKey : null;
     return { result: { scanned, queued, skipped: false }, events: [] };
   }
 }

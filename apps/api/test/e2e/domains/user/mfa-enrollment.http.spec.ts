@@ -63,6 +63,30 @@ describe("MFA enrollment HTTP (e2e)", () => {
     expect(res.body.mfaRecoveryCodesRemaining).toBe(0);
   });
 
+  it("only the session that started the setup can confirm it (security run-4)", async () => {
+    await stepUp(app, cookies);
+    const enroll = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/enroll")
+      .set("Cookie", cookies);
+    expect(enroll.status).toBe(201);
+    const user = await prisma.user.findFirstOrThrow({
+      where: { email },
+      select: { identifierValue: true },
+    });
+    const other = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ identifierValue: user.identifierValue, password });
+    const otherCookies = other.get("Set-Cookie") ?? [];
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/confirm")
+      .set("Cookie", otherCookies)
+      .send({ code: await totpCodeFor(enroll.body.secret) });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("MFA_NOT_PENDING");
+    const me = await request(app.getHttpServer()).get("/api/v1/auth/me").set("Cookie", cookies);
+    expect(me.body.mfaEnabled).toBe(false);
+  });
+
   it("rejects confirm with an invalid code, leaving MFA inactive", async () => {
     await stepUp(app, cookies);
     const enroll = await request(app.getHttpServer())

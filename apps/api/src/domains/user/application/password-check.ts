@@ -3,6 +3,7 @@ import { compare } from "bcryptjs";
 import { InvalidCurrentPasswordError, LoginLockedError, UnauthorizedError } from "../domain/errors";
 import type { UserRepositoryPort } from "../domain/ports/user.repository.port";
 import { sessionPasswordFailures } from "./failure-counter";
+import { serially } from "./per-key-queue";
 
 /**
  * Re-entering the password from inside a session (step-up by password, change password, disable
@@ -19,7 +20,17 @@ import { sessionPasswordFailures } from "./failure-counter";
  * Returns the hash that was verified, so a caller writing later can refuse when the password
  * changed in between.
  */
-export async function verifyPasswordCounted(
+export function verifyPasswordCounted(
+  deps: { users: UserRepositoryPort },
+  userId: string,
+  password: string,
+): Promise<string> {
+  // One check per account at a time, so a burst can't all pass "locked?" before any failure is
+  // counted (security run-4 hardening).
+  return serially(`session-password:${userId}`, () => check(deps, userId, password));
+}
+
+async function check(
   deps: { users: UserRepositoryPort },
   userId: string,
   password: string,

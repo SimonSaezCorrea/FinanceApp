@@ -54,8 +54,9 @@ export async function countReplacement(
  * recurring series, savings), and the accounts last — their cards, card limits,
  * billing settings, billing periods and wallet tiles go with them by cascade.
  *
- * Known limitation (same as deleting an account): attachment FILES in object
- * storage are not removed, only their rows.
+ * Attachment FILES go too: the `storage-deletion` trigger queues the key of every
+ * attachment row the cascade deletes, and the maintenance cron deletes the objects
+ * (security run-3).
  */
 export async function purgeUserDataWithTx(
   ports: ReplacementPorts,

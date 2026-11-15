@@ -61,6 +61,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       field = exception.field;
       // A domain error may carry facts the client needs to act (e.g. when it may retry).
       details = exception.details;
+    } else if (isBodyParserError(exception)) {
+      // The JSON parser's own refusals (a body over the route's limit, malformed JSON) are
+      // http-errors with a 4xx status: answer it, never a 500 (security run-4 hardening).
+      status = exception.status;
+      code = status === HttpStatus.PAYLOAD_TOO_LARGE ? "PAYLOAD_TOO_LARGE" : statusToCode(status);
     }
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -94,6 +99,23 @@ function isDomainError(exception: unknown): exception is {
     exception instanceof Error &&
     typeof (exception as { httpStatus?: unknown }).httpStatus === "number" &&
     typeof (exception as { code?: unknown }).code === "string"
+  );
+}
+
+/** An error from Express's body parser (http-errors): a client error the parser chose to expose. */
+function isBodyParserError(exception: unknown): exception is { status: number } {
+  if (!(exception instanceof Error)) return false;
+  const { status, expose, type } = exception as {
+    status?: unknown;
+    expose?: unknown;
+    type?: unknown;
+  };
+  return (
+    typeof status === "number" &&
+    status >= 400 &&
+    status < 500 &&
+    expose === true &&
+    typeof type === "string"
   );
 }
 

@@ -85,6 +85,10 @@ model User {
   mfaMethod           MfaMethod?
   /// The method being set up (activation or change) until its first code is confirmed.
   mfaPendingMethod    MfaMethod?
+  /// The session that started the pending setup and when (security run-4): only that session may
+  /// confirm it, within MFA_ENROLLMENT_TTL_MINUTES. Null on setups started before the columns.
+  mfaPendingSessionId String?
+  mfaPendingAt        DateTime?
   /// Consecutive wrong passwords at login (by RUT) since the last correct one. Reset to 0 on
   /// success. Same mechanism and limits as the second factor's counter, kept separate so a
   /// wrong password never eats into the TOTP attempts or vice versa.

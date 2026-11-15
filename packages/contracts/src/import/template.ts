@@ -3,7 +3,7 @@ import { z } from "zod";
 import { cardKind, cardNetwork, accountStatus } from "../accounts/index";
 import { accountType } from "../common/account-type";
 import { moneyString } from "../common/money";
-import { customFieldValueSchema } from "../common/custom-field-value";
+import { customFieldValueSchema, customFieldValuesMap } from "../common/custom-field-value";
 import { rowId } from "../common/row-id";
 import { debtDirection } from "../debts/index";
 import { installmentFrequency } from "../installments/index";
@@ -28,6 +28,16 @@ export const TEMPLATE_VERSION = 2;
 
 /** Most rows one template may carry, across all sheets. */
 export const TEMPLATE_IMPORT_MAX_ROWS = 5000;
+
+/** Most instalments the plans of one template may expand into, summed over every
+ * plan row. Each plan builds its whole schedule before anything is written, so
+ * the row cap alone let 5000 plans x 600 instalments stall the API (security
+ * run-4). */
+export const TEMPLATE_IMPORT_MAX_INSTALMENTS = 20_000;
+
+/** Instalments the plans of a template expand into. */
+export const templateInstalmentCount = (plans: readonly { installmentCount: number }[]) =>
+  plans.reduce((n, p) => n + p.installmentCount, 0);
 
 /** Stable sheet keys — the API's errors name these, the web maps them to the
  * localized sheet names. Order = the order sheets appear in the file, which is
@@ -58,7 +68,7 @@ const ref = z.string().trim().min(1).max(80);
 const text = (max: number) => z.string().trim().max(max).optional();
 /** The person's custom field values of a row (specs/036), by field id. Left out =
  * the field's default when it applies; `null` = no value. */
-const customFieldValues = z.record(rowId, customFieldValueSchema.nullable()).optional();
+const customFieldValues = customFieldValuesMap(customFieldValueSchema.nullable()).optional();
 
 export const templateMovementSchema = z.object({
   row: excelRow,
@@ -319,7 +329,11 @@ export const templateImportRequestSchema = z
       return total >= 1 && total <= TEMPLATE_IMPORT_MAX_ROWS;
     },
     { message: `between 1 and ${TEMPLATE_IMPORT_MAX_ROWS} rows across all sheets` },
-  );
+  )
+  .refine((req) => templateInstalmentCount(req.plans) <= TEMPLATE_IMPORT_MAX_INSTALMENTS, {
+    message: `at most ${TEMPLATE_IMPORT_MAX_INSTALMENTS} instalments across all plans`,
+    path: ["plans"],
+  });
 export type TemplateImportRequest = z.infer<typeof templateImportRequestSchema>;
 export type TemplateImportInput = z.input<typeof templateImportRequestSchema>;
 

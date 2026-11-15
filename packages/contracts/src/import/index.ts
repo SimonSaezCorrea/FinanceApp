@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
-import { customFieldValueSchema } from "../common/custom-field-value";
+import { customFieldValueSchema, customFieldValuesMap } from "../common/custom-field-value";
 import { rowId } from "../common/row-id";
 
 /**
@@ -42,7 +42,7 @@ export const importRowSchema = z.object({
   financeCharge: z.boolean().optional(),
   /** The person's custom field values for this movement (specs/036), by field id;
    * a field left out takes its default when it applies, `null` = no value. */
-  customFields: z.record(rowId, customFieldValueSchema.nullable()).optional(),
+  customFields: customFieldValuesMap(customFieldValueSchema.nullable()).optional(),
 });
 export type ImportRow = z.infer<typeof importRowSchema>;
 

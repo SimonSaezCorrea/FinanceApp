@@ -2,7 +2,10 @@ import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import { Attachment, type AttachmentProps } from "../domain/attachment.aggregate";
-import type { AttachmentRepositoryPort } from "../domain/ports/attachment.repository.port";
+import type {
+  AttachmentRepositoryPort,
+  AttachmentUsage,
+} from "../domain/ports/attachment.repository.port";
 
 type Row = {
   id: string;
@@ -62,17 +65,37 @@ export class PrismaAttachmentRepository implements AttachmentRepositoryPort {
     return new Set(rows.map((r) => r.storageKey));
   }
 
-  async usage(
+  async saveWithinQuota(
+    props: Omit<AttachmentProps, "createdAt">,
+    fits: (usage: AttachmentUsage) => boolean,
+  ): Promise<Attachment | null> {
+    return this.prisma.$transaction(async (tx) => {
+      // One upload per person at a time: a transaction-scoped advisory lock keyed by the person,
+      // so two uploads can't both count the usage before either inserts (no other table is read).
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"attachment-quota:" + props.userId}))`;
+      const usage = await this.usageWith(tx, props.userId, props.transactionId);
+      if (!fits(usage)) return null;
+      const row = await tx.transactionAttachment.create({ data: props });
+      return toAggregate(row);
+    });
+  }
+
+  usage(userId: string, transactionId: string): Promise<AttachmentUsage> {
+    return this.usageWith(this.prisma, userId, transactionId);
+  }
+
+  private async usageWith(
+    client: Pick<PrismaService, "transactionAttachment">,
     userId: string,
     transactionId: string,
-  ): Promise<{ userCount: number; userBytes: number; transactionCount: number }> {
+  ): Promise<AttachmentUsage> {
     const [all, onMovement] = await Promise.all([
-      this.prisma.transactionAttachment.aggregate({
+      client.transactionAttachment.aggregate({
         where: { userId },
         _count: { _all: true },
         _sum: { sizeBytes: true },
       }),
-      this.prisma.transactionAttachment.count({ where: { userId, transactionId } }),
+      client.transactionAttachment.count({ where: { userId, transactionId } }),
     ]);
     return {
       userCount: all._count._all,

@@ -1693,6 +1693,7 @@
       "outdated": "Esta plantilla es de una versión anterior. Descarga la plantilla actual y copia en ella tus datos.",
       "empty": "La plantilla no tiene filas que importar.",
       "tooMany": "La plantilla tiene más de {{max}} filas. Divídela en varios archivos.",
+      "tooManyInstalments": "Las cuotas de esta plantilla suman más de {{max}}. Divídela en varios archivos.",
       "readError": "No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?",
       "sheets": {
         "instructions": "Instrucciones",
@@ -2737,6 +2738,7 @@
   },
   "errors": {
     "INTERNAL_ERROR": "Algo falló de nuestro lado. Inténtalo de nuevo en unos minutos.",
+    "PAYLOAD_TOO_LARGE": "Lo que enviaste es demasiado grande. Prueba con menos datos a la vez.",
     "UNAUTHORIZED": "Inicia sesión para continuar.",
     "NOT_FOUND": "No se encontró el recurso.",
     "INVALID_CREDENTIALS": "RUT o contraseña incorrectos.",
@@ -2745,7 +2747,7 @@
     "IDENTIFIER_REQUIRED": "Tu RUT es con lo que entras a la cuenta: puedes cambiarlo, pero no dejarlo vacío.",
     "INVALID_MFA_CODE": "Código incorrecto. Inténtalo de nuevo.",
     "MFA_LOCKED": "Demasiados intentos. Espera unos minutos antes de volver a intentarlo.",
-    "MFA_NOT_PENDING": "No hay una activación pendiente que confirmar.",
+    "MFA_NOT_PENDING": "No hay una activación pendiente o ya venció. Vuelve a empezarla.",
     "MFA_ALREADY_ENABLED": "La verificación en dos pasos ya está activa. Desactívala antes de volver a activarla.",
     "MFA_PENDING_TOKEN_INVALID": "La sesión de verificación expiró. Inicia sesión de nuevo.",
     "VALIDATION_FAILED": "Revisa los datos ingresados.",

@@ -72,8 +72,25 @@ export const sessionPasswordFailures = new FailureCounter(
   LOGIN_LOCKOUT_MINUTES,
 );
 
+/** Wrong codes while confirming a second-factor setup, per account (security run-4). Kept apart
+ * from the login MFA counter so a stolen session can't lock the owner's sign-in with it. */
+export const mfaEnrollmentFailures = new FailureCounter(
+  LOGIN_LOCKOUT_THRESHOLD,
+  LOGIN_LOCKOUT_MINUTES,
+);
+
+/** Wrong second-factor codes (TOTP or emailed) during a step-up, per account (security run-4
+ * hardening): apart from login's MFA counter, which a stolen session could otherwise keep
+ * re-locking. */
+export const stepUpCodeFailures = new FailureCounter(
+  LOGIN_LOCKOUT_THRESHOLD,
+  LOGIN_LOCKOUT_MINUTES,
+);
+
 /** Tests only: start from empty counts. */
 export function resetFailureCounters(): void {
   loginDeviceFailures.clear();
   sessionPasswordFailures.clear();
+  mfaEnrollmentFailures.clear();
+  stepUpCodeFailures.clear();
 }

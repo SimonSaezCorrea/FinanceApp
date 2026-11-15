@@ -54,9 +54,7 @@ export class PurgeDeletedObjectsHandler extends BaseCommandHandler<
     if (!this.storage.isConfigured()) {
       return { result: { deleted: 0, failed: 0, skipped: true }, events: [] };
     }
-    const pending = (await this.queue.listPending(PURGE_BATCH)).filter(
-      (item) => item.attempts < PURGE_MAX_ATTEMPTS,
-    );
+    const pending = await this.queue.listPending(PURGE_BATCH, PURGE_MAX_ATTEMPTS);
     const done: string[] = [];
     const failed: string[] = [];
     for (const item of pending) {

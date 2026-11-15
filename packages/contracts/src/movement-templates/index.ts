@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { customFieldValueSchema } from "../common/custom-field-value";
+import { customFieldValueSchema, customFieldValuesMap } from "../common/custom-field-value";
 import { moneyString } from "../common/money";
 import { rowId } from "../common/row-id";
 import { normalizeFieldName } from "../custom-fields/rules";
@@ -70,7 +70,7 @@ export const saveMovementTemplateSchema = z
     receptor: z.string().trim().max(200).optional(),
     lugar: z.string().trim().max(200).optional(),
     financeCharge: z.boolean().optional(),
-    customFields: z.record(rowId, customFieldValueSchema).optional(),
+    customFields: customFieldValuesMap(customFieldValueSchema).optional(),
   })
   .refine((t) => t.amount === undefined || t.currency !== undefined, {
     message: "an amount needs its currency",

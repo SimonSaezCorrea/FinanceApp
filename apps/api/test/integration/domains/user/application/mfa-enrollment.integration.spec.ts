@@ -77,7 +77,7 @@ describe("MFA enrollment (integration)", () => {
       { verifyWithTx: async () => false, issueAndSend: async () => ({ sent: true }) } as never,
     );
     const { recoveryCodes } = await confirmHandler.execute(
-      new ConfirmMfaEnrollmentCommand(userId, { code }),
+      new ConfirmMfaEnrollmentCommand(userId, { code }, "sess"),
     );
     expect(recoveryCodes).toHaveLength(10);
 

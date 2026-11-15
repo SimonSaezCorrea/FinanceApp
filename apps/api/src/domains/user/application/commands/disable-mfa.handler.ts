@@ -51,20 +51,22 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
   }
 
   protected async loadContext(command: DisableMfaCommand): Promise<Context> {
-    // Same guard "Eliminar cuenta" already uses: re-entering the current password is what
-    // authorizes this, not merely holding a valid session. Counted like a login attempt
-    // (security run-3).
-    await verifyPasswordCounted({ users: this.repo }, command.userId, command.input.password);
     const user = await this.repo.findById(command.userId);
     if (!user) throw new UnauthorizedError();
     // The password alone is not enough (2026-11-08): with the session and the password, someone
     // could turn MFA off and enrol their own method, skipping the step-up a method CHANGE asks
     // for. So disabling also needs a recent step-up of this session — with MFA on that is the
     // second factor or a passkey, never the password — and spends it, like new recovery codes.
+    // Checked BEFORE the password (security run-4), as change-password does: a session without
+    // the second factor can't even try passwords here.
     const steppedUpAt = await this.stepUp.steppedUpAt(user.id, command.currentSessionId);
     if (!steppedUpAt || stepUpExpiry(steppedUpAt).getTime() <= Date.now()) {
       throw new StepUpRequiredError();
     }
+    // Same guard "Eliminar cuenta" already uses: re-entering the current password is what
+    // authorizes this, not merely holding a valid session. Counted like a login attempt
+    // (security run-3).
+    await verifyPasswordCounted({ users: this.repo }, command.userId, command.input.password);
     return { user, currentSessionId: command.currentSessionId, steppedUpAt };
   }
 

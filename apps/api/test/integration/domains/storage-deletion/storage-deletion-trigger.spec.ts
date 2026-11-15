@@ -113,8 +113,10 @@ describe("storage-deletion trigger (integration)", () => {
     expect(
       (await prisma.storageDeletion.findUniqueOrThrow({ where: { id: row.id } })).attempts,
     ).toBe(1);
-    const pending = await repo.listPending(10_000);
+    const pending = await repo.listPending(10_000, 10);
     expect(pending.some((p) => p.id === row.id)).toBe(true);
+    // A row that used up its attempts is left out by the query itself (security run-4).
+    expect((await repo.listPending(10_000, 1)).some((p) => p.id === row.id)).toBe(false);
     await repo.remove([row.id]);
     expect(await queued(key)).toBe(0);
   });

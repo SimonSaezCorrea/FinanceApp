@@ -8,5 +8,7 @@ export class ConfirmMfaEnrollmentCommand implements UserScopedCommand {
   constructor(
     public readonly userId: string,
     public readonly input: auth.ConfirmMfaEnrollmentRequest,
+    /** The caller's session: only the one that started the setup may confirm it (run-4). */
+    public readonly sessionId?: string,
   ) {}
 }

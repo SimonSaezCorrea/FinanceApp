@@ -18,6 +18,7 @@ import {
 import {
   ATTACHMENT_REPOSITORY,
   type AttachmentRepositoryPort,
+  type AttachmentUsage,
 } from "../../domain/ports/attachment.repository.port";
 import { OBJECT_STORAGE, type ObjectStoragePort } from "../../domain/ports/object-storage.port";
 import { UploadAttachmentCommand } from "./upload-attachment.command";
@@ -27,6 +28,15 @@ import { UploadAttachmentCommand } from "./upload-attachment.command";
  * the object, then the row. Ownership of the movement is checked FIRST — the
  * bytes of someone else's file never reach the bucket.
  */
+/** Whether one more file of `size` bytes fits the person's and the movement's limits. */
+function fitsQuota(usage: AttachmentUsage, size: number): boolean {
+  return (
+    usage.transactionCount < transactions.ATTACHMENT_MAX_PER_TRANSACTION &&
+    usage.userCount < transactions.ATTACHMENT_MAX_PER_USER &&
+    usage.userBytes + size <= transactions.ATTACHMENT_MAX_BYTES_PER_USER
+  );
+}
+
 @Injectable()
 @CommandHandler(UploadAttachmentCommand)
 export class UploadAttachmentHandler extends BaseCommandHandler<
@@ -60,15 +70,10 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
       bytes: new Uint8Array(command.file.buffer),
     });
 
-    // Security run-3: storage had no bound — any account could keep uploading forever.
+    // Security run-3: storage had no bound — any account could keep uploading forever. Checked
+    // here so a full account never uploads, and again when the row is saved (run-4).
     const usage = await this.repo.usage(command.userId, command.transactionId);
-    if (
-      usage.transactionCount >= transactions.ATTACHMENT_MAX_PER_TRANSACTION ||
-      usage.userCount >= transactions.ATTACHMENT_MAX_PER_USER ||
-      usage.userBytes + command.file.size > transactions.ATTACHMENT_MAX_BYTES_PER_USER
-    ) {
-      throw new AttachmentQuotaExceededError();
-    }
+    if (!fitsQuota(usage, command.file.size)) throw new AttachmentQuotaExceededError();
 
     const attachmentId = generateRowId();
     return {
@@ -89,15 +94,19 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
 
     let saved;
     try {
-      saved = await this.repo.save({
-        id: context.attachmentId,
-        userId: command.userId,
-        transactionId: command.transactionId,
-        storageKey: context.storageKey,
-        fileName: command.file.originalname.slice(0, 255),
-        contentType: command.file.mimetype,
-        sizeBytes: command.file.size,
-      });
+      saved = await this.repo.saveWithinQuota(
+        {
+          id: context.attachmentId,
+          userId: command.userId,
+          transactionId: command.transactionId,
+          storageKey: context.storageKey,
+          fileName: command.file.originalname.slice(0, 255),
+          contentType: command.file.mimetype,
+          sizeBytes: command.file.size,
+        },
+        (now) => fitsQuota(now, command.file.size),
+      );
+      if (!saved) throw new AttachmentQuotaExceededError();
     } catch (err: unknown) {
       // The row didn't land (the movement was deleted meanwhile, the database failed): the file
       // just written has nothing pointing at it, so it goes too (security run-3).

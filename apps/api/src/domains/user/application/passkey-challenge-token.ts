@@ -12,6 +12,10 @@ import { PasskeyChallengeInvalidError } from "../domain/errors";
 const PURPOSE = "passkey-challenge";
 const EXPIRES: StringValue = "5m";
 
+/** Which ceremony a challenge was issued for (security run-4 hardening): a login challenge can't
+ * be presented to register-verify, nor a registration one to a login. */
+export type PasskeyCeremony = "login" | "register" | "step-up";
+
 export interface PasskeyChallengePayload {
   challenge: string;
   /**
@@ -38,9 +42,9 @@ export class PasskeyChallengeToken {
     private readonly config: ConfigService,
   ) {}
 
-  issue(payload: PasskeyChallengePayload): string {
+  issue(payload: PasskeyChallengePayload, ceremony: PasskeyCeremony): string {
     return this.jwt.sign(
-      { ...payload, purpose: PURPOSE, jti: randomUUID() },
+      { ...payload, purpose: PURPOSE, ceremony, jti: randomUUID() },
       { secret: getPasskeyChallengeSecret(this.config), expiresIn: EXPIRES },
     );
   }
@@ -51,11 +55,21 @@ export class PasskeyChallengeToken {
    * for new options anyway, so nothing legitimate presents the same challenge twice. A token
    * signed before challenges carried a `jti` (at most 5 minutes after a deploy) is still taken.
    */
-  verify(token: string): PasskeyChallengePayload {
-    let decoded: PasskeyChallengePayload & { purpose?: string; jti?: string; exp?: number };
+  verify(token: string, ceremony: PasskeyCeremony): PasskeyChallengePayload {
+    let decoded: PasskeyChallengePayload & {
+      purpose?: string;
+      ceremony?: string;
+      jti?: string;
+      exp?: number;
+    };
     try {
       decoded = this.jwt.verify<
-        PasskeyChallengePayload & { purpose?: string; jti?: string; exp?: number }
+        PasskeyChallengePayload & {
+          purpose?: string;
+          ceremony?: string;
+          jti?: string;
+          exp?: number;
+        }
       >(token, {
         secret: getPasskeyChallengeSecret(this.config),
       });
@@ -63,6 +77,10 @@ export class PasskeyChallengeToken {
       throw new PasskeyChallengeInvalidError();
     }
     if (decoded.purpose !== PURPOSE) throw new PasskeyChallengeInvalidError();
+    // A challenge signed before it named its ceremony (at most 5 minutes after a deploy) is taken.
+    if (decoded.ceremony !== undefined && decoded.ceremony !== ceremony) {
+      throw new PasskeyChallengeInvalidError();
+    }
     if (decoded.jti && !claimOnce(`passkey:${decoded.jti}`, (decoded.exp ?? 0) * 1000)) {
       throw new PasskeyChallengeInvalidError();
     }

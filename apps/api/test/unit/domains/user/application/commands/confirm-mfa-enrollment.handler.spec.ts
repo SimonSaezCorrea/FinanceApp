@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as OTPAuth from "otpauth";
 import { fakeMfaCodes, fakeTrustedDevices } from "../../../../support/fake-ports";
 
@@ -7,11 +7,13 @@ import { ConfirmMfaEnrollmentCommand } from "../../../../../../src/domains/user/
 import {
   InvalidMfaCodeError,
   MfaAlreadyEnabledError,
+  MfaLockedError,
   MfaNotPendingError,
 } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
+import { resetFailureCounters } from "../../../../../../src/domains/user/application/failure-counter";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
@@ -45,6 +47,9 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     mfaLockedUntil: null,
     loginFailedAttempts: 0,
     loginLockedUntil: null,
+    // The pending setup was started by session "s1" just now (security run-4).
+    mfaPendingSessionId: "s1",
+    mfaPendingAt: new Date(),
     ...overrides,
   };
 }
@@ -105,6 +110,8 @@ function validCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
 }
 
+beforeEach(() => resetFailureCounters());
+
 describe("ConfirmMfaEnrollmentHandler", () => {
   it("activates MFA and creates 10 hashed recovery codes on a valid code", async () => {
     const repo = fakeRepo({
@@ -121,7 +128,7 @@ describe("ConfirmMfaEnrollmentHandler", () => {
     );
 
     const result = await handler.execute(
-      new ConfirmMfaEnrollmentCommand("u1", { code: validCodeFor(SECRET) }),
+      new ConfirmMfaEnrollmentCommand("u1", { code: validCodeFor(SECRET) }, "s1"),
     );
 
     expect(result.recoveryCodes).toHaveLength(10);
@@ -148,7 +155,7 @@ describe("ConfirmMfaEnrollmentHandler", () => {
     );
 
     await expect(
-      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" })),
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" }, "s1")),
     ).rejects.toThrow(InvalidMfaCodeError);
     expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
@@ -167,7 +174,7 @@ describe("ConfirmMfaEnrollmentHandler", () => {
     );
 
     await expect(
-      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "123456" })),
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }, "s1")),
     ).rejects.toThrow(MfaNotPendingError);
   });
 
@@ -189,7 +196,7 @@ describe("ConfirmMfaEnrollmentHandler", () => {
     );
 
     await expect(
-      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" })),
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" }, "s1")),
     ).rejects.toThrow(MfaAlreadyEnabledError);
     expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
@@ -215,7 +222,9 @@ describe("ConfirmMfaEnrollmentHandler - email and method change (specs/040 US3)"
 
   it("activates email codes with the ENROLL code, issuing recovery codes", async () => {
     const { handler, recoveryCodes } = setup(baseProps({ mfaPendingMethod: "EMAIL" }), true);
-    const result = await handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }));
+    const result = await handler.execute(
+      new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }, "s1"),
+    );
     expect(result.recoveryCodes).toHaveLength(10);
     expect(recoveryCodes.createManyWithTx).toHaveBeenCalled();
   });
@@ -223,7 +232,7 @@ describe("ConfirmMfaEnrollmentHandler - email and method change (specs/040 US3)"
   it("a wrong ENROLL code activates nothing", async () => {
     const { handler, repo } = setup(baseProps({ mfaPendingMethod: "EMAIL" }), false);
     await expect(
-      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" })),
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" }, "s1")),
     ).rejects.toThrow(InvalidMfaCodeError);
     expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
@@ -238,7 +247,9 @@ describe("ConfirmMfaEnrollmentHandler - email and method change (specs/040 US3)"
       }),
       true,
     );
-    const result = await handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }));
+    const result = await handler.execute(
+      new ConfirmMfaEnrollmentCommand("u1", { code: "123456" }, "s1"),
+    );
     expect(result.recoveryCodes).toBeNull();
     expect(recoveryCodes.createManyWithTx).not.toHaveBeenCalled();
     expect(devices.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
@@ -246,5 +257,65 @@ describe("ConfirmMfaEnrollmentHandler - email and method change (specs/040 US3)"
     expect(saved.mfaMethodOrDefault()).toBe("EMAIL");
     expect(saved.mfaSecret).toBeNull();
     expect(publish).toHaveBeenCalledWith(expect.objectContaining({ kind: "MFA_METHOD_CHANGED" }));
+  });
+});
+
+describe("ConfirmMfaEnrollmentHandler - pending setup bound to its session (security run-4)", () => {
+  function handlerFor(props: Partial<UserProps>) {
+    const repo = fakeRepo({
+      findById: vi
+        .fn()
+        .mockImplementation(async () =>
+          User.fromPersistence(baseProps({ mfaSecret: SECRET, ...props })),
+        ),
+    });
+    const handler = new ConfirmMfaEnrollmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+      fakePrisma(),
+      fakeTrustedDevices(),
+      fakeMfaCodes(),
+    );
+    return { repo, handler };
+  }
+
+  it("refuses a session other than the one that started the setup, even with a valid code", async () => {
+    const { repo, handler } = handlerFor({});
+    await expect(
+      handler.execute(
+        new ConfirmMfaEnrollmentCommand("u1", { code: validCodeFor(SECRET) }, "other-session"),
+      ),
+    ).rejects.toThrow(MfaNotPendingError);
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
+  });
+
+  it("refuses a setup older than its time to confirm", async () => {
+    const { handler } = handlerFor({ mfaPendingAt: new Date(Date.now() - 31 * 60 * 1000) });
+    await expect(
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: validCodeFor(SECRET) }, "s1")),
+    ).rejects.toThrow(MfaNotPendingError);
+  });
+
+  it("refuses a setup started before the session was recorded", async () => {
+    const { handler } = handlerFor({ mfaPendingSessionId: null, mfaPendingAt: null });
+    await expect(
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: validCodeFor(SECRET) }, "s1")),
+    ).rejects.toThrow(MfaNotPendingError);
+  });
+
+  it("locks after 5 wrong codes, the right one included", async () => {
+    const { handler } = handlerFor({});
+    for (let i = 0; i < 4; i += 1) {
+      await expect(
+        handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" }, "s1")),
+      ).rejects.toThrow(InvalidMfaCodeError);
+    }
+    await expect(
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: "000000" }, "s1")),
+    ).rejects.toThrow(MfaLockedError);
+    await expect(
+      handler.execute(new ConfirmMfaEnrollmentCommand("u1", { code: validCodeFor(SECRET) }, "s1")),
+    ).rejects.toThrow(MfaLockedError);
   });
 });

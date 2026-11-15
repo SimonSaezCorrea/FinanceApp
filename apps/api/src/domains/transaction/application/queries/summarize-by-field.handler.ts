@@ -13,7 +13,10 @@ import {
   type CategoryLookupPort,
 } from "../../../category/domain/ports/category-lookup.port";
 import type { CustomField } from "../../../custom-field/domain/custom-field.aggregate";
-import { CustomFieldNotFoundError } from "../../../custom-field/domain/errors";
+import {
+  CustomFieldFilterTooBroadError,
+  CustomFieldNotFoundError,
+} from "../../../custom-field/domain/errors";
 import {
   CUSTOM_FIELD_REPOSITORY,
   type CustomFieldRepositoryPort,
@@ -29,6 +32,7 @@ import {
 } from "../../domain/ports/transaction.repository.port";
 import { scopeWhere } from "../../domain/scope-where";
 import { SummarizeByFieldQuery } from "./summarize-by-field.query";
+import { CUSTOM_FIELD_FILTER_MAX_IDS } from "./transaction-list-filter";
 
 /**
  * The summary of one custom field (FR-016c): for each value (yes/no and list) — or
@@ -70,6 +74,9 @@ export class SummarizeByFieldQueryHandler extends BaseQueryHandler<
       this.categories.idForSystemCode("CARD_PREPAYMENT"),
     ]);
     const withValue = await this.values.idsMatching(userId, field.id, { kind: "any" });
+    // Same bound as a filter by this field (security run-4 hardening): each id is one query
+    // parameter and Postgres takes at most 65,535, so past it the summary answered 500.
+    if (withValue.length > CUSTOM_FIELD_FILTER_MAX_IDS) throw new CustomFieldFilterTooBroadError();
 
     const buckets: { key: string; where: TransactionListFilter }[] = [];
     if (field.type === "BOOLEAN" || field.type === "OPTION") {

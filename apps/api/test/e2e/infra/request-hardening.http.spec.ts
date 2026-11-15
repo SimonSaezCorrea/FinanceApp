@@ -65,4 +65,15 @@ describe("Request hardening (e2e)", () => {
     expect(res.status).toBeLessThan(500);
     expect(res.status).not.toBe(403);
   });
+
+  it("refuses a large body outside the import routes, and takes it on them (security run-4)", async () => {
+    const big = { identifierValue: "11.111.111-1", password: "x".repeat(300 * 1024) };
+    const res = await login().send(big);
+    expect(res.status).toBe(413);
+    // The import routes keep the large limit: the same size reaches auth (401), not the parser.
+    const imp = await request(app.getHttpServer())
+      .post("/api/v1/import/template/preview")
+      .send({ padding: "x".repeat(300 * 1024) });
+    expect(imp.status).toBe(401);
+  });
 });

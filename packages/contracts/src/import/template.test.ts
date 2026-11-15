@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  TEMPLATE_IMPORT_MAX_INSTALMENTS,
   TEMPLATE_IMPORT_MAX_ROWS,
   templateImportRequestSchema,
   templatePlanPaymentSchema,
@@ -98,6 +99,30 @@ describe("templateImportRequestSchema", () => {
       templateImportRequestSchema.safeParse({ movements: rows.slice(0, TEMPLATE_IMPORT_MAX_ROWS) })
         .success,
     ).toBe(true);
+  });
+
+  it(`refuses plans that expand past ${TEMPLATE_IMPORT_MAX_INSTALMENTS} instalments`, () => {
+    const plan = (i: number, installmentCount: number) => ({
+      row: i + 2,
+      ref: `P${i}`,
+      title: "x",
+      startDate: DATE,
+      totalPrincipal: "600000",
+      installmentCount,
+      currency: "CLP",
+      frequency: "MONTHLY",
+      frequencyInterval: 1,
+    });
+    // The run-4 body: 5000 plans of 600 instalments, under the row cap.
+    const abusive = Array.from({ length: 5000 }, (_, i) => plan(i, 600));
+    expect(templateImportRequestSchema.safeParse({ plans: abusive }).success).toBe(false);
+    const atCap = Array.from({ length: TEMPLATE_IMPORT_MAX_INSTALMENTS / 400 }, (_, i) =>
+      plan(i, 400),
+    );
+    expect(templateImportRequestSchema.safeParse({ plans: atCap }).success).toBe(true);
+    expect(
+      templateImportRequestSchema.safeParse({ plans: [...atCap, plan(atCap.length, 1)] }).success,
+    ).toBe(false);
   });
 
   it("requires row ids to be UUID v7 and amounts to be positive", () => {

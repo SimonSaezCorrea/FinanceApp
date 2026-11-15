@@ -30,9 +30,11 @@ export interface CardAccountRepositoryPort {
   /** Same, inside the caller's transaction (its limits too). */
   createWithTx(tx: unknown, userId: string, accountId: string, plan: CardPlan): Promise<string>;
   update(cardId: string, plan: CardPlan): Promise<void>;
-  /** A card's role, activity and sub-limits, inside the caller's transaction (spec 039). */
+  /** A card's role, activity and sub-limits, inside the caller's transaction (spec 039). Matches
+   * the owner too (security run-4 hardening): someone else's card id throws and rolls back. */
   updateRoleWithTx(
     tx: unknown,
+    userId: string,
     cardId: string,
     role: { isPrimary: boolean; isActive: boolean; limits: CardPlan["limits"] },
   ): Promise<void>;

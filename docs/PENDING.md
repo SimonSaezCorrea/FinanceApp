@@ -1129,11 +1129,30 @@ Lo arreglado está en CLAUDE.md (bullet "Security run-2 fixes" y sus anexos). Qu
    barre el bucket a diario (`SweepOrphanObjectsCommand`, hasta 20.000 objetos) y encola los que no
    tienen fila. Necesita el permiso `s3:ListBucket` sobre el bucket; sin él el paso falla y queda en
    el log, sin detener los demás.
-10. **Cuota de adjuntos**: se revisa antes de subir, sin bloqueo; dos subidas simultáneas pueden pasar
-    el tope por una. Aceptado (límite de 20 subidas cada 10 minutos por usuario).
+10. ~~**Cuota de adjuntos**~~ — **hecho (2026-11-15, run-4)**: se vuelve a contar y se guarda la
+    fila en una sola transacción con un candado por usuario (`saveWithinQuota`).
 11. ~~**Límites con lecturas viejas**~~ — **hecho (2026-11-14)**: toda escritura que mueve saldo o cupo
     bloquea las cuentas y revisa el efecto neto dentro de su transacción
     (`assertAccountEffectsLocked`), y crear/editar un movimiento vuelve a calcular ahí el sub-tope de
     la tarjeta y el cupo en otra moneda. Quedan fuera a propósito: borrar un movimiento (deshacer
     siempre debe poder hacerse) y la importación de la plantilla (reproduce su propia línea de
     tiempo).
+
+## Seguridad — pendiente tras la revisión de run-4 (2026-11-15)
+
+Lo arreglado está en CLAUDE.md (bullet "Security run-4 fixes"). Queda, todo de infraestructura:
+
+1. **Secretos de deploy en el entorno `production`**: `CLOUDFLARE_API_TOKEN` y `SENTRY_AUTH_TOKEN`
+   son secretos del repositorio. Hoy nadie más tiene escritura, pero conviene crearlos en Settings >
+   Environments > production > Environment secrets, borrar los del repositorio y rotarlos; el paso 2
+   de `docs/DEPLOY.md` debe decir eso.
+2. **Subida a Cloudflare en un job aparte**: hoy el mismo job instala dependencias, construye y sube
+   con el token. Separarlo (el build sube `dist/` como artefacto, otro job solo lo publica) deja el
+   código de las dependencias lejos del token.
+3. **Condición de `ref` en el rol de AWS** (`fik-github-deploy`): un segundo candado además de la
+   regla de ramas del entorno (`token.actions.githubusercontent.com:sub` ya exige
+   `environment:production`).
+4. **`bcryptjs` en el event loop**: login, registro, recuperación y códigos de recuperación dependen
+   de los límites por IP; un bcrypt nativo o en un worker bajaría el costo por intento.
+5. **Barrido de huérfanos y bucket compartido**: el barrido trata como nuestro todo objeto cuya
+   llave es un UUID; el bucket debe seguir siendo exclusivo de los adjuntos.

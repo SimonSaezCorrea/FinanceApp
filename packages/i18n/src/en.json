@@ -1693,6 +1693,7 @@
       "outdated": "This template is from an earlier version. Download the current template and copy your data into it.",
       "empty": "The template has no rows to import.",
       "tooMany": "The template has more than {{max}} rows. Split it into several files.",
+      "tooManyInstalments": "The plans in this template add up to more than {{max}} instalments. Split it into several files.",
       "readError": "The file couldn't be read. Is it damaged or password-protected?",
       "sheets": {
         "instructions": "Instructions",
@@ -2737,6 +2738,7 @@
   },
   "errors": {
     "INTERNAL_ERROR": "Something went wrong on our side. Please try again in a few minutes.",
+    "PAYLOAD_TOO_LARGE": "What you sent is too large. Try sending less at once.",
     "UNAUTHORIZED": "Sign in to continue.",
     "NOT_FOUND": "Resource not found.",
     "INVALID_CREDENTIALS": "Incorrect RUT or password.",
@@ -2745,7 +2747,7 @@
     "IDENTIFIER_REQUIRED": "Your RUT is how you sign in: you can change it, but not leave it empty.",
     "INVALID_MFA_CODE": "Incorrect code. Try again.",
     "MFA_LOCKED": "Too many attempts. Wait a few minutes before trying again.",
-    "MFA_NOT_PENDING": "There's no pending activation to confirm.",
+    "MFA_NOT_PENDING": "There's no pending activation, or it expired. Start it again.",
     "MFA_ALREADY_ENABLED": "Two-factor verification is already active. Disable it before activating again.",
     "MFA_PENDING_TOKEN_INVALID": "The verification session expired. Sign in again.",
     "VALIDATION_FAILED": "Please check the submitted data.",

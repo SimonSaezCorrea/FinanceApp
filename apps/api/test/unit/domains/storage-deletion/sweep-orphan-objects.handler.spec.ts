@@ -2,7 +2,10 @@ import { EventBus } from "@nestjs/cqrs";
 import { describe, expect, it, vi } from "vitest";
 
 import { SweepOrphanObjectsCommand } from "../../../../src/domains/storage-deletion/application/commands/sweep-orphan-objects.command";
-import { SweepOrphanObjectsHandler } from "../../../../src/domains/storage-deletion/application/commands/sweep-orphan-objects.handler";
+import {
+  SWEEP_MAX_PAGES,
+  SweepOrphanObjectsHandler,
+} from "../../../../src/domains/storage-deletion/application/commands/sweep-orphan-objects.handler";
 import type { StorageDeletionRepositoryPort } from "../../../../src/domains/storage-deletion/domain/ports/storage-deletion.repository.port";
 import type { AttachmentRepositoryPort } from "../../../../src/domains/transaction-attachment/domain/ports/attachment.repository.port";
 import type { ObjectStoragePort } from "../../../../src/domains/transaction-attachment/domain/ports/object-storage.port";
@@ -77,5 +80,18 @@ describe("SweepOrphanObjectsHandler (security run-3)", () => {
     const outcome = await handler.execute(new SweepOrphanObjectsCommand(NOW));
     expect(outcome.skipped).toBe(true);
     expect(storage.listPage).not.toHaveBeenCalled();
+  });
+
+  it("resumes after the last key it reached when a run stops at the page cap (security run-4)", async () => {
+    const pages = Array.from({ length: SWEEP_MAX_PAGES + 2 }, (_, i) => [
+      { key: key(i + 1), lastModified: OLD },
+    ]);
+    const { handler, storage } = build(pages, [], []);
+    await handler.execute(new SweepOrphanObjectsCommand(NOW));
+    const calls = vi.mocked(storage.listPage).mock.calls;
+    expect(calls).toHaveLength(SWEEP_MAX_PAGES);
+    expect(calls[0]![2]).toBeNull();
+    await handler.execute(new SweepOrphanObjectsCommand(NOW));
+    expect(vi.mocked(storage.listPage).mock.calls[SWEEP_MAX_PAGES]![2]).toBe(key(SWEEP_MAX_PAGES));
   });
 });

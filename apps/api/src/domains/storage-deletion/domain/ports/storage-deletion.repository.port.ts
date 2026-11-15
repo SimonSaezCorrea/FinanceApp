@@ -13,8 +13,10 @@ export interface PendingStorageDeletion {
  * owner and the queue is only read by the maintenance cron.
  */
 export interface StorageDeletionRepositoryPort {
-  /** The oldest queued files, at most `limit`. */
-  listPending(limit: number): Promise<PendingStorageDeletion[]>;
+  /** The oldest queued files that failed fewer than `maxAttempts` times, at most `limit`. Filtered
+   * in the query (security run-4): filtering after `take` let 500 exhausted rows at the head of
+   * the queue starve every file behind them. */
+  listPending(limit: number, maxAttempts: number): Promise<PendingStorageDeletion[]>;
   /** Forgets files whose object was deleted. */
   remove(ids: string[]): Promise<void>;
   /** Which of these keys are already queued. */

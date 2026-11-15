@@ -48,15 +48,20 @@ function fakeStorage(overrides: Partial<ObjectStoragePort> = {}): ObjectStorageP
 }
 
 function fakeRepo(overrides: Partial<AttachmentRepositoryPort> = {}): AttachmentRepositoryPort {
-  return {
+  const repo: AttachmentRepositoryPort = {
     listForTransaction: vi.fn(async () => [attachment()]),
     findOne: vi.fn(async () => attachment()),
     save: vi.fn(async () => attachment()),
+    // Like the adapter: counts the usage again and saves only if it still fits.
+    saveWithinQuota: vi.fn(async (props, fits) =>
+      fits(await repo.usage(props.userId, props.transactionId)) ? repo.save(props) : null,
+    ),
     remove: vi.fn(async () => true),
     usage: vi.fn(async () => ({ userCount: 0, userBytes: 0, transactionCount: 0 })),
     existingStorageKeys: vi.fn(async () => new Set<string>()),
     ...overrides,
   };
+  return repo;
 }
 
 const fakeTransactions = (found = true) =>
@@ -151,6 +156,19 @@ describe("UploadAttachmentHandler limits (security run-3)", () => {
     const repo = fakeRepo({ usage: vi.fn(async () => usage) });
     await expect(upload(repo, storage)).rejects.toThrow(/ATTACHMENT_QUOTA_EXCEEDED/);
     expect(storage.put).not.toHaveBeenCalled();
+  });
+
+  it("refuses when another upload filled the quota meanwhile, and deletes the file (run-4)", async () => {
+    const storage = fakeStorage();
+    const usage = vi
+      .fn()
+      .mockResolvedValueOnce({ userCount: 999, userBytes: 10, transactionCount: 0 })
+      .mockResolvedValue({ userCount: 1000, userBytes: 10, transactionCount: 0 });
+    const repo = fakeRepo({ usage });
+    await expect(upload(repo, storage)).rejects.toThrow(/ATTACHMENT_QUOTA_EXCEEDED/);
+    expect(repo.save).not.toHaveBeenCalled();
+    const key = vi.mocked(storage.put).mock.calls[0]![0];
+    expect(storage.delete).toHaveBeenCalledWith(key);
   });
 
   it("deletes the uploaded file when its row can't be saved", async () => {

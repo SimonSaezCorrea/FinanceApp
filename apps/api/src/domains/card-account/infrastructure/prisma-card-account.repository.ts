@@ -165,13 +165,15 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
 
   async updateRoleWithTx(
     tx: unknown,
+    userId: string,
     cardId: string,
     role: { isPrimary: boolean; isActive: boolean; limits: CardPlan["limits"] },
   ): Promise<void> {
-    await (tx as PrismaService).cardAccount.update({
-      where: { id: cardId },
+    const { count } = await (tx as PrismaService).cardAccount.updateMany({
+      where: { id: cardId, userId },
       data: { isPrimary: role.isPrimary, isActive: role.isActive },
     });
+    if (count !== 1) throw new Error(`card ${cardId} is not the user's`);
     await this.limits.replaceForCardWithTx(tx, cardId, role.limits);
   }
 

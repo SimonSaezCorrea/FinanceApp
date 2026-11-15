@@ -69,5 +69,7 @@ export type UserWriteField =
   | "budgetAlertThreshold"
   | "mfaSecretEncrypted"
   | "mfaPendingMethod"
+  | "mfaPendingSessionId"
+  | "mfaPendingAt"
   | "onboardingClosedAt"
   | "releaseNotesSeenVersion";

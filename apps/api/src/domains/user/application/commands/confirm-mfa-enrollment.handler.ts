@@ -13,6 +13,7 @@ import {
 import {
   InvalidMfaCodeError,
   MfaAlreadyEnabledError,
+  MfaLockedError,
   MfaNotPendingError,
   UnauthorizedError,
 } from "../../domain/errors";
@@ -21,6 +22,7 @@ import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/use
 import { generateRecoveryCodes } from "../recovery-code-generator";
 import { totpStepFor } from "../totp";
 import { MfaCodeService } from "../mfa-code-service";
+import { mfaEnrollmentFailures } from "../failure-counter";
 import {
   TRUSTED_DEVICE_REPOSITORY,
   type TrustedDeviceRepositoryPort,
@@ -38,6 +40,7 @@ interface Context {
   /** The pending setup the code was checked against (set by `handle()`). */
   pendingMethod?: User["mfaPendingMethod"];
   pendingSecret?: User["mfaSecret"];
+  pendingSessionId?: string | null;
   /** The TOTP step the code matched; recorded on the locked row so it can't be used again. */
   totpStep?: number | null;
 }
@@ -81,6 +84,10 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
       if (user.mfaEnabled) throw new MfaAlreadyEnabledError();
       throw new MfaNotPendingError();
     }
+    // Only the session that started the setup, within its time (security run-4): a stolen
+    // session can't finish a setup the owner left open, since starting one needs a step-up.
+    if (!user.canConfirmMfaEnrollment(command.sessionId)) throw new MfaNotPendingError();
+    if (mfaEnrollmentFailures.isLocked(user.id)) throw new MfaLockedError();
     const code = command.input.code.trim();
     const valid =
       pending === "EMAIL"
@@ -88,11 +95,16 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
             this.mfaCodes.verifyWithTx(tx, user.id, "ENROLL", code),
           )
         : (context.totpStep = totpStepFor(user.mfaSecret, code)) !== null;
-    if (!valid) throw new InvalidMfaCodeError();
+    if (!valid) {
+      if (mfaEnrollmentFailures.recordFailure(user.id)) throw new MfaLockedError();
+      throw new InvalidMfaCodeError();
+    }
+    mfaEnrollmentFailures.reset(user.id);
 
     // What `persist()` checks the locked row still holds before confirming it.
     context.pendingMethod = user.mfaPendingMethod;
     context.pendingSecret = user.mfaSecret;
+    context.pendingSessionId = user.mfaPendingSessionId;
     const outcome = user.confirmMfaEnrollment();
     const now = new Date();
     if (outcome === "CHANGED") {
@@ -123,7 +135,8 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
       if (!user) throw new UnauthorizedError();
       if (
         user.mfaPendingMethod !== context.pendingMethod ||
-        user.mfaSecret !== context.pendingSecret
+        user.mfaSecret !== context.pendingSecret ||
+        user.mfaPendingSessionId !== context.pendingSessionId
       ) {
         throw new MfaNotPendingError();
       }

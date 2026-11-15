@@ -32,6 +32,12 @@ export const RATE_LIMIT_POLICIES = {
   /** Re-entering the password (or a code) from inside a session: step-up, change password,
    * disable MFA, delete account. Each runs bcrypt; per user, so a stolen session can't burn CPU. */
   sessionPassword: { limit: 10, windowSeconds: 10 * 60, key: "user" },
+  /** Public routes that read or rotate a session (refresh, logout, session status): cheap, but the
+   * only unauthenticated ones that touch the database without another limit (security run-4).
+   * Generous: the landing asks on every page and every tab refreshes on its own. */
+  sessionCheck: { limit: 300, windowSeconds: 10 * 60, key: "ip" },
+  /** Confirming a second-factor setup (security run-4): a 6-digit code, per user. */
+  mfaEnrollment: { limit: 10, windowSeconds: 10 * 60, key: "user" },
   /** Imports and attachment uploads: big bodies, long transactions. */
   heavyWrite: { limit: 20, windowSeconds: 10 * 60, key: "user" },
 } as const satisfies Record<string, { limit: number; windowSeconds: number; key: "ip" | "user" }>;

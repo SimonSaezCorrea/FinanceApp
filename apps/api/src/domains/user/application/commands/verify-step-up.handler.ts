@@ -22,9 +22,10 @@ import {
 import type { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { stepUpExpiry } from "../step-up";
-import { totpStepFor, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
+import { totpStepFor } from "../totp";
 import { VerifyStepUpCommand } from "./verify-step-up.command";
 import { verifyPasswordCounted } from "../password-check";
+import { stepUpCodeFailures } from "../failure-counter";
 import { MfaCodeService } from "../mfa-code-service";
 
 type CodeOutcome = "ok" | "invalid" | "locked" | "unauthorized";
@@ -95,27 +96,27 @@ export class VerifyStepUpHandler extends BaseCommandHandler<
     return { result: { verifiedUntil: stepUpExpiry(now).toISOString() }, events: [] };
   }
 
-  /** Read-validate-write under a row lock, so concurrent wrong codes can't undercount failures.
-   * TOTP and the emailed code (specs/040) share login's counter and lockout. A recovery code never
-   * reaches here: the request schema only takes 6 digits. */
-  private verifyCode(
+  /** Validates a 6-digit code under the row lock (the TOTP step it uses is recorded there). Wrong
+   * codes count on their OWN per-account counter, not login's MFA counter (security run-4
+   * hardening): a stolen session guessing step-up codes used to lock the owner's second-factor
+   * sign-in every 15 minutes. A recovery code never reaches here: the request schema only takes
+   * 6 digits. */
+  private async verifyCode(
     userId: string,
     check: (tx: unknown, locked: User, now: Date) => Promise<boolean>,
   ): Promise<CodeOutcome> {
-    return this.prisma.$transaction(async (tx) => {
+    if (stepUpCodeFailures.isLocked(userId)) return "locked";
+    const outcome = await this.prisma.$transaction(async (tx): Promise<CodeOutcome> => {
       const locked = await this.users.findByIdForUpdateWithTx(tx, userId);
       if (!locked) return "unauthorized";
       const now = new Date();
-      if (locked.isMfaLocked(now)) return "locked";
-      if (!(await check(tx, locked, now))) {
-        locked.recordMfaFailure(MFA_LOCKOUT_THRESHOLD, MFA_LOCKOUT_MINUTES, now);
-        await this.users.saveWithTx(tx, locked);
-        return locked.isMfaLocked(now) ? "locked" : "invalid";
-      }
-      locked.recordMfaSuccess();
+      if (!(await check(tx, locked, now))) return "invalid";
       await this.users.saveWithTx(tx, locked);
       return "ok";
     });
+    if (outcome === "invalid" && stepUpCodeFailures.recordFailure(userId)) return "locked";
+    if (outcome === "ok") stepUpCodeFailures.reset(userId);
+    return outcome;
   }
 }
 

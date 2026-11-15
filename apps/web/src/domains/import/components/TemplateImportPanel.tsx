@@ -63,7 +63,9 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
   const [fileName, setFileName] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [failure, setFailure] = useState<TemplateReadFailure | "tooMany" | null>(null);
+  const [failure, setFailure] = useState<
+    TemplateReadFailure | "tooMany" | "tooManyInstalments" | null
+  >(null);
   const [request, setRequest] = useState<imports.TemplateImportRequest | null>(null);
   const [localIssues, setLocalIssues] = useState<LocalIssue[]>([]);
   const [modes, setModes] = useState<Record<string, imports.BalanceMode>>({});
@@ -110,6 +112,13 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     preview.reset();
     if (totalRows(resolved.request) > imports.TEMPLATE_IMPORT_MAX_ROWS) {
       setFailure("tooMany");
+      return;
+    }
+    if (
+      imports.templateInstalmentCount(resolved.request.plans) >
+      imports.TEMPLATE_IMPORT_MAX_INSTALMENTS
+    ) {
+      setFailure("tooManyInstalments");
       return;
     }
     setRequest(resolved.request);
@@ -244,9 +253,11 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
   const failureMessage =
     failure === "tooMany"
       ? t("import.template.tooMany", { max: imports.TEMPLATE_IMPORT_MAX_ROWS })
-      : failure
-        ? withBrand(t(`import.template.${failure === "unreadable" ? "readError" : failure}`))
-        : null;
+      : failure === "tooManyInstalments"
+        ? t("import.template.tooManyInstalments", { max: imports.TEMPLATE_IMPORT_MAX_INSTALMENTS })
+        : failure
+          ? withBrand(t(`import.template.${failure === "unreadable" ? "readError" : failure}`))
+          : null;
 
   return (
     <ResponsiveSurface

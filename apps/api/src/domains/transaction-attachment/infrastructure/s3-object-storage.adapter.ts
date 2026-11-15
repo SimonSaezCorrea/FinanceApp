@@ -56,12 +56,13 @@ export class S3ObjectStorageAdapter implements ObjectStoragePort {
   async listPage(
     cursor: string | null,
     max: number,
+    startAfter: string | null = null,
   ): Promise<{ items: { key: string; lastModified: Date | null }[]; next: string | null }> {
     const page = await this.s3().send(
       new ListObjectsV2Command({
         Bucket: this.config.bucket,
         MaxKeys: max,
-        ...(cursor ? { ContinuationToken: cursor } : {}),
+        ...(cursor ? { ContinuationToken: cursor } : startAfter ? { StartAfter: startAfter } : {}),
       }),
     );
     const items: { key: string; lastModified: Date | null }[] = [];

@@ -11,8 +11,9 @@ import type {
 export class PrismaStorageDeletionRepository implements StorageDeletionRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  listPending(limit: number): Promise<PendingStorageDeletion[]> {
+  listPending(limit: number, maxAttempts: number): Promise<PendingStorageDeletion[]> {
     return this.prisma.storageDeletion.findMany({
+      where: { attempts: { lt: maxAttempts } },
       orderBy: { createdAt: "asc" },
       take: limit,
       select: { id: true, storageKey: true, attempts: true },

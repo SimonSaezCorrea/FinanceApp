@@ -22,7 +22,13 @@ export class StatementGenerationCron {
   @Cron("0 0 * * *", { timeZone: "America/Santiago" })
   async run(): Promise<void> {
     if (!this.crons.enabled) return;
-    const generated = await this.commandBus.execute(new GenerateScheduledStatementsCommand());
-    if (generated > 0) this.logger.log(`Generated ${generated} scheduled statement(s)`);
+    // Logged, never thrown: a scheduler callback that rejects is an unhandled error (security
+    // run-4 hardening); tomorrow's run picks up whatever is still due.
+    try {
+      const generated = await this.commandBus.execute(new GenerateScheduledStatementsCommand());
+      if (generated > 0) this.logger.log(`Generated ${generated} scheduled statement(s)`);
+    } catch (err: unknown) {
+      this.logger.error(`Scheduled statement generation failed: ${String(err)}`);
+    }
   }
 }
