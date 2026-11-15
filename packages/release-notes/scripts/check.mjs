@@ -15,6 +15,17 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  assignVersions,
+  parseTitles,
+  readTags,
+  readTitles,
+  recordIdsAt,
+  recordIdsIn,
+  TITLES_FILE,
+  untitledPending,
+} from "./versions.mjs";
+
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "releases");
 
 /** feat/fix, with or without a scope, with or without `!`: a change people can notice. */
@@ -63,6 +74,46 @@ export function readCoveredAt(ref, cwd) {
     .split("\n")
     .filter((file) => /\/[^/]+\/es\.md$/.test(file))
     .flatMap((file) => hashesIn(git(["show", `${ref}:${file}`])));
+}
+
+/** The version about to be deployed (records in no tag yet) when it has no title in
+ * versions.json, else null. With `ref`, both the records and the titles come from that commit.
+ * @param {{ root: string, ref?: string, cwd?: string }} options @returns {string | null} */
+export function missingVersionTitle({ root, ref, cwd }) {
+  const current = ref ? recordIdsAt(ref, cwd) : recordIdsIn(root);
+  let titles;
+  if (ref) {
+    let raw = "{}";
+    try {
+      raw = execFileSync("git", ["show", `${ref}:${RECORDS_PATH}/${TITLES_FILE}`], {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch {
+      // no versions.json in that commit: no titles
+    }
+    titles = parseTitles(raw);
+  } else {
+    titles = readTitles(root);
+  }
+  const versions = assignVersions({
+    current,
+    tags: readTags(cwd),
+    recordsAtTag: (version) => recordIdsAt(`v${version}`, cwd),
+    today: "",
+  });
+  return untitledPending(versions, titles);
+}
+
+/** @param {string} version */
+export function formatMissingTitle(version) {
+  return [
+    `✖ Novedades: la versión v${version} no tiene título.`,
+    `  Agrégalo en packages/release-notes/releases/${TITLES_FILE}:`,
+    `    "${version}": { "es": "…", "en": "…" }`,
+    "  Una frase que diga qué trae la versión completa, no un registro suelto.",
+  ].join("\n");
 }
 
 /** @typedef {{ hash: string, subject: string }} Commit */
@@ -165,6 +216,18 @@ export function main(argv) {
   }
   if (missing.length > 0) {
     console.error(formatReport(missing, args.range));
+    return 1;
+  }
+  let untitled;
+  try {
+    untitled = missingVersionTitle({ root: args.root, ref: args.ref, cwd: args.cwd });
+  } catch (error) {
+    const detail = String(error.stderr ?? error.message).trim();
+    console.error(`✖ No se pudo leer el título de la versión: ${detail}`);
+    return 2;
+  }
+  if (untitled) {
+    console.error(formatMissingTitle(untitled));
     return 1;
   }
   const count = commits.filter((c) => isUserFacing(c.subject)).length;

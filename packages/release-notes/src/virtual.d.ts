@@ -9,6 +9,8 @@ declare module "virtual:fik-release-versions" {
     pending: boolean;
     /** Record ids (folder names), newest first. */
     records: string[];
+    /** What the version brought as a whole (releases/versions.json), or null without one. */
+    title?: { es: string; en: string } | null;
   }[];
   export default versions;
 }

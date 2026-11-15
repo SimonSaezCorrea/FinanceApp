@@ -19,6 +19,8 @@ export interface LoadedVersion {
   version: string;
   date: string;
   pending: boolean;
+  /** What the version brought as a whole, in this language; null without one. */
+  title: string | null;
   releases: Release[];
 }
 
@@ -57,6 +59,7 @@ export async function loadVersions(
       version: v.version,
       date: v.date,
       pending: v.pending,
+      title: v.title?.[lang] ?? null,
       releases: v.records.flatMap((id) => byId.get(id) ?? []),
     }))
     .filter((v) => v.releases.length > 0);

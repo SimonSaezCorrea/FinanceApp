@@ -56,12 +56,14 @@ describe("the CLI on a real git repository", () => {
     git("commit", "-q", "-m", subject);
     return git("rev-parse", "HEAD");
   };
-  const record = (hashes: string[]) => {
+  const TITLE = JSON.stringify({ "1.1": { es: "Uno", en: "One" } });
+  const record = (hashes: string[], { titled = true } = {}) => {
     mkdirSync(join(root, "2026-10-26-x"), { recursive: true });
     writeFileSync(
       join(root, "2026-10-26-x", "es.md"),
       `---\ntitle: X\ncommits:\n${hashes.map((h) => `  - ${h}`).join("\n")}\n---\n\n## Nuevo\n\n- x\n`,
     );
+    if (titled) writeFileSync(join(root, "versions.json"), TITLE);
   };
   let errors: string[];
   let logs: string[];
@@ -121,10 +123,29 @@ describe("the CLI on a real git repository", () => {
     const dir = join(repo, "packages/release-notes/releases/2026-10-26-x");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "es.md"), `---\ntitle: X\ncommits:\n  - ${feat.slice(0, 8)}\n---\n`);
+    writeFileSync(join(repo, "packages/release-notes/releases/versions.json"), TITLE);
     const docs = commit("docs(release): x");
     git("checkout", "-q", "HEAD~2"); // the working tree no longer has the record
     expect(main(["--range", `HEAD..${docs}`, "--ref", docs, "--cwd", repo])).toBe(0);
     expect(main(["--range", `HEAD..${docs}`, "--root", root, "--cwd", repo])).toBe(1);
+  });
+
+  it("fails when the version being deployed has no title", () => {
+    commit("docs: notes");
+    const feat = commit("feat: untitled");
+    record([feat.slice(0, 8)], { titled: false });
+    expect(run()).toBe(1);
+    expect(errors.join("\n")).toContain("la versión v1.1 no tiene título");
+  });
+
+  it("asks for no title once every record is in a tagged version", () => {
+    const feat = commit("feat: shipped");
+    const dir = join(repo, "packages/release-notes/releases/2026-10-26-x");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "es.md"), `---\ntitle: X\ncommits:\n  - ${feat.slice(0, 8)}\n---\n`);
+    const docs = commit("docs(release): x");
+    git("tag", "-a", "v1.1", "-m", "fik v1.1 · 2026-10-26");
+    expect(main(["--range", `HEAD~2..${docs}`, "--ref", docs, "--cwd", repo])).toBe(0);
   });
 
   it("a bad range is a usage error, not a pass", () => {

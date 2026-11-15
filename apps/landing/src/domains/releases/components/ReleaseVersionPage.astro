@@ -1,5 +1,10 @@
 ---
-import { type ReleaseKind, releasesIn, type ReleaseVersion } from "@finance/release-notes";
+import {
+  type ReleaseKind,
+  releasesIn,
+  type ReleaseVersion,
+  versionTitle,
+} from "@finance/release-notes";
 import { brandHtml } from "@finance/ui/src/shared/lib/brand";
 
 import { HERO_TITLE } from "../../landing/components/bits";
@@ -119,6 +124,9 @@ const structuredData = JSON.stringify([
                       {formatDay(v.date, lang, "short")}
                     </time>
                   </span>
+                  {v.title ? (
+                    <span class="hidden text-sm leading-snug text-foreground lg:block" set:html={brandHtml(v.title[lang])} />
+                  ) : null}
                   <span class="hidden text-xs lg:block">
                     {t(lang, "releaseNotes.changes", { count: changeCount(v) })}
                   </span>
@@ -142,15 +150,16 @@ const structuredData = JSON.stringify([
       <article data-release-version={version.version} aria-labelledby="release-version-title" class="flex flex-col gap-6">
         <header class="flex flex-col gap-1 border-t pt-8">
           <div class="flex flex-wrap items-center gap-3">
-            <h2 id="release-version-title" class="text-3xl font-semibold tracking-tight">
-              v{version.version}
-            </h2>
+            {version.title ? (
+              <span class="text-sm font-semibold text-muted-foreground">v{version.version}</span>
+            ) : null}
             {latest ? (
               <span class="rounded-full border border-primary/40 px-2.5 py-0.5 text-xs font-semibold text-primary">
                 {t(lang, "releaseNotes.current")}
               </span>
             ) : null}
           </div>
+          <h2 id="release-version-title" class="text-3xl font-semibold tracking-tight" set:html={brandHtml(versionTitle(version, lang))} />
           <p class="text-sm text-muted-foreground">
             <time datetime={version.date}>{t(lang, "releaseNotes.published", { date })}</time>
             {" · "}

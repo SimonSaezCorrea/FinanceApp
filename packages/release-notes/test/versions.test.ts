@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -13,7 +13,15 @@ import {
   parseVersion,
   versionSlug,
 } from "../scripts/version-rules.mjs";
-import { assignVersions, resolveVersions } from "../scripts/versions.mjs";
+import {
+  assignVersions,
+  DEFAULT_ROOT,
+  parseTitles,
+  resolveVersions,
+  TITLES_FILE,
+  untitledPending,
+  withTitles,
+} from "../scripts/versions.mjs";
 
 describe("version rules", () => {
   it("reads and orders versions numerically", () => {
@@ -110,6 +118,10 @@ describe("resolveVersions", () => {
       git("config", "user.name", "t");
       add("guias");
       git("add", ".");
+      writeFileSync(
+        join(root, "versions.json"),
+        JSON.stringify({ "1.1": { es: "Guías", en: "Guides" } }),
+      );
       git("commit", "-qm", "docs(release): guias");
       git("tag", "-a", "v1.1", "-m", "fik v1.1 · 2026-10-26");
       add("plantillas");
@@ -117,8 +129,14 @@ describe("resolveVersions", () => {
       git("commit", "-qm", "docs(release): plantillas");
 
       expect(resolveVersions({ root, today: "2026-11-02", warn: () => {} })).toEqual([
-        { version: "1.2", date: "2026-11-02", pending: true, records: ["plantillas"] },
-        { version: "1.1", date: "2026-10-26", pending: false, records: ["guias"] },
+        { version: "1.2", date: "2026-11-02", pending: true, records: ["plantillas"], title: null },
+        {
+          version: "1.1",
+          date: "2026-10-26",
+          pending: false,
+          records: ["guias"],
+          title: { es: "Guías", en: "Guides" },
+        },
       ]);
     } finally {
       rmSync(repo, { recursive: true, force: true });
@@ -134,5 +152,40 @@ describe("resolveVersions", () => {
     });
     expect(versions).toEqual([]);
     expect(warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe("version titles", () => {
+  const versions = [
+    { version: "1.2", date: "2026-11-02", pending: true, records: ["b"] },
+    { version: "1.1", date: "2026-10-26", pending: false, records: ["a"] },
+  ];
+
+  it("keeps only entries with both languages and a real version", () => {
+    expect(
+      parseTitles(
+        JSON.stringify({
+          "1.1": { es: " Uno ", en: "One" },
+          "1.2": { es: "Dos" },
+          nope: { es: "x", en: "y" },
+        }),
+      ),
+    ).toEqual({ "1.1": { es: "Uno", en: "One" } });
+  });
+
+  it("gives each version its title, null without one", () => {
+    const titled = withTitles(versions, { "1.1": { es: "Uno", en: "One" } });
+    expect(titled.map((v) => v.title)).toEqual([null, { es: "Uno", en: "One" }]);
+  });
+
+  it("names the version being deployed when it has no title", () => {
+    expect(untitledPending(versions, {})).toBe("1.2");
+    expect(untitledPending(versions, { "1.2": { es: "Dos", en: "Two" } })).toBeNull();
+    expect(untitledPending([versions[1]!], {})).toBeNull();
+  });
+
+  it("the repository's titles are all complete", () => {
+    const raw = readFileSync(join(DEFAULT_ROOT, TITLES_FILE), "utf8");
+    expect(Object.keys(parseTitles(raw))).toEqual(Object.keys(JSON.parse(raw)));
   });
 });

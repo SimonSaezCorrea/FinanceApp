@@ -23,7 +23,9 @@ import { chileDay, compareVersions, nextVersion, parseVersion } from "./version-
 export const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "releases");
 const RECORDS_PATH = "packages/release-notes/releases";
 
-/** @typedef {{ version: string, date: string, pending: boolean, records: string[] }} Version */
+/** @typedef {{ es: string, en: string }} VersionTitle */
+/** @typedef {{ version: string, date: string, pending: boolean, records: string[],
+ *   title?: VersionTitle | null }} Version */
 /** @typedef {{ version: string, date: string }} Tag */
 
 /** The record folders on disk (each with its es.md). @param {string} root @returns {string[]} */
@@ -32,6 +34,45 @@ export function recordIdsIn(root = DEFAULT_ROOT) {
   return readdirSync(root, { withFileTypes: true })
     .filter((d) => d.isDirectory() && existsSync(join(root, d.name, "es.md")))
     .map((d) => d.name);
+}
+
+/** The file, inside the records folder, with each version's title in both languages:
+ * `{ "1.4": { "es": "…", "en": "…" } }`. A version is a deploy, so its title says what that deploy
+ * brought as a whole; the one being deployed must have one (check.mjs). */
+export const TITLES_FILE = "versions.json";
+
+/** The titles in a versions.json text; entries without both languages are left out.
+ * @param {string} raw @returns {Record<string, VersionTitle>} */
+export function parseTitles(raw) {
+  /** @type {Record<string, VersionTitle>} */
+  const titles = {};
+  const data = JSON.parse(raw);
+  if (!data || typeof data !== "object") return titles;
+  for (const [version, value] of Object.entries(data)) {
+    const es = typeof value?.es === "string" ? value.es.trim() : "";
+    const en = typeof value?.en === "string" ? value.en.trim() : "";
+    if (parseVersion(version) && es && en) titles[version] = { es, en };
+  }
+  return titles;
+}
+
+/** The titles stored next to the records, or none. @param {string} root */
+export function readTitles(root = DEFAULT_ROOT) {
+  const file = join(root, TITLES_FILE);
+  return existsSync(file) ? parseTitles(readFileSync(file, "utf8")) : {};
+}
+
+/** Each version with its title (null when it has none). Pure.
+ * @param {Version[]} versions @param {Record<string, VersionTitle>} titles @returns {Version[]} */
+export function withTitles(versions, titles) {
+  return versions.map((v) => ({ ...v, title: v.title ?? titles[v.version] ?? null }));
+}
+
+/** The version being deployed when it has no title yet, else null. Pure.
+ * @param {Version[]} versions @param {Record<string, VersionTitle>} titles */
+export function untitledPending(versions, titles) {
+  const pending = versions.find((v) => v.pending);
+  return pending && !titles[pending.version] ? pending.version : null;
 }
 
 /** @param {string[]} args @param {string} cwd */
@@ -151,31 +192,38 @@ export function resolveVersions(options = {}) {
   const today = options.today || process.env.RELEASE_DATE || chileDay();
   const warn = options.warn ?? ((message) => console.warn(message));
   const current = recordIdsIn(root);
+  const titles = readTitles(root);
   const snapshot = process.env.RELEASE_VERSIONS_SNAPSHOT;
   if (snapshot) {
     /** @type {Version[]} */
     const fixed = JSON.parse(readFileSync(resolve(snapshot), "utf8"));
-    return fixed
-      .map((v) => ({ ...v, records: v.records.filter((id) => current.includes(id)) }))
-      .filter((v) => v.records.length > 0);
+    return withTitles(
+      fixed
+        .map((v) => ({ ...v, records: v.records.filter((id) => current.includes(id)) }))
+        .filter((v) => v.records.length > 0),
+      titles,
+    );
   }
   try {
     if (git(["rev-parse", "--is-shallow-repository"], root).trim() === "true") {
       warn("release-notes: shallow clone, so no version tags: every record counts as new.");
     }
     const tags = readTags(root);
-    return assignVersions({
-      current,
-      tags,
-      recordsAtTag: (version) => recordIdsAt(`v${version}`, root),
-      today,
-      addedAt: addedAt(root),
-    });
+    return withTitles(
+      assignVersions({
+        current,
+        tags,
+        recordsAtTag: (version) => recordIdsAt(`v${version}`, root),
+        today,
+        addedAt: addedAt(root),
+      }),
+      titles,
+    );
   } catch (error) {
     warn(
       `release-notes: git unavailable (${String(error).split("\n")[0]}): every record counts as new.`,
     );
-    return assignVersions({ current, tags: [], recordsAtTag: () => [], today });
+    return withTitles(assignVersions({ current, tags: [], recordsAtTag: () => [], today }), titles);
   }
 }
 

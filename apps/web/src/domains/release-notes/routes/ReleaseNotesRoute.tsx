@@ -75,6 +75,9 @@ function VersionButton({
           </span>
         ) : null}
       </span>
+      {wide && version.title ? (
+        <span className="text-sm leading-snug">{withBrand(version.title)}</span>
+      ) : null}
       {wide ? (
         <span className="text-xs text-muted-foreground">
           {t("releaseNotes.changes", { count: changeCount(version) })}
@@ -98,15 +101,18 @@ function VersionDetail({
     >
       <header className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-3">
-          <h2 id="release-version-title" className="text-2xl font-semibold tracking-tight">
-            v{version.version}
-          </h2>
+          {version.title ? (
+            <span className="text-sm font-semibold text-muted-foreground">v{version.version}</span>
+          ) : null}
           {current ? (
             <span className="rounded-full border border-primary/40 px-2.5 py-0.5 text-xs font-semibold text-primary">
               {t("releaseNotes.current")}
             </span>
           ) : null}
         </div>
+        <h2 id="release-version-title" className="text-2xl font-semibold tracking-tight">
+          {version.title ? withBrand(version.title) : `v${version.version}`}
+        </h2>
         <p className="text-sm text-muted-foreground">
           <time dateTime={version.date}>
             {t("releaseNotes.published", { date: formatDay(version.date, i18n.language, "long") })}

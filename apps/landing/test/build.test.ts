@@ -232,7 +232,8 @@ describe("public site build", () => {
         expect(html).toContain("data-release-versions");
         expect(html).toMatch(/data-release-summary[\s\S]*href="#plantillas"/);
         expect(html.match(/<article[^>]*data-release-version=/g)).toHaveLength(1);
-        expect(html).toMatch(/<h2[^>]*id="release-version-title"[^>]*>\s*v\d+\.\d+/);
+        expect(html).toMatch(/<h2[^>]*id="release-version-title"/);
+        expect(html).toMatch(/data-release-version="\d+\.\d+"[\s\S]*>v\d+\.\d+</);
         expect(html).toMatch(new RegExp(`<section[^>]*id="${RECORD}"`));
         expect(html).toMatch(/<time datetime="\d{4}-\d{2}-\d{2}"/);
         expect(html).toContain('aria-current="page"');

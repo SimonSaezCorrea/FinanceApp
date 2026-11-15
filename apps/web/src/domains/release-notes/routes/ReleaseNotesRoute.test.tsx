@@ -55,7 +55,11 @@ describe("ReleaseNotesRoute (spec 038)", () => {
     const record = await newestRecord();
     renderRoute();
     expect(await screen.findByRole("heading", { name: record.title })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: `v${latestVersion()}` })).toBeTruthy();
+    // The version's heading is its title (releases/versions.json), or `v1.N` without one.
+    const [newest] = await loadVersions("es");
+    expect(
+      screen.getByRole("heading", { name: newest!.title ?? `v${latestVersion()}` }),
+    ).toBeTruthy();
     const button = screen.getByRole("button", { name: `Versión ${latestVersion()}` });
     expect(button.getAttribute("aria-pressed")).toBe("true");
     // Newer than what was seen on arrival: it keeps its "new" mark while the page is open.

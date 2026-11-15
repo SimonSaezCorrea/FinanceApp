@@ -29,6 +29,8 @@ export interface ReleaseVersion {
   date: string;
   /** Not tagged yet: the version this build publishes. */
   pending: boolean;
+  /** What the version brought as a whole, in each language (releases/versions.json). */
+  title: Record<ReleaseLanguage, string> | null;
   records: ReleaseRecord[];
 }
 
@@ -71,11 +73,22 @@ export function groupByVersion(
       placed.add(id);
       return [record];
     });
-    return { version: v.version, date: v.date, pending: v.pending, records: own };
+    return {
+      version: v.version,
+      date: v.date,
+      pending: v.pending,
+      title: v.title ?? null,
+      records: own,
+    };
   });
   const loose = records.filter((r) => !placed.has(r.id));
   if (loose.length > 0 && grouped[0]) grouped[0].records.push(...loose);
   return grouped.filter((v) => v.records.length > 0);
+}
+
+/** The version's title in one language, or `v1.2` when it has none. */
+export function versionTitle(version: ReleaseVersion, lang: ReleaseLanguage): string {
+  return version.title?.[lang] ?? `v${version.version}`;
 }
 
 /** One language's records of a version. */
