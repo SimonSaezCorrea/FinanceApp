@@ -131,12 +131,17 @@ export class PrismaSessionRepository
   }
 
   async isAlive(userId: string, sessionId: string, now: Date): Promise<boolean> {
+    // Same cap as rotateRefresh: a session past SESSION_MAX_AGE_DAYS can't be refreshed, so it
+    // must not read as alive either — the public site would send the person back to the app, the
+    // app would fail to refresh and send them back to the site, forever (2026-11-15).
+    const oldest = new Date(now.getTime() - SESSION_MAX_AGE_DAYS * 86_400_000);
     const row = await this.prisma.session.findFirst({
       where: {
         id: sessionId,
         userId,
         closedAt: null,
         expiresAt: { gt: now },
+        createdAt: { gt: oldest },
         user: { status: "ACTIVE" },
       },
       select: { id: true },

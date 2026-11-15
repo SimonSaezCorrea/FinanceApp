@@ -75,6 +75,37 @@ describe("ListSessionsQueryHandler (integration)", () => {
     expect(result.find((s) => s.id === older.id)).toMatchObject({ isCurrent: false });
   });
 
+  // 2026-11-15: a session opened over SESSION_MAX_AGE_DAYS ago can't be refreshed, so isAlive
+  // (what GET /auth/session reads) must say so too, or the site and the app bounce forever.
+  it("a session past the 30-day cap is neither refreshable nor alive", async () => {
+    const old = await sessionRepo.create({
+      id: randomUUID(),
+      userId,
+      deviceLabel: "Old browser",
+      city: null,
+      country: null,
+      expiresAt: oneWeek.toISOString(),
+    });
+    await prisma.session.update({
+      where: { id: old.id },
+      data: { createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000) },
+    });
+    const now = new Date();
+    expect(await sessionRepo.isAlive(userId, old.id, now)).toBe(false);
+    expect(await sessionRepo.rotateRefresh(userId, old.id, null, randomUUID(), now, oneWeek)).toBe(
+      "GONE",
+    );
+    const fresh = await sessionRepo.create({
+      id: randomUUID(),
+      userId,
+      deviceLabel: "New browser",
+      city: null,
+      country: null,
+      expiresAt: oneWeek.toISOString(),
+    });
+    expect(await sessionRepo.isAlive(userId, fresh.id, new Date())).toBe(true);
+  });
+
   it("an already-expired session still appears, but marked closed (not yet swept by the cron)", async () => {
     const expiredAt = new Date(Date.now() - 60_000).toISOString();
     const expired = await sessionRepo.create({
